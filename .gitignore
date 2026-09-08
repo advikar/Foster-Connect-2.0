@@ -1,8 +1,7 @@
+# filepath: /Users/advikarichhariya/StudentHub/Projects/FosterConnect2.0/.gitignore
+.DS_Store
+.vscode/
 node_modules/
 dist/
-dist-ssr/
-*.local
 .env
-.env.local
-.DS_Store
 *.log
