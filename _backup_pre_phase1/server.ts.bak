@@ -1,0 +1,527 @@
+import crypto from "crypto";
+import path from "path";
+import cors from "cors";
+import dotenv from "dotenv";
+import express, { type Request, type Response, type NextFunction } from "express";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import { createClient, type Row } from "@libsql/client";
+import { z } from "zod";
+import {
+  generateGroundedRoadmap,
+  getNavigatorResponse,
+  type GroundedResource,
+  type HistoryMessage,
+} from "./services/ai.service";
+
+dotenv.config();
+
+const app = express();
+const PORT = Number(process.env.PORT || 4000);
+const dbPath = process.env.DB_PATH
+  ? path.resolve(__dirname, process.env.DB_PATH)
+  : path.resolve(__dirname, "../../data/foster_connect.db");
+const db = createClient({ url: `file:${dbPath}` });
+
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
+  .split(",")
+  .map(origin => origin.trim());
+
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(cors({ origin: allowedOrigins, methods: ["GET", "POST", "PATCH", "DELETE"] }));
+app.use(express.json({ limit: "40kb" }));
+app.use("/api/", rateLimit({ windowMs: 60_000, limit: 100, standardHeaders: "draft-7", legacyHeaders: false }));
+app.use("/api/chat", rateLimit({ windowMs: 60_000, limit: 15, standardHeaders: "draft-7", legacyHeaders: false }));
+app.use("/api/roadmaps", rateLimit({ windowMs: 60_000, limit: 8, standardHeaders: "draft-7", legacyHeaders: false }));
+
+type SessionRequest = Request & { sessionId?: string };
+
+function asyncRoute(handler: (req: SessionRequest, res: Response) => Promise<void>) {
+  return (req: SessionRequest, res: Response, next: NextFunction) => handler(req, res).catch(next);
+}
+
+function requireSession(req: SessionRequest, res: Response, next: NextFunction) {
+  const sessionId = req.header("x-session-id");
+  if (!sessionId || !/^[a-zA-Z0-9-]{20,80}$/.test(sessionId)) {
+    res.status(400).json({ error: "A valid anonymous session is required" });
+    return;
+  }
+  req.sessionId = sessionId;
+  next();
+}
+
+function requirePartner(req: Request, res: Response, next: NextFunction) {
+  const configured = process.env.PARTNER_ACCESS_TOKEN;
+  if (!configured || req.header("authorization") !== `Bearer ${configured}`) {
+    res.status(401).json({ error: "Partner access required" });
+    return;
+  }
+  next();
+}
+
+function rowString(row: Row, key: string) {
+  const value = row[key];
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function mapResource(row: Row): GroundedResource {
+  return {
+    id: Number(row.id),
+    title: rowString(row, "title"),
+    organization: rowString(row, "organization"),
+    description: rowString(row, "description"),
+    category: rowString(row, "category"),
+    county: rowString(row, "county"),
+    serviceArea: rowString(row, "service_area"),
+    eligibility: rowString(row, "eligibility"),
+    ageMin: row.age_min === null ? null : Number(row.age_min),
+    ageMax: row.age_max === null ? null : Number(row.age_max),
+    cost: rowString(row, "cost"),
+    applicationSteps: rowString(row, "application_steps"),
+    whatToBring: rowString(row, "what_to_bring"),
+    website: rowString(row, "website"),
+    phone: rowString(row, "phone"),
+    address: rowString(row, "address"),
+    hours: rowString(row, "hours"),
+    languages: rowString(row, "languages"),
+    accessibility: rowString(row, "accessibility"),
+    deliveryMode: rowString(row, "delivery_mode"),
+    urgencyLevel: rowString(row, "urgency_level"),
+    isCrisis: Boolean(row.is_crisis),
+    sourceUrl: rowString(row, "source_url"),
+    verifiedAt: rowString(row, "verified_at"),
+    tags: rowString(row, "tags"),
+  };
+}
+
+function mapTask(row: Row) {
+  return {
+    id: Number(row.id),
+    roadmapId: Number(row.roadmap_id),
+    taskText: rowString(row, "task_text"),
+    taskCategory: rowString(row, "task_category"),
+    timeframe: rowString(row, "timeframe"),
+    whyItMatters: rowString(row, "why_it_matters"),
+    motivationNote: rowString(row, "motivation_note"),
+    status: rowString(row, "status") || "not_started",
+    dueDate: row.due_date ? String(row.due_date) : null,
+    blockerReason: row.blocker_reason ? String(row.blocker_reason) : null,
+    privateNote: row.private_note ? String(row.private_note) : null,
+    resourceId: row.resource_id === null ? null : Number(row.resource_id),
+    taskOrder: Number(row.task_order || 0),
+    completedAt: row.completed_at ? String(row.completed_at) : null,
+    createdAt: rowString(row, "created_at"),
+  };
+}
+
+function mapRoadmap(row: Row) {
+  return {
+    id: Number(row.id),
+    title: rowString(row, "title"),
+    goalSummary: rowString(row, "goal_summary"),
+    greeting: rowString(row, "greeting"),
+    closing: rowString(row, "closing"),
+    county: rowString(row, "county"),
+    youthName: rowString(row, "youth_name"),
+    status: rowString(row, "status"),
+    createdAt: rowString(row, "created_at"),
+    updatedAt: rowString(row, "updated_at"),
+  };
+}
+
+const synonyms: Record<string, string[]> = {
+  housing: ["shelter", "rent", "apartment", "place", "stay"],
+  employment: ["job", "work", "career", "resume", "interview"],
+  education: ["college", "school", "class", "scholarship", "tuition"],
+  transportation: ["ride", "bus", "transit", "car"],
+  food: ["hungry", "groceries", "meal", "pantry"],
+  healthcare: ["doctor", "clinic", "medical", "health"],
+  documents: ["identification", "id", "birth", "social security"],
+};
+
+function searchTerms(query: string) {
+  const base = query.toLowerCase().match(/[a-z0-9]+/g)?.filter(term => term.length > 2) || [];
+  const expanded = new Set(base);
+  for (const [concept, words] of Object.entries(synonyms)) {
+    if (base.some(term => term === concept || words.includes(term))) {
+      expanded.add(concept);
+      words.forEach(word => expanded.add(word));
+    }
+  }
+  return [...expanded].slice(0, 18);
+}
+
+async function listVerifiedResources(options: {
+  query?: string;
+  county?: string;
+  category?: string;
+  urgency?: string;
+  age?: number;
+  limit?: number;
+}) {
+  const filters = ["r.status = 'verified'"];
+  const args: (string | number)[] = [];
+  if (options.county && options.county !== "All") {
+    filters.push("(r.county = ? OR r.county = 'California' OR r.county = 'National')");
+    args.push(options.county);
+  }
+  if (options.category && options.category !== "All") {
+    filters.push("r.category = ?");
+    args.push(options.category);
+  }
+  if (options.urgency && options.urgency !== "All") {
+    filters.push("r.urgency_level = ?");
+    args.push(options.urgency);
+  }
+  if (options.age !== undefined) {
+    filters.push("(r.age_min IS NULL OR r.age_min <= ?) AND (r.age_max IS NULL OR r.age_max >= ?)");
+    args.push(options.age, options.age);
+  }
+
+  const terms = options.query ? searchTerms(options.query) : [];
+  let sql: string;
+  if (terms.length) {
+    sql = `SELECT r.*, bm25(resources_fts) AS relevance
+           FROM resources_fts JOIN resources r ON r.id = resources_fts.rowid
+           WHERE resources_fts MATCH ? AND ${filters.join(" AND ")}
+           ORDER BY relevance ASC, r.verified_at DESC LIMIT ?`;
+    args.unshift(terms.map(term => `"${term}"`).join(" OR "));
+  } else {
+    sql = `SELECT r.* FROM resources r WHERE ${filters.join(" AND ")}
+           ORDER BY r.is_crisis DESC, r.verified_at DESC, r.title ASC LIMIT ?`;
+  }
+  args.push(Math.min(options.limit || 60, 100));
+  const result = await db.execute({ sql, args });
+  return result.rows.map(mapResource);
+}
+
+async function resourcesByIds(ids: number[]) {
+  const unique = [...new Set(ids)].filter(Number.isInteger);
+  if (!unique.length) return [];
+  const result = await db.execute({
+    sql: `SELECT * FROM resources WHERE status = 'verified' AND id IN (${unique.map(() => "?").join(",")})`,
+    args: unique,
+  });
+  const map = new Map(result.rows.map(row => [Number(row.id), mapResource(row)]));
+  return unique.map(id => map.get(id)).filter(Boolean) as GroundedResource[];
+}
+
+function isImmediateSafetyConcern(message: string) {
+  return /\b(kill myself|suicide|suicidal|hurt myself|self[- ]harm|not safe|immediate danger|being trafficked|tonight.*shelter|shelter.*tonight)\b/i.test(message);
+}
+
+const roadmapInputSchema = z.object({
+  youthName: z.string().trim().max(80).optional(),
+  age: z.coerce.number().int().min(13).max(30).optional(),
+  county: z.enum(["Contra Costa", "Alameda", "California", "National"]),
+  currentNeeds: z.string().trim().min(5).max(2000),
+  futurePlan: z.string().trim().min(3).max(1200),
+  additionalContext: z.string().trim().max(2000).optional(),
+});
+
+const submissionSchema = z.object({
+  title: z.string().trim().min(3).max(140),
+  organization: z.string().trim().min(2).max(140),
+  description: z.string().trim().min(20).max(2000),
+  category: z.string().trim().min(2).max(60),
+  county: z.string().trim().min(2).max(80),
+  website: z.string().url().max(500),
+  contact: z.string().trim().max(300).optional().default(""),
+  sourceUrl: z.string().url().max(500),
+  relationship: z.string().trim().min(5).max(500),
+  submitterName: z.string().trim().max(100).optional().default("Anonymous"),
+});
+
+async function initDb() {
+  await db.execute("PRAGMA foreign_keys = ON");
+  await db.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS roadmaps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      goal_summary TEXT NOT NULL,
+      greeting TEXT NOT NULL,
+      closing TEXT NOT NULL,
+      county TEXT NOT NULL,
+      youth_name TEXT NOT NULL DEFAULT 'Friend',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_roadmaps_session ON roadmaps(session_id, updated_at);
+    CREATE TABLE IF NOT EXISTS roadmap_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      roadmap_id INTEGER NOT NULL REFERENCES roadmaps(id) ON DELETE CASCADE,
+      session_id TEXT NOT NULL,
+      task_text TEXT NOT NULL,
+      task_category TEXT NOT NULL,
+      timeframe TEXT NOT NULL,
+      why_it_matters TEXT NOT NULL,
+      motivation_note TEXT,
+      status TEXT NOT NULL DEFAULT 'not_started',
+      due_date TEXT,
+      blocker_reason TEXT,
+      private_note TEXT,
+      resource_id INTEGER REFERENCES resources(id),
+      task_order INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_tasks_session ON roadmap_tasks(session_id, roadmap_id);
+    CREATE TABLE IF NOT EXISTS saved_resources (
+      session_id TEXT NOT NULL,
+      resource_id INTEGER NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(session_id, resource_id)
+    );
+    CREATE TABLE IF NOT EXISTS resource_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL, organization TEXT NOT NULL, description TEXT NOT NULL,
+      category TEXT NOT NULL, county TEXT NOT NULL, website TEXT NOT NULL,
+      contact TEXT, source_url TEXT NOT NULL, relationship TEXT NOT NULL,
+      submitter_name TEXT NOT NULL DEFAULT 'Anonymous', status TEXT NOT NULL DEFAULT 'pending',
+      moderator_note TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS resource_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      resource_id INTEGER NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+      session_id TEXT NOT NULL, reason TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+}
+
+app.get("/api/health", (_req, res) => res.json({
+  status: "ok",
+  aiConfigured: Boolean(process.env.LLM_API_KEY && process.env.LLM_API_KEY !== "your_api_key_here"),
+}));
+
+app.get("/api/resources", asyncRoute(async (req, res) => {
+  const query = z.object({
+    q: z.string().max(300).optional(), county: z.string().max(80).optional(),
+    category: z.string().max(80).optional(), urgency: z.string().max(40).optional(),
+    age: z.coerce.number().int().min(13).max(99).optional(),
+  }).parse(req.query);
+  res.json(await listVerifiedResources({ query: query.q, ...query, limit: 100 }));
+}));
+
+app.get("/api/resources/:id", asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const resources = await resourcesByIds([id]);
+  if (!resources[0]) { res.status(404).json({ error: "Resource not found" }); return; }
+  res.json(resources[0]);
+}));
+
+app.post("/api/resource-submissions", asyncRoute(async (req, res) => {
+  const input = submissionSchema.parse(req.body);
+  const result = await db.execute({
+    sql: `INSERT INTO resource_submissions
+      (title, organization, description, category, county, website, contact, source_url, relationship, submitter_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [input.title, input.organization, input.description, input.category, input.county,
+      input.website, input.contact, input.sourceUrl, input.relationship, input.submitterName],
+  });
+  res.status(202).json({ id: Number(result.lastInsertRowid), status: "pending", message: "Thanks. A partner will verify this resource before it appears publicly." });
+}));
+
+app.post("/api/resources/:id/reports", requireSession, asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const { reason } = z.object({ reason: z.string().trim().min(5).max(800) }).parse(req.body);
+  await db.execute({ sql: "INSERT INTO resource_reports(resource_id, session_id, reason) VALUES (?, ?, ?)", args: [id, req.sessionId!, reason] });
+  res.status(202).json({ message: "Thank you. A partner will review this resource." });
+}));
+
+app.get("/api/analytics", asyncRoute(async (_req, res) => {
+  const [category, county, totals] = await Promise.all([
+    db.execute("SELECT category, COUNT(*) AS count FROM resources WHERE status='verified' GROUP BY category ORDER BY count DESC"),
+    db.execute("SELECT county, COUNT(*) AS count FROM resources WHERE status='verified' GROUP BY county ORDER BY count DESC"),
+    db.execute("SELECT COUNT(*) AS verified, SUM(CASE WHEN is_crisis=1 THEN 1 ELSE 0 END) AS crisis FROM resources WHERE status='verified'"),
+  ]);
+  res.json({ category: category.rows, county: county.rows, totals: totals.rows[0] });
+}));
+
+app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
+  const input = z.object({
+    message: z.string().trim().min(1).max(2000),
+    county: z.string().max(80).optional(),
+    age: z.number().int().min(13).max(99).optional(),
+    history: z.array(z.object({ role: z.enum(["user", "assistant", "bot"]), content: z.string().max(4000) })).max(20).default([]),
+  }).parse(req.body);
+
+  if (isImmediateSafetyConcern(input.message)) {
+    const crisis = (await listVerifiedResources({ county: input.county, age: input.age, limit: 30 })).filter(resource => resource.isCrisis).slice(0, 3);
+    res.json({
+      reply: "Your safety matters more than finishing this conversation. If you might be in immediate danger, call 911 or go somewhere with other people if you safely can. I also found the verified crisis options shown below—availability should still be confirmed directly.",
+      resources: crisis,
+      needsClarification: false,
+      suggestedTasks: [],
+      safetyMode: true,
+    });
+    return;
+  }
+
+  const grounded = await listVerifiedResources({ query: input.message, county: input.county, age: input.age, limit: 10 });
+  const result = await getNavigatorResponse(
+    input.message,
+    input.history.map(message => ({ role: message.role === "bot" ? "assistant" : message.role, content: message.content })) as HistoryMessage[],
+    grounded,
+  );
+  res.json({ ...result, resources: await resourcesByIds(result.resourceIds), safetyMode: false });
+}));
+
+app.post("/api/roadmaps", requireSession, asyncRoute(async (req, res) => {
+  const input = roadmapInputSchema.parse(req.body);
+  let grounded = await listVerifiedResources({
+    query: `${input.currentNeeds} ${input.futurePlan}`,
+    county: input.county,
+    age: input.age,
+    limit: 16,
+  });
+  if (grounded.length < 8) {
+    const regional = await listVerifiedResources({ county: input.county, age: input.age, limit: 20 });
+    const seen = new Set(grounded.map(resource => resource.id));
+    grounded = [...grounded, ...regional.filter(resource => !seen.has(resource.id))].slice(0, 16);
+  }
+  const roadmap = await generateGroundedRoadmap({
+    youthName: input.youthName || "Friend",
+    age: input.age,
+    county: input.county,
+    currentNeeds: input.currentNeeds,
+    futurePlan: input.futurePlan,
+    additionalContext: input.additionalContext || "None provided",
+  }, grounded);
+
+  const result = await db.execute({
+    sql: `INSERT INTO roadmaps(session_id, title, goal_summary, greeting, closing, county, youth_name)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: [req.sessionId!, roadmap.title, roadmap.goalSummary, roadmap.greeting, roadmap.closing, input.county, input.youthName || "Friend"],
+  });
+  const roadmapId = Number(result.lastInsertRowid);
+  for (const [index, task] of roadmap.tasks.entries()) {
+    await db.execute({
+      sql: `INSERT INTO roadmap_tasks
+        (roadmap_id, session_id, task_text, task_category, timeframe, why_it_matters, motivation_note, resource_id, task_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [roadmapId, req.sessionId!, task.taskText, task.taskCategory, task.timeframe,
+        task.whyItMatters, task.motivationNote, task.resourceId, index],
+    });
+  }
+  const [roadmapRow, taskRows, recommended] = await Promise.all([
+    db.execute({ sql: "SELECT * FROM roadmaps WHERE id=?", args: [roadmapId] }),
+    db.execute({ sql: "SELECT * FROM roadmap_tasks WHERE roadmap_id=? ORDER BY task_order", args: [roadmapId] }),
+    resourcesByIds(roadmap.recommendedResourceIds),
+  ]);
+  res.status(201).json({ ...mapRoadmap(roadmapRow.rows[0]), tasks: taskRows.rows.map(mapTask), recommendedResources: recommended });
+}));
+
+app.get("/api/roadmaps", requireSession, asyncRoute(async (req, res) => {
+  const result = await db.execute({ sql: "SELECT * FROM roadmaps WHERE session_id=? ORDER BY updated_at DESC", args: [req.sessionId!] });
+  res.json(result.rows.map(mapRoadmap));
+}));
+
+app.get("/api/roadmaps/:id", requireSession, asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const [roadmapRows, taskRows] = await Promise.all([
+    db.execute({ sql: "SELECT * FROM roadmaps WHERE id=? AND session_id=?", args: [id, req.sessionId!] }),
+    db.execute({ sql: "SELECT * FROM roadmap_tasks WHERE roadmap_id=? AND session_id=? ORDER BY task_order", args: [id, req.sessionId!] }),
+  ]);
+  if (!roadmapRows.rows[0]) { res.status(404).json({ error: "Roadmap not found" }); return; }
+  const tasks = taskRows.rows.map(mapTask);
+  const resources = await resourcesByIds(tasks.map(task => task.resourceId).filter((id): id is number => id !== null));
+  res.json({ ...mapRoadmap(roadmapRows.rows[0]), tasks, recommendedResources: resources });
+}));
+
+app.patch("/api/tasks/:id", requireSession, asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const update = z.object({
+    status: z.enum(["not_started", "in_progress", "completed", "blocked"]).optional(),
+    dueDate: z.string().date().nullable().optional(),
+    blockerReason: z.string().trim().max(500).nullable().optional(),
+    privateNote: z.string().trim().max(1000).nullable().optional(),
+  }).refine(value => Object.keys(value).length > 0).parse(req.body);
+
+  const fields: string[] = [];
+  const args: (string | null)[] = [];
+  if (update.status !== undefined) { fields.push("status=?"); args.push(update.status); fields.push("completed_at=?"); args.push(update.status === "completed" ? new Date().toISOString() : null); }
+  if (update.dueDate !== undefined) { fields.push("due_date=?"); args.push(update.dueDate); }
+  if (update.blockerReason !== undefined) { fields.push("blocker_reason=?"); args.push(update.blockerReason); }
+  if (update.privateNote !== undefined) { fields.push("private_note=?"); args.push(update.privateNote); }
+  fields.push("updated_at=CURRENT_TIMESTAMP");
+  await db.execute({ sql: `UPDATE roadmap_tasks SET ${fields.join(",")} WHERE id=? AND session_id=?`, args: [...args, id, req.sessionId!] });
+  const result = await db.execute({ sql: "SELECT * FROM roadmap_tasks WHERE id=? AND session_id=?", args: [id, req.sessionId!] });
+  if (!result.rows[0]) { res.status(404).json({ error: "Task not found" }); return; }
+  await db.execute({ sql: "UPDATE roadmaps SET updated_at=CURRENT_TIMESTAMP WHERE id=?", args: [Number(result.rows[0].roadmap_id)] });
+  res.json(mapTask(result.rows[0]));
+}));
+
+app.post("/api/saved-resources/:id", requireSession, asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  await db.execute({ sql: "INSERT OR IGNORE INTO saved_resources(session_id, resource_id) VALUES (?, ?)", args: [req.sessionId!, id] });
+  res.status(201).json({ saved: true });
+}));
+
+app.delete("/api/saved-resources/:id", requireSession, asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  await db.execute({ sql: "DELETE FROM saved_resources WHERE session_id=? AND resource_id=?", args: [req.sessionId!, id] });
+  res.status(204).send();
+}));
+
+app.get("/api/saved-resources", requireSession, asyncRoute(async (req, res) => {
+  const result = await db.execute({
+    sql: "SELECT r.* FROM saved_resources s JOIN resources r ON r.id=s.resource_id WHERE s.session_id=? ORDER BY s.created_at DESC",
+    args: [req.sessionId!],
+  });
+  res.json(result.rows.map(mapResource));
+}));
+
+app.get("/api/session/export", requireSession, asyncRoute(async (req, res) => {
+  const [roadmaps, tasks, saved] = await Promise.all([
+    db.execute({ sql: "SELECT * FROM roadmaps WHERE session_id=?", args: [req.sessionId!] }),
+    db.execute({ sql: "SELECT * FROM roadmap_tasks WHERE session_id=?", args: [req.sessionId!] }),
+    db.execute({ sql: "SELECT resource_id, created_at FROM saved_resources WHERE session_id=?", args: [req.sessionId!] }),
+  ]);
+  res.json({ exportedAt: new Date().toISOString(), roadmaps: roadmaps.rows, tasks: tasks.rows, savedResources: saved.rows });
+}));
+
+app.delete("/api/session", requireSession, asyncRoute(async (req, res) => {
+  await db.batch([
+    { sql: "DELETE FROM roadmap_tasks WHERE session_id=?", args: [req.sessionId!] },
+    { sql: "DELETE FROM roadmaps WHERE session_id=?", args: [req.sessionId!] },
+    { sql: "DELETE FROM saved_resources WHERE session_id=?", args: [req.sessionId!] },
+    { sql: "DELETE FROM resource_reports WHERE session_id=?", args: [req.sessionId!] },
+  ], "write");
+  res.status(204).send();
+}));
+
+app.get("/api/partner/submissions", requirePartner, asyncRoute(async (_req, res) => {
+  const result = await db.execute("SELECT * FROM resource_submissions ORDER BY created_at DESC");
+  res.json(result.rows);
+}));
+
+app.patch("/api/partner/submissions/:id", requirePartner, asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const update = z.object({ status: z.enum(["pending", "approved", "rejected"]), moderatorNote: z.string().trim().max(1000).optional().default("") }).parse(req.body);
+  await db.execute({ sql: "UPDATE resource_submissions SET status=?, moderator_note=?, reviewed_at=CURRENT_TIMESTAMP WHERE id=?", args: [update.status, update.moderatorNote, id] });
+  res.json({ id, ...update });
+}));
+
+app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  if (error instanceof z.ZodError) {
+    res.status(400).json({ error: "Please check the information you entered", details: error.flatten() });
+    return;
+  }
+  console.error(error);
+  const message = error instanceof Error && error.message === "AI service is not configured"
+    ? "The navigator is temporarily unavailable. The verified resource directory still works."
+    : "Something went wrong. Please try again.";
+  res.status(500).json({ error: message });
+});
+
+initDb().then(() => {
+  app.listen(PORT, () => console.log(`Foster Connect 2.0 API running at http://localhost:${PORT}`));
+}).catch(error => {
+  console.error("Database initialization failed", error);
+  process.exit(1);
+});

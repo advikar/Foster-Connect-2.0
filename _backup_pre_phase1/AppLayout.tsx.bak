@@ -1,0 +1,32 @@
+import { useState } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
+import { Bookmark, BookOpen, Heart, Home, Menu, PlusCircle, ShieldCheck, Sparkles, Users, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { FloatingChatWidget } from "@/components/chat/FloatingChatWidget";
+import { cn } from "@/lib/utils";
+
+const youthNav = [
+  { path: "/", label: "Home", icon: Home },
+  { path: "/resources", label: "Find support", icon: BookOpen },
+  { path: "/roadmap", label: "My journey", icon: Sparkles },
+  { path: "/saved", label: "Saved", icon: Bookmark },
+];
+const communityNav = [
+  { path: "/add-resource", label: "Share a resource", icon: PlusCircle },
+  { path: "/partners", label: "For partners", icon: Users },
+];
+
+function Navigation({ close }: { close?: () => void }) {
+  const location = useLocation();
+  const item = (entry: (typeof youthNav)[number]) => { const Icon = entry.icon; const active = location.pathname === entry.path; return <Link key={entry.path} to={entry.path} onClick={close} className={cn("relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors", active ? "bg-emerald-50 text-emerald-800 before:absolute before:left-0 before:h-6 before:w-1 before:rounded-full before:bg-emerald-500" : "text-slate-600 hover:bg-slate-50")}><Icon className={cn("size-5", active ? "text-emerald-600" : "text-slate-400")} />{entry.label}</Link>; };
+  return <nav className="flex flex-col gap-1"><p className="mb-1 mt-2 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Your space</p>{youthNav.map(item)}<p className="mb-1 mt-6 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Community</p>{communityNav.map(item)}</nav>;
+}
+
+export function AppLayout() {
+  const [mobile, setMobile] = useState(false);
+  const location = useLocation();
+  return <div className="min-h-screen bg-slate-50"><aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col border-r border-slate-200 bg-white lg:flex"><Brand /><div className="flex-1 overflow-y-auto px-3 py-4"><Navigation /></div><div className="border-t border-slate-100 p-5"><div className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-600" /><p className="text-[10px] leading-relaxed text-emerald-900">Verified-resource facts only. AI-assisted guidance is clearly labeled.</p></div><Link to="/privacy" className="mt-3 block text-center text-[11px] font-medium text-slate-400 hover:text-slate-600">Privacy & data controls</Link></div></aside><header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur lg:hidden"><div className="flex items-center gap-2"><div className="flex size-8 items-center justify-center rounded-lg bg-emerald-600 text-white"><Heart className="size-4" /></div><span className="text-sm font-bold text-slate-900">Foster Connect</span></div><Button variant="ghost" size="icon" onClick={() => setMobile(true)} aria-label="Open navigation"><Menu className="size-5" /></Button></header><Sheet open={mobile} onOpenChange={setMobile}><SheetContent side="left" className="w-[285px] p-0"><div className="flex items-center justify-between border-b border-slate-100"><Brand /><Button variant="ghost" size="icon" onClick={() => setMobile(false)}><X className="size-4" /></Button></div><div className="p-3"><Navigation close={() => setMobile(false)} /></div></SheetContent></Sheet><main className="min-h-screen pt-14 lg:ml-[260px] lg:pt-0"><Outlet /></main>{location.pathname !== "/roadmap" && <FloatingChatWidget />}</div>;
+}
+
+function Brand() { return <Link to="/" className="flex items-center gap-2.5 px-6 py-5"><div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white"><Heart className="size-5" /></div><div><p className="text-base font-bold leading-tight text-slate-900">Foster Connect</p><p className="text-[10px] font-medium text-slate-400">Support for your next step</p></div></Link>; }

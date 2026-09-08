@@ -1,0 +1,281 @@
+@import "tailwindcss" source("..");
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Foster Connect 2.0 — visual identity
+ * See docs/design.md for the full spec this implements.
+ * Plum-violet primary, green reserved for completion only, warm for
+ * encouragement, crisis red for crisis affordances only.
+ */
+:root {
+  /* surfaces */
+  --ground: #faf8fb;
+  --surface: #ffffff;
+  --sunk: #f2eef5;
+  /* text — warm-biased neutrals, never pure grey */
+  --ink: #1b1721;
+  --ink-soft: #554d5f;
+  --ink-faint: #857c90;
+  --rule: #e4dee9;
+  --rule-soft: #efeaf3;
+  /* semantic — each has exactly one job */
+  --plum: #6d3fc4;
+  --plum-soft: #ede6fa;
+  --green: #1f8a5f; /* completion ONLY */
+  --green-soft: #e0f2ea;
+  --warm: #d16a24;
+  --warm-soft: #fbeee2;
+  --crisis: #b83a2c; /* crisis affordances ONLY */
+  --crisis-soft: #fbe9e6;
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--plum);
+  --primary-foreground: #ffffff;
+  --secondary: var(--sunk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sunk);
+  --muted-foreground: var(--ink-faint);
+  --accent: var(--warm);
+  --accent-foreground: #ffffff;
+  --destructive: var(--crisis);
+  --destructive-foreground: #ffffff;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--plum);
+  --chart-1: var(--plum);
+  --chart-2: var(--green);
+  --chart-3: var(--warm);
+  --chart-4: #38bdf8;
+  --chart-5: var(--crisis);
+  --radius: 1rem;
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--plum);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--plum-soft);
+  --sidebar-accent-foreground: var(--plum);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--plum);
+}
+
+.dark {
+  --ground: #131019;
+  --surface: #1a1622;
+  --sunk: #221d2c;
+  --ink: #efeaf4;
+  --ink-soft: #b3a9bf;
+  --ink-faint: #8a8095;
+  --rule: #302838;
+  --rule-soft: #262030;
+  --plum: #b294f0;
+  --plum-soft: #2a1f42;
+  --green: #5cc999;
+  --green-soft: #16302a;
+  --warm: #e9a163;
+  --warm-soft: #33241a;
+  --crisis: #f2887a;
+  --crisis-soft: #3a201d;
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--plum);
+  --primary-foreground: #1b1721;
+  --secondary: var(--sunk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sunk);
+  --muted-foreground: var(--ink-faint);
+  --accent: var(--warm);
+  --accent-foreground: #1b1721;
+  --destructive: var(--crisis);
+  --destructive-foreground: #1b1721;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--plum);
+  --chart-1: var(--plum);
+  --chart-2: var(--green);
+  --chart-3: var(--warm);
+  --chart-4: #7dd3fc;
+  --chart-5: var(--crisis);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--plum);
+  --sidebar-primary-foreground: #1b1721;
+  --sidebar-accent: var(--plum-soft);
+  --sidebar-accent-foreground: var(--plum);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--plum);
+}
+
+@theme inline {
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 10px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Foster Connect semantic tokens, usable as bg-ground, text-ink-soft, etc. */
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+  --color-plum: var(--plum);
+  --color-plum-soft: var(--plum-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-warm: var(--warm);
+  --color-warm-soft: var(--warm-soft);
+  --color-crisis: var(--crisis);
+  --color-crisis-soft: var(--crisis-soft);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  /* iOS Safari auto-zooms on any input/textarea under 16px. Every text
+     input in this app must stay at or above 16px. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@keyframes progressGlow {
+  0% {
+    box-shadow: 0 0 0 rgba(31, 138, 95, 0);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(31, 138, 95, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(31, 138, 95, 0);
+  }
+}
+
+.progress-glow {
+  animation: progressGlow 1.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheetUp 0.25s ease-out;
+}
+
+:focus-visible {
+  outline: 2px solid var(--plum);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Respect the iPhone home indicator behind the bottom tab bar. */
+.pb-safe {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

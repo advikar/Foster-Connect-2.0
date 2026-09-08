@@ -1,0 +1,1 @@
+# The synthetic-resource ETL uses only Python's standard library.

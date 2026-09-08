@@ -1,0 +1,26 @@
+import { createBrowserRouter } from "react-router-dom";
+import { lazy, Suspense, type ReactNode } from "react";
+import { Loader2 } from "lucide-react";
+import { AppLayout } from "./components/layout/AppLayout";
+
+const HomePage = lazy(() => import("./pages/HomePage").then(module => ({ default: module.HomePage })));
+const ResourcesPage = lazy(() => import("./pages/ResourcesPage").then(module => ({ default: module.ResourcesPage })));
+const RoadmapPage = lazy(() => import("./pages/RoadmapPage").then(module => ({ default: module.RoadmapPage })));
+const InsightsPage = lazy(() => import("./pages/InsightsPage").then(module => ({ default: module.InsightsPage })));
+const AddResourcePage = lazy(() => import("./pages/AddResourcePage").then(module => ({ default: module.AddResourcePage })));
+const SavedPage = lazy(() => import("./pages/SavedPage").then(module => ({ default: module.SavedPage })));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then(module => ({ default: module.PrivacyPage })));
+
+function page(content: ReactNode) {
+  return <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="size-6 animate-spin text-emerald-600" /></div>}>{content}</Suspense>;
+}
+
+export const router = createBrowserRouter([{ element: <AppLayout />, children: [
+  { path: "/", element: page(<HomePage />) },
+  { path: "/resources", element: page(<ResourcesPage />) },
+  { path: "/roadmap", element: page(<RoadmapPage />) },
+  { path: "/saved", element: page(<SavedPage />) },
+  { path: "/add-resource", element: page(<AddResourcePage />) },
+  { path: "/partners", element: page(<InsightsPage />) },
+  { path: "/privacy", element: page(<PrivacyPage />) },
+]}], { basename: import.meta.env.BASE_URL });

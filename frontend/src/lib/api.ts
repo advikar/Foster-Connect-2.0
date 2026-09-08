@@ -1,0 +1,334 @@
+export const API_BASE_URL: string = import.meta.env.VITE_API_URL || "http://localhost:4000";
+
+const SESSION_KEY = "foster-connect-anonymous-session";
+
+export function getSessionId() {
+  let id = localStorage.getItem(SESSION_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(SESSION_KEY, id);
+  }
+  return id;
+}
+
+async function request<T>(path: string, options: RequestInit = {}, session = false): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (options.body) headers.set("Content-Type", "application/json");
+  if (session) headers.set("X-Session-ID", getSessionId());
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || "Something went wrong");
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json();
+}
+
+export interface ResourceItem {
+  id: number;
+  title: string;
+  organization: string;
+  description: string;
+  category: string;
+  county: string;
+  serviceArea: string;
+  eligibility: string;
+  ageMin: number | null;
+  ageMax: number | null;
+  cost: string;
+  applicationSteps: string;
+  whatToBring: string;
+  website: string;
+  phone: string;
+  address: string;
+  hours: string;
+  languages: string;
+  accessibility: string;
+  deliveryMode: string;
+  urgencyLevel: string;
+  isCrisis: boolean;
+  sourceUrl: string;
+  verifiedAt: string;
+  tags: string;
+}
+
+export type TaskStatus = "not_started" | "in_progress" | "completed" | "blocked";
+
+export interface RoadmapTask {
+  id: number;
+  roadmapId: number;
+  taskText: string;
+  taskCategory: string;
+  timeframe: "This Week" | "30 Days" | "3-6 Months" | "6-12 Months";
+  whyItMatters: string;
+  motivationNote: string;
+  status: TaskStatus;
+  dueDate: string | null;
+  blockerReason: string | null;
+  privateNote: string | null;
+  resourceId: number | null;
+  taskOrder: number;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface Roadmap {
+  id: number;
+  title: string;
+  goalSummary: string;
+  greeting: string;
+  closing: string;
+  county: string;
+  youthName: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  tasks: RoadmapTask[];
+  recommendedResources: ResourceItem[];
+}
+
+export type HousingStatus =
+  | "placement" | "doubled_up" | "own_place" | "shelter" | "unsheltered" | "unstable" | "unsaid";
+
+export type DocumentId = "state_id" | "birth_certificate" | "ssn_card" | "bank_account" | "phone_plan";
+
+export interface RoadmapIntake {
+  youthName?: string;
+  age?: number;
+  county: "Contra Costa" | "Alameda" | "Bay Area" | "California" | "National";
+  currentNeeds: string;
+  futurePlan: string;
+  additionalContext?: string;
+  /** Step-1 chips — which kinds of support to search. */
+  needs?: string[];
+  /** Where they are sleeping. Changes which housing options apply and how urgent. */
+  housingStatus?: HousingStatus;
+  /** Documents they already have. Missing ones become early steps. */
+  documents?: DocumentId[];
+  /** Anything with a date attached. */
+  deadlines?: { kind: string; date?: string }[];
+  /** Set after a young person has seen crisis support and chooses to continue anyway. */
+  acknowledgedSafety?: boolean;
+}
+
+export interface ChatMessageInput { role: "user" | "assistant"; content: string }
+
+export interface CrisisContact {
+  id: string;
+  name: string;
+  phone: string;
+  text?: string;
+  website?: string;
+  description: string;
+  hours: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  /**
+   * The canonical conversation as the server recorded it, plus a token proving
+   * the server produced it. Send both back on the next turn — without the token
+   * the history is discarded, because otherwise a browser could forge what Maya
+   * previously said and talk the model out of its own source rules.
+   */
+  history?: ChatMessageInput[];
+  historyToken?: string;
+  resources: ResourceItem[];
+  needsClarification: boolean;
+  safetyMode: boolean;
+  /** Set when assessSafety flagged the message. Shown alongside the reply, never in place of it. */
+  crisisContacts?: CrisisContact[];
+  /**
+   * Set when the AI navigator was unreachable and this reply came from a
+   * direct directory search instead. Maya must say so plainly, never hide it.
+   */
+  degraded?: boolean;
+  suggestedTasks: Array<{
+    taskText: string;
+    taskCategory: string;
+    timeframe: string;
+    resourceId: number | null;
+    motivationNote: string;
+  }>;
+}
+
+/**
+ * Returned instead of a Roadmap when the intake text itself triggered a
+ * crisis assessment. The plan is not built yet — crisis support is shown
+ * first, and the young person chooses whether to continue.
+ */
+export interface RoadmapDeferredResponse {
+  roadmapDeferred: true;
+  reply: string;
+  crisisContacts: CrisisContact[];
+  resources: ResourceItem[];
+}
+
+/** One page of directory results. `total` ignores paging, so the count is honest. */
+export interface ResourcePage {
+  items: ResourceItem[];
+  total: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+export function fetchResources(filters: Record<string, string | number | undefined> = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== "" && value !== "All") params.set(key, String(value));
+  }
+  return request<ResourcePage>(`/api/resources?${params}`);
+}
+
+export function fetchResource(id: number) { return request<ResourceItem>(`/api/resources/${id}`); }
+export function fetchRoadmaps() { return request<Omit<Roadmap, "tasks" | "recommendedResources">[]>("/api/roadmaps", {}, true); }
+export function fetchRoadmap(id: number) { return request<Roadmap>(`/api/roadmaps/${id}`, {}, true); }
+export function generateRoadmap(input: RoadmapIntake) {
+  return request<Roadmap | RoadmapDeferredResponse>("/api/roadmaps", { method: "POST", body: JSON.stringify(input) }, true);
+}
+export function updateTask(id: number, update: Partial<Pick<RoadmapTask, "status" | "dueDate" | "blockerReason" | "privateNote">>) {
+  return request<RoadmapTask>(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(update) }, true);
+}
+export function sendChat(
+  message: string,
+  history: ChatMessageInput[],
+  context?: { county?: string; age?: number; historyToken?: string },
+) {
+  const { historyToken, ...rest } = context || {};
+  return request<ChatResponse>(
+    "/api/chat",
+    { method: "POST", body: JSON.stringify({ message, history, historyToken, ...rest }) },
+    true,
+  );
+}
+export function fetchSavedResources() { return request<ResourceItem[]>("/api/saved-resources", {}, true); }
+export function saveResource(id: number) { return request<{ saved: boolean }>(`/api/saved-resources/${id}`, { method: "POST" }, true); }
+export function unsaveResource(id: number) { return request<void>(`/api/saved-resources/${id}`, { method: "DELETE" }, true); }
+export function reportResource(id: number, reason: string) {
+  return request<{ message: string }>(`/api/resources/${id}/reports`, { method: "POST", body: JSON.stringify({ reason }) }, true);
+}
+export function submitResource(input: Record<string, string>) {
+  return request<{ id: number; status: string; message: string }>("/api/resource-submissions", { method: "POST", body: JSON.stringify(input) });
+}
+export async function exportSessionData() {
+  return request<Record<string, unknown>>("/api/session/export", {}, true);
+}
+export async function deleteSessionData() {
+  await request<void>("/api/session", { method: "DELETE" }, true);
+  localStorage.removeItem(SESSION_KEY);
+}
+
+/* ── Partner moderation ──────────────────────────────────────────────────── */
+
+const PARTNER_TOKEN_KEY = "fc-partner-token";
+
+export function getPartnerToken() {
+  try { return sessionStorage.getItem(PARTNER_TOKEN_KEY) || ""; } catch { return ""; }
+}
+export function setPartnerToken(token: string) {
+  try { sessionStorage.setItem(PARTNER_TOKEN_KEY, token); } catch { /* private mode */ }
+}
+export function clearPartnerToken() {
+  try { sessionStorage.removeItem(PARTNER_TOKEN_KEY); } catch { /* private mode */ }
+}
+
+export interface PartnerIdentity { name: string; email: string; organisation: string; role: "contributor" | "reviewer" }
+
+export interface Submission {
+  id: number;
+  title: string;
+  organization: string;
+  description: string;
+  category: string;
+  county: string;
+  website: string;
+  contact: string | null;
+  source_url: string;
+  relationship: string;
+  submitter_name: string;
+  status: "pending" | "approved" | "rejected";
+  moderator_note: string | null;
+  reviewed_by: string | null;
+  resource_id: number | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+/** What a reviewer must add before a submission can be shown to young people. */
+export interface ApprovalDetail {
+  eligibility: string;
+  cost: string;
+  applicationSteps: string;
+  whatToBring?: string;
+  phone?: string;
+  hours?: string;
+  languages?: string;
+  accessibility?: string;
+  urgencyLevel?: "Emergency" | "Urgent" | "Standard";
+  isCrisis?: boolean;
+}
+
+async function partnerRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  headers.set("Authorization", `Bearer ${getPartnerToken()}`);
+  if (options.body) headers.set("Content-Type", "application/json");
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  if (response.status === 401) {
+    clearPartnerToken();
+    window.dispatchEvent(new Event("partner-session-expired"));
+    throw new Error("Your session expired. Sign in again.");
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || "Something went wrong");
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json();
+}
+
+export async function partnerLogin(email: string, password: string) {
+  const response = await fetch(`${API_BASE_URL}/api/partner/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Could not sign you in");
+  setPartnerToken(payload.token);
+  return payload.partner as PartnerIdentity;
+}
+
+export function partnerMe() {
+  return partnerRequest<{ partner: PartnerIdentity }>("/api/partner/me");
+}
+
+export async function partnerLogout() {
+  await partnerRequest<void>("/api/partner/logout", { method: "POST" }).catch(() => undefined);
+  clearPartnerToken();
+}
+
+export function fetchSubmissions() {
+  return partnerRequest<Submission[]>("/api/partner/submissions");
+}
+
+export function reviewSubmission(
+  id: number,
+  status: "approved" | "rejected",
+  moderatorNote: string,
+  resource?: ApprovalDetail,
+) {
+  return partnerRequest<{ id: number; status: string; resourceId?: number }>(
+    `/api/partner/submissions/${id}`,
+    { method: "PATCH", body: JSON.stringify({ status, moderatorNote, resource }) },
+  );
+}
+
+export function fetchMySubmissions() {
+  return partnerRequest<Submission[]>("/api/partner/my-submissions");
+}
+export function submitPartnerResource(input: Parameters<typeof submitResource>[0]) {
+  return partnerRequest("/api/partner/my-submissions", { method: "POST", body: JSON.stringify(input) });
+}
+export function askPartnerGuide(message: string) {
+  return partnerRequest<{ reply: string }>("/api/partner/guide", { method: "POST", body: JSON.stringify({ message }) });
+}

@@ -1,0 +1,1837 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Foster Connect — Find support. Build your path.</title>
+<meta name="description" content="Foster Connect helps youth transitioning out of foster care find verified housing, education, and support resources, build a personal plan, and helps community partners keep resources accurate." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   FOSTER CONNECT — DESIGN SYSTEM
+   ============================================================ */
+:root{
+  --ink:#26201A;
+  --ink-soft:#5B5045;
+  --ink-faint:#8A7F71;
+  --cream:#FBF6EE;
+  --cream-deep:#F3EADA;
+  --card:#FFFFFF;
+  --pine:#1F6F5C;
+  --pine-dark:#154B3E;
+  --pine-light:#E3F0EC;
+  --pine-line:#BFDBD2;
+  --clay:#D9663B;
+  --clay-dark:#B84F29;
+  --clay-light:#FBE7DA;
+  --dusk:#4F7297;
+  --dusk-light:#E6EDF3;
+  --gold:#C99A3A;
+  --gold-light:#F6ECD6;
+  --brick:#AE402C;
+  --brick-light:#F6E1DB;
+  --sage:#5C8567;
+  --line:#E8DECD;
+  --line-soft:#F0E8D9;
+  --radius-xl:28px;
+  --radius-lg:20px;
+  --radius-md:14px;
+  --radius-sm:10px;
+  --shadow-sm:0 1px 2px rgba(38,32,26,.07), 0 1px 1px rgba(38,32,26,.05);
+  --shadow-md:0 10px 30px -8px rgba(38,32,26,.16);
+  --shadow-lg:0 24px 60px -16px rgba(38,32,26,.28);
+  --font-display:'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-body:'Work Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --container:1240px;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto;}
+  *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important;}
+}
+body{
+  margin:0;
+  background:var(--cream);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{
+  font-family:var(--font-display);
+  font-weight:600;
+  color:var(--ink);
+  line-height:1.15;
+  letter-spacing:-0.01em;
+  margin:0 0 .5em;
+}
+p{margin:0 0 1em;}
+a{color:inherit;}
+img,svg{display:block;max-width:100%;}
+button{font-family:inherit;}
+ul{margin:0;padding:0;list-style:none;}
+
+/* Focus visibility — accessibility first */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{
+  outline:3px solid var(--dusk);
+  outline-offset:3px;
+  border-radius:4px;
+}
+
+.skip-link{
+  position:absolute; left:12px; top:-60px;
+  background:var(--ink); color:#fff; padding:12px 18px; border-radius:0 0 10px 10px;
+  z-index:200; font-weight:600; font-size:14px; transition:top .15s ease;
+}
+.skip-link:focus{top:0;}
+
+.container{max-width:var(--container); margin:0 auto; padding:0 24px;}
+@media (min-width:900px){.container{padding:0 40px;}}
+
+.visually-hidden{
+  position:absolute !important; width:1px;height:1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; border:0; padding:0; margin:-1px;
+}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  font-family:var(--font-body); font-weight:700; font-size:15px;
+  border-radius:100px; border:2px solid transparent; cursor:pointer;
+  padding:13px 24px; line-height:1; text-decoration:none; white-space:nowrap;
+  transition:transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+}
+.btn svg{width:18px;height:18px;flex-shrink:0;}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--clay); color:#fff; box-shadow:0 6px 16px -4px rgba(217,102,59,.5);}
+.btn-primary:hover{background:var(--clay-dark);}
+.btn-forest{background:var(--pine); color:#fff; box-shadow:0 6px 16px -4px rgba(31,111,92,.4);}
+.btn-forest:hover{background:var(--pine-dark);}
+.btn-outline{background:transparent; border-color:var(--line); color:var(--ink);}
+.btn-outline:hover{border-color:var(--pine); color:var(--pine-dark); background:var(--pine-light);}
+.btn-ghost{background:transparent; color:var(--ink-soft); border-color:transparent; padding:10px 14px;}
+.btn-ghost:hover{background:var(--cream-deep); color:var(--ink);}
+.btn-sm{padding:9px 16px; font-size:13px;}
+.btn-block{width:100%;}
+.btn[disabled]{opacity:.5; cursor:not-allowed;}
+.btn-danger{background:transparent;border-color:var(--brick);color:var(--brick);}
+.btn-danger:hover{background:var(--brick-light);}
+
+/* pill / badge */
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  border-radius:100px; padding:5px 12px; font-size:12px; font-weight:700;
+  border:1.5px solid transparent;
+}
+.pill svg{width:13px;height:13px;}
+.pill-pine{background:var(--pine-light); color:var(--pine-dark); border-color:var(--pine-line);}
+.pill-clay{background:var(--clay-light); color:var(--clay-dark);}
+.pill-dusk{background:var(--dusk-light); color:var(--dusk);}
+.pill-gold{background:var(--gold-light); color:#8A6A22;}
+.pill-brick{background:var(--brick-light); color:var(--brick);}
+.pill-neutral{background:var(--cream-deep); color:var(--ink-soft); border-color:var(--line);}
+
+/* card */
+.card{
+  background:var(--card); border-radius:var(--radius-lg); border:1px solid var(--line-soft);
+  box-shadow:var(--shadow-sm);
+}
+
+/* ============================================================
+   HEADER / NAV
+   ============================================================ */
+.site-header{
+  position:sticky; top:0; z-index:100;
+  background:rgba(251,246,238,.92); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.header-row{display:flex; align-items:center; justify-content:space-between; height:76px; gap:16px;}
+.brand{display:flex; align-items:center; gap:11px; text-decoration:none;}
+.brand-mark{
+  width:42px;height:42px;border-radius:13px;background:var(--pine);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  box-shadow:0 4px 10px -2px rgba(31,111,92,.45);
+}
+.brand-mark svg{width:22px;height:22px;color:#fff;}
+.brand-text{font-family:var(--font-display); font-weight:700; font-size:20px; color:var(--ink); line-height:1.1;}
+.brand-sub{font-size:11px; color:var(--ink-faint); font-weight:600; letter-spacing:.02em;}
+
+.main-nav{display:none; align-items:center; gap:2px;}
+@media (min-width:980px){.main-nav{display:flex;}}
+.nav-link{
+  display:flex; align-items:center; gap:7px; padding:10px 16px; border-radius:100px;
+  font-weight:700; font-size:14px; color:var(--ink-soft); text-decoration:none;
+  border:none; background:transparent; cursor:pointer; font-family:inherit;
+}
+.nav-link svg{width:16px;height:16px;}
+.nav-link:hover{background:var(--cream-deep); color:var(--ink);}
+.nav-link[aria-current="page"]{background:var(--pine-light); color:var(--pine-dark);}
+
+.header-actions{display:flex; align-items:center; gap:10px;}
+.icon-btn{
+  width:42px;height:42px; border-radius:100px; border:1.5px solid var(--line); background:#fff;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft);
+  position:relative;
+}
+.icon-btn:hover{border-color:var(--pine); color:var(--pine-dark);}
+.icon-btn svg{width:19px;height:19px;}
+.saved-count{
+  position:absolute; top:-4px; right:-4px; background:var(--clay); color:#fff;
+  font-size:10px; font-weight:800; min-width:17px; height:17px; border-radius:100px;
+  display:flex; align-items:center; justify-content:center; padding:0 3px; border:2px solid var(--cream);
+}
+.menu-toggle{display:flex;}
+@media (min-width:980px){.menu-toggle{display:none;}}
+
+/* mobile drawer */
+.drawer-backdrop{
+  position:fixed; inset:0; background:rgba(38,32,26,.45); z-index:150; opacity:0; pointer-events:none;
+  transition:opacity .2s ease;
+}
+.drawer-backdrop.open{opacity:1; pointer-events:auto;}
+.drawer{
+  position:fixed; top:0; right:0; height:100%; width:min(320px,86vw); background:var(--cream);
+  z-index:151; transform:translateX(100%); transition:transform .25s ease; box-shadow:var(--shadow-lg);
+  display:flex; flex-direction:column;
+}
+.drawer.open{transform:translateX(0);}
+.drawer-head{display:flex; align-items:center; justify-content:space-between; padding:20px; border-bottom:1px solid var(--line);}
+.drawer-nav{padding:14px; display:flex; flex-direction:column; gap:4px; overflow-y:auto;}
+.drawer-nav .nav-link{justify-content:flex-start; width:100%; padding:14px 16px;}
+
+/* crisis strip */
+.crisis-strip{
+  background:var(--ink); color:#F3EADA; font-size:13px; font-weight:600; text-align:center;
+  padding:9px 16px;
+}
+.crisis-strip a{color:#FBCBB8; text-decoration:underline; text-underline-offset:2px; margin-left:6px;}
+.crisis-strip a:hover{color:#fff;}
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+.view{display:none;}
+.view.active{display:block; animation:fadein .25s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- HOME ---------- */
+.hero{
+  position:relative; overflow:hidden; padding:64px 0 56px;
+  border-bottom:1px solid var(--line);
+}
+.hero-grid{display:grid; gap:48px; align-items:center;}
+@media (min-width:980px){.hero-grid{grid-template-columns:1.05fr .95fr;}}
+.eyebrow-pill{
+  display:inline-flex; align-items:center; gap:7px; background:#fff; border:1.5px solid var(--line);
+  padding:7px 15px; border-radius:100px; font-size:12.5px; font-weight:700; color:var(--pine-dark);
+  box-shadow:var(--shadow-sm); margin-bottom:22px;
+}
+.eyebrow-pill svg{width:14px;height:14px;}
+.hero h1{
+  font-size:clamp(34px,5vw,58px); font-weight:600; margin-bottom:20px;
+}
+.hero h1 em{font-style:italic; color:var(--clay);}
+.hero-lede{font-size:clamp(16px,1.6vw,19px); color:var(--ink-soft); max-width:520px; margin-bottom:30px; line-height:1.65;}
+.hero-cta-row{display:flex; flex-wrap:wrap; gap:14px; margin-bottom:34px;}
+
+.path-picker{display:grid; gap:12px; grid-template-columns:repeat(3,1fr);}
+@media (max-width:640px){.path-picker{grid-template-columns:1fr;}}
+.path-card{
+  text-align:left; background:#fff; border:1.5px solid var(--line); border-radius:var(--radius-md);
+  padding:16px; cursor:pointer; transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+  font-family:inherit;
+}
+.path-card:hover{border-color:var(--pine); transform:translateY(-2px); box-shadow:var(--shadow-md);}
+.path-card .p-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.path-card .p-ic svg{width:18px;height:18px;}
+.path-card h3{font-family:var(--font-body); font-weight:800; font-size:14.5px; margin-bottom:4px;}
+.path-card p{font-size:12.5px; color:var(--ink-faint); margin:0; line-height:1.4;}
+
+.hero-visual{position:relative;}
+.journey-illustration{width:100%; height:auto;}
+
+/* trust strip */
+.trust-strip{padding:28px 0; border-bottom:1px solid var(--line); background:var(--cream-deep);}
+.trust-row{display:flex; flex-wrap:wrap; gap:28px; align-items:center; justify-content:center; text-align:center;}
+.trust-item{display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:700; color:var(--ink-soft);}
+.trust-item svg{width:18px;height:18px; color:var(--pine); flex-shrink:0;}
+
+/* section shell */
+.section{padding:64px 0;}
+.section-head{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:32px;}
+.section-head h2{font-size:clamp(24px,3vw,34px); margin-bottom:6px;}
+.section-head .lede{color:var(--ink-soft); font-size:15px; max-width:520px; margin:0;}
+.section-eyebrow{font-size:12px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--clay-dark); margin-bottom:10px; display:block;}
+
+/* needs grid */
+.needs-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+@media (min-width:720px){.needs-grid{grid-template-columns:repeat(4,1fr);}}
+.need-card{
+  background:#fff; border:1.5px solid var(--line); border-radius:var(--radius-md); padding:20px;
+  text-align:left; cursor:pointer; text-decoration:none; display:block; font-family:inherit;
+  transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.need-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:transparent;}
+.need-ic{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
+.need-ic svg{width:22px;height:22px;}
+.need-card h3{font-family:var(--font-body); font-size:15px; font-weight:800; margin-bottom:3px;}
+.need-card .go{font-size:12px; color:var(--ink-faint); font-weight:600; display:flex; align-items:center; gap:3px;}
+.need-card .go svg{width:12px;height:12px;}
+
+/* how it works */
+.steps-row{display:grid; gap:22px; grid-template-columns:repeat(3,1fr); position:relative;}
+@media (max-width:800px){.steps-row{grid-template-columns:1fr;}}
+.step{position:relative; padding-left:0;}
+.step-num{
+  width:46px;height:46px; border-radius:14px; background:var(--ink); color:var(--cream);
+  display:flex; align-items:center; justify-content:center; font-family:var(--font-display);
+  font-size:19px; font-weight:600; margin-bottom:16px;
+}
+.step h3{font-size:18px; margin-bottom:6px;}
+.step p{color:var(--ink-soft); font-size:14.5px; margin:0;}
+
+/* callout duo */
+.duo{display:grid; gap:20px; grid-template-columns:1fr 1fr;}
+@media (max-width:800px){.duo{grid-template-columns:1fr;}}
+.callout{border-radius:var(--radius-lg); padding:30px; position:relative; overflow:hidden;}
+.callout-clay{background:linear-gradient(155deg,#F9E2D2,#FBEAE0);}
+.callout-pine{background:linear-gradient(155deg,#DCEEE7,#E8F3EE);}
+.callout h3{font-size:21px; margin-bottom:8px;}
+.callout p{color:var(--ink-soft); font-size:14.5px; max-width:400px;}
+.callout-ic{width:46px;height:46px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:16px; box-shadow:var(--shadow-sm);}
+.callout-ic svg{width:23px;height:23px;}
+
+/* faq */
+.faq-list{max-width:760px; margin:0 auto;}
+.faq-item{border-bottom:1px solid var(--line);}
+.faq-q{
+  width:100%; text-align:left; background:none; border:none; padding:20px 4px; cursor:pointer;
+  display:flex; align-items:center; justify-content:space-between; gap:16px; font-family:var(--font-body);
+  font-weight:700; font-size:16px; color:var(--ink);
+}
+.faq-q svg{width:18px;height:18px; color:var(--ink-faint); flex-shrink:0; transition:transform .2s ease;}
+.faq-item[data-open="true"] .faq-q svg{transform:rotate(45deg); color:var(--clay);}
+.faq-a{max-height:0; overflow:hidden; transition:max-height .25s ease;}
+.faq-item[data-open="true"] .faq-a{max-height:240px;}
+.faq-a-inner{padding:0 4px 22px; color:var(--ink-soft); font-size:14.5px; line-height:1.65; max-width:640px;}
+
+/* ---------- footer ---------- */
+.site-footer{background:var(--ink); color:#DCD3C4; padding:56px 0 28px; margin-top:40px;}
+.footer-grid{display:grid; gap:36px; grid-template-columns:1.4fr repeat(3,1fr);}
+@media (max-width:800px){.footer-grid{grid-template-columns:1fr 1fr;}}
+@media (max-width:520px){.footer-grid{grid-template-columns:1fr;}}
+.footer-brand{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
+.footer-brand .brand-mark{background:var(--clay);}
+.footer-brand-text{font-family:var(--font-display); font-weight:700; font-size:18px; color:#fff;}
+.site-footer p{color:#B7AC98; font-size:13.5px; max-width:320px;}
+.footer-col h4{color:#fff; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px;}
+.footer-col ul{display:flex; flex-direction:column; gap:10px;}
+.footer-col a,.footer-col button{
+  color:#C9BFAC; text-decoration:none; font-size:14px; background:none; border:none; padding:0;
+  text-align:left; cursor:pointer; font-family:inherit;
+}
+.footer-col a:hover,.footer-col button:hover{color:#fff;}
+.footer-bottom{border-top:1px solid #423A2E; margin-top:40px; padding-top:24px; display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; font-size:12.5px; color:#8E836F;}
+
+/* ============================================================
+   RESOURCES VIEW
+   ============================================================ */
+.page-head{padding:44px 0 8px;}
+.page-head .section-eyebrow{margin-bottom:8px;}
+.page-head h1{font-size:clamp(28px,4vw,40px); margin-bottom:10px;}
+.page-head .lede{color:var(--ink-soft); font-size:15.5px; max-width:600px;}
+
+.search-bar{
+  background:#fff; border:1.5px solid var(--line); border-radius:var(--radius-lg); padding:16px;
+  box-shadow:var(--shadow-sm); position:sticky; top:92px; z-index:30; margin:28px 0 8px;
+}
+.search-input-wrap{position:relative;}
+.search-input-wrap svg{position:absolute; left:16px; top:50%; transform:translateY(-50%); width:19px;height:19px; color:var(--ink-faint);}
+.search-input{
+  width:100%; border:1.5px solid var(--line); background:var(--cream); border-radius:100px;
+  padding:14px 16px 14px 46px; font-size:15px; font-family:inherit; color:var(--ink);
+}
+.search-input:focus{outline:none; border-color:var(--pine); background:#fff;}
+.filter-row{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; align-items:center;}
+.select-wrap{position:relative;}
+.select-wrap select{
+  appearance:none; border:1.5px solid var(--line); background:#fff; border-radius:100px;
+  padding:10px 34px 10px 16px; font-size:13.5px; font-weight:700; color:var(--ink); font-family:inherit;
+  cursor:pointer;
+}
+.select-wrap::after{
+  content:""; position:absolute; right:14px; top:50%; width:8px;height:8px;
+  border-right:2px solid var(--ink-faint); border-bottom:2px solid var(--ink-faint);
+  transform:translateY(-65%) rotate(45deg); pointer-events:none;
+}
+.result-count{margin-left:auto; font-size:13px; color:var(--ink-faint); font-weight:700;}
+.chip-toggle{
+  border:1.5px solid var(--line); background:#fff; border-radius:100px; padding:9px 15px; font-size:13px;
+  font-weight:700; color:var(--ink-soft); cursor:pointer; display:flex; align-items:center; gap:6px;
+}
+.chip-toggle svg{width:14px;height:14px;}
+.chip-toggle[aria-pressed="true"]{background:var(--brick); border-color:var(--brick); color:#fff;}
+
+.resource-grid{display:grid; gap:18px; grid-template-columns:repeat(3,1fr); padding:26px 0 60px;}
+@media (max-width:980px){.resource-grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:640px){.resource-grid{grid-template-columns:1fr;}}
+
+.res-card{
+  background:#fff; border-radius:var(--radius-lg); border:1.5px solid var(--line-soft); overflow:hidden;
+  display:flex; flex-direction:column; transition:transform .15s ease, box-shadow .15s ease;
+}
+.res-card:hover{transform:translateY(-3px); box-shadow:var(--shadow-md);}
+.res-card-bar{height:6px;}
+.res-card-body{padding:20px; display:flex; flex-direction:column; gap:12px; flex:1;}
+.res-card-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+.res-tags{display:flex; flex-wrap:wrap; gap:6px;}
+.res-card h3{font-family:var(--font-body); font-size:16.5px; font-weight:800; margin:2px 0 2px; line-height:1.3;}
+.res-org{font-size:12.5px; color:var(--ink-faint); font-weight:700; margin:0;}
+.res-desc{font-size:13.5px; color:var(--ink-soft); line-height:1.55; margin:0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
+.res-meta{display:flex; flex-wrap:wrap; gap:12px; font-size:12px; color:var(--ink-faint); font-weight:600;}
+.res-meta span{display:flex; align-items:center; gap:5px;}
+.res-meta svg{width:13px;height:13px;}
+.res-meta .verified{color:var(--pine);}
+.save-btn{
+  width:38px;height:38px; border-radius:100px; border:1.5px solid var(--line); background:#fff;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-faint); flex-shrink:0;
+}
+.save-btn svg{width:17px;height:17px;}
+.save-btn[aria-pressed="true"]{background:var(--clay-light); border-color:var(--clay); color:var(--clay-dark);}
+.res-card-actions{margin-top:auto; padding-top:4px;}
+
+.empty-state{
+  text-align:center; padding:72px 24px; border:2px dashed var(--line); border-radius:var(--radius-lg); background:#fff;
+}
+.empty-state svg{width:40px;height:40px; color:var(--ink-faint); margin:0 auto 16px;}
+.empty-state h3{font-size:19px; margin-bottom:6px;}
+.empty-state p{color:var(--ink-soft); font-size:14px; max-width:380px; margin:0 auto;}
+
+/* ---------- modal ---------- */
+.modal-backdrop{
+  position:fixed; inset:0; background:rgba(38,32,26,.5); z-index:200; display:none;
+  align-items:flex-start; justify-content:center; padding:26px 16px; overflow-y:auto;
+}
+.modal-backdrop.open{display:flex;}
+.modal{
+  background:#fff; border-radius:26px; max-width:680px; width:100%; margin:auto;
+  box-shadow:var(--shadow-lg); overflow:hidden; animation:modalIn .2s ease;
+}
+@keyframes modalIn{from{opacity:0; transform:translateY(14px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);}}
+.modal-head{background:linear-gradient(155deg,var(--pine-light),#fff); padding:30px 32px 24px; position:relative;}
+.modal-close{
+  position:absolute; top:18px; right:18px; width:36px;height:36px; border-radius:100px; border:none;
+  background:rgba(255,255,255,.8); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink);
+}
+.modal-close svg{width:17px;height:17px;}
+.modal-tags{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+.modal-head h2{font-size:26px; margin-bottom:6px; padding-right:40px;}
+.modal-org{color:var(--ink-faint); font-weight:700; font-size:13.5px;}
+.modal-body{padding:26px 32px 32px; display:flex; flex-direction:column; gap:20px;}
+.modal-desc{color:var(--ink-soft); font-size:14.5px; line-height:1.65;}
+.detail-block h4{font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); font-weight:800; margin-bottom:5px;}
+.detail-block p{font-size:14.5px; color:var(--ink); margin:0; line-height:1.55;}
+.detail-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+@media (max-width:500px){.detail-grid{grid-template-columns:1fr;}}
+.verified-strip{
+  background:var(--pine-light); border:1.5px solid var(--pine-line); border-radius:var(--radius-md); padding:16px;
+  font-size:13px; color:var(--pine-dark); display:flex; gap:10px; align-items:flex-start;
+}
+.verified-strip svg{width:18px;height:18px; flex-shrink:0; margin-top:1px;}
+.modal-actions{display:flex; flex-wrap:wrap; gap:10px;}
+.report-box{background:var(--cream-deep); border-radius:var(--radius-md); padding:16px;}
+.report-box textarea{
+  width:100%; min-height:70px; border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:12px;
+  font-family:inherit; font-size:13.5px; resize:vertical; margin:10px 0;
+}
+
+/* ============================================================
+   ROADMAP VIEW
+   ============================================================ */
+.roadmap-shell{max-width:760px; margin:0 auto; padding:44px 0 80px;}
+.progress-dots{display:flex; gap:8px; margin:26px 0 30px;}
+.progress-dots span{height:8px; flex:1; border-radius:100px; background:var(--line);}
+.progress-dots span.done{background:var(--pine);}
+.wizard-card{padding:36px;}
+.q-label{font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--clay-dark); margin-bottom:8px; display:block;}
+.wizard-card h2{font-size:25px; margin-bottom:10px;}
+.wizard-card .hint{color:var(--ink-soft); font-size:14px; margin-bottom:22px;}
+.field{margin-bottom:18px;}
+.field label{display:block; font-weight:700; font-size:13.5px; margin-bottom:7px;}
+.field .opt{font-weight:500; color:var(--ink-faint);}
+.field input[type=text],.field input[type=number],.field textarea,.field select{
+  width:100%; border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:13px 15px;
+  font-family:inherit; font-size:15px; background:#fff; color:var(--ink);
+}
+.field textarea{min-height:110px; resize:vertical; line-height:1.55;}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none; border-color:var(--pine); box-shadow:0 0 0 4px var(--pine-light);}
+.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+@media (max-width:520px){.field-grid{grid-template-columns:1fr;}}
+.need-pick-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin-bottom:6px;}
+@media (min-width:520px){.need-pick-grid{grid-template-columns:repeat(4,1fr);}}
+.need-pick{
+  border:1.5px solid var(--line); background:#fff; border-radius:var(--radius-sm); padding:12px 8px; text-align:center;
+  cursor:pointer; font-family:inherit; font-size:12px; font-weight:700; color:var(--ink-soft);
+}
+.need-pick svg{width:20px;height:20px; margin:0 auto 6px; color:var(--ink-faint);}
+.need-pick[aria-pressed="true"]{border-color:var(--pine); background:var(--pine-light); color:var(--pine-dark);}
+.need-pick[aria-pressed="true"] svg{color:var(--pine);}
+.wizard-nav{display:flex; justify-content:space-between; align-items:center; margin-top:26px;}
+.wizard-foot-note{display:flex; align-items:center; justify-content:center; gap:7px; font-size:12.5px; color:var(--ink-faint); margin-top:18px;}
+.wizard-foot-note svg{width:14px;height:14px;}
+
+/* journey timeline */
+.journey-head{
+  background:linear-gradient(150deg,var(--ink),#1E3A31); border-radius:var(--radius-xl); color:#fff;
+  padding:34px 32px; margin-bottom:8px;
+}
+.journey-head .eyebrow{color:#8FD6BC; font-weight:800; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em;}
+.journey-head h1{color:#fff; font-size:28px; margin:8px 0 10px;}
+.journey-head p{color:#D9CFBC; font-size:14px; max-width:520px;}
+.journey-progress-row{display:flex; gap:20px; align-items:center; margin-top:22px; flex-wrap:wrap;}
+.journey-bar-wrap{flex:1; min-width:200px;}
+.journey-bar-labels{display:flex; justify-content:space-between; font-size:12px; color:#C6BCA6; margin-bottom:6px;}
+.journey-bar{height:10px; background:rgba(255,255,255,.15); border-radius:100px; overflow:hidden;}
+.journey-bar-fill{height:100%; background:#5BD8AE; border-radius:100px; transition:width .5s ease;}
+.next-step-chip{background:rgba(255,255,255,.1); border-radius:var(--radius-md); padding:12px 16px; font-size:12px;}
+.next-step-chip .l1{color:#8FD6BC; font-weight:700;}
+.next-step-chip .l2{font-weight:700; margin-top:3px; max-width:220px;}
+
+.timeline{position:relative; margin-top:44px; padding-left:0;}
+.phase{display:grid; grid-template-columns:52px 1fr; gap:18px; margin-bottom:44px; position:relative;}
+.phase:last-child{margin-bottom:0;}
+.phase-rail{position:absolute; left:25px; top:52px; bottom:-44px; width:2px; background:var(--line);}
+.phase:last-child .phase-rail{display:none;}
+.phase-dot{
+  width:52px;height:52px; border-radius:100px; border:4px solid var(--cream); background:#fff;
+  display:flex; align-items:center; justify-content:center; color:var(--ink-faint); z-index:2; box-shadow:var(--shadow-sm);
+}
+.phase-dot svg{width:20px;height:20px;}
+.phase-dot.active{background:var(--clay); color:#fff;}
+.phase-dot.complete{background:var(--pine); color:#fff;}
+.phase-eyebrow{font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--pine-dark);}
+.phase h2{font-size:20px; margin:5px 0 3px;}
+.phase-detail{color:var(--ink-soft); font-size:13.5px; margin-bottom:16px;}
+.task-card{border-radius:var(--radius-md); padding:18px; margin-bottom:12px;}
+.task-top{display:flex; align-items:flex-start; gap:14px;}
+.task-check{
+  width:30px;height:30px;border-radius:100px;border:2px solid var(--line); background:#fff; flex-shrink:0; margin-top:2px;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; color:transparent;
+}
+.task-check svg{width:15px;height:15px;}
+.task-body{flex:1; min-width:0;}
+.task-row-top{display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:flex-start;}
+.task-body h3{font-family:var(--font-body); font-size:15px; font-weight:800; margin:0;}
+.task-why{color:var(--ink-soft); font-size:13px; margin:6px 0 0;}
+.task-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+.task-actions .btn-sm{padding:7px 13px; font-size:12px;}
+.task-card[data-status="completed"]{background:var(--pine-light); border:1.5px solid var(--pine-line);}
+.task-card[data-status="completed"] .task-check{background:var(--pine); border-color:var(--pine); color:#fff;}
+.task-card[data-status="completed"] h3{color:var(--pine-dark); text-decoration:line-through; text-decoration-color:rgba(21,75,62,.35);}
+.task-card[data-status="not_started"]{background:#fff; border:1.5px solid var(--line-soft);}
+.task-card[data-status="in_progress"]{background:var(--dusk-light); border:1.5px solid #C3D5E3;}
+.task-card[data-status="blocked"]{background:var(--gold-light); border:1.5px solid #E9D5A0;}
+.blocked-note{margin-top:10px; background:rgba(255,255,255,.6); border-radius:var(--radius-sm); padding:10px 12px; font-size:12px; color:#8A6A22;}
+.resource-chip{
+  display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-size:12px; font-weight:700; color:var(--pine-dark);
+  background:none; border:none; padding:0; cursor:pointer; text-decoration:underline; text-underline-offset:2px; font-family:inherit;
+}
+.resource-chip svg{width:12px;height:12px;}
+
+.celebration{margin-top:40px; text-align:center; border-radius:var(--radius-xl); padding:44px 28px; background:var(--gold-light); border:1.5px solid #E9D5A0;}
+.celebration svg{width:36px;height:36px; color:var(--gold); margin:0 auto 14px;}
+.celebration h2{font-size:21px; margin-bottom:8px;}
+.celebration p{max-width:440px; margin:0 auto; color:#8A6A22; font-size:14px;}
+
+/* ============================================================
+   ADD RESOURCE VIEW
+   ============================================================ */
+.form-shell{max-width:680px; margin:0 auto; padding:44px 0 80px;}
+.notice-box{
+  border-radius:var(--radius-md); padding:16px; font-size:13px; line-height:1.55; display:flex; gap:10px; margin-bottom:22px;
+}
+.notice-box svg{width:18px;height:18px; flex-shrink:0; margin-top:1px;}
+.notice-dusk{background:var(--dusk-light); color:#2E4A63;}
+.success-card{padding:52px 32px; text-align:center;}
+.success-card svg{width:44px;height:44px; color:var(--pine); margin:0 auto 18px;}
+.success-card h2{font-size:23px; margin-bottom:8px;}
+.success-card p{color:var(--ink-soft); max-width:420px; margin:0 auto 22px; font-size:14.5px;}
+
+/* ============================================================
+   PARTNERS / INSIGHTS VIEW
+   ============================================================ */
+.stat-band{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:30px 0 40px;}
+@media (max-width:900px){.stat-band{grid-template-columns:repeat(2,1fr);}}
+.stat-card{padding:22px 20px; position:relative; overflow:hidden;}
+.stat-card .s-ic{width:38px;height:38px;border-radius:11px; display:flex; align-items:center; justify-content:center; margin-bottom:14px;}
+.stat-card .s-ic svg{width:19px;height:19px;}
+.stat-num{font-family:var(--font-display); font-size:36px; font-weight:600; color:var(--ink); line-height:1;}
+.stat-label{font-size:12.5px; color:var(--ink-faint); font-weight:700; margin-top:6px;}
+.stat-trend{font-size:11.5px; font-weight:700; margin-top:8px; display:inline-flex; align-items:center; gap:4px;}
+
+.insight-grid{display:grid; grid-template-columns:1.15fr .85fr; gap:20px; margin-bottom:20px;}
+@media (max-width:940px){.insight-grid{grid-template-columns:1fr;}}
+.chart-card{padding:26px;}
+.chart-card h3{font-size:17px; margin-bottom:2px;}
+.chart-card .cap{font-size:12.5px; color:var(--ink-faint); margin-bottom:20px;}
+.bar-row{display:flex; align-items:center; gap:12px; margin-bottom:13px;}
+.bar-row .b-label{width:120px; flex-shrink:0; font-size:12.5px; font-weight:700; color:var(--ink-soft);}
+.bar-track{flex:1; height:11px; background:var(--cream-deep); border-radius:100px; overflow:hidden;}
+.bar-fill{height:100%; border-radius:100px;}
+.bar-row .b-val{width:26px; text-align:right; font-size:12.5px; font-weight:800; color:var(--ink);}
+
+.donut-wrap{display:flex; align-items:center; gap:22px; flex-wrap:wrap; justify-content:center;}
+.donut-legend{display:flex; flex-direction:column; gap:9px; flex:1; min-width:150px;}
+.legend-row{display:flex; align-items:center; gap:9px; font-size:12.5px;}
+.legend-swatch{width:11px;height:11px;border-radius:4px; flex-shrink:0;}
+.legend-row .lname{color:var(--ink-soft); font-weight:600; flex:1;}
+.legend-row .lval{font-weight:800; color:var(--ink);}
+
+.gap-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+@media (max-width:600px){.gap-grid{grid-template-columns:1fr;}}
+.gap-row{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:var(--radius-sm); background:var(--cream-deep);}
+.gap-row .gname{font-size:13px; font-weight:700; color:var(--ink);}
+.gap-row .gcount{font-size:11.5px; color:var(--ink-faint);}
+
+.queue-item{border:1.5px solid var(--line-soft); border-radius:var(--radius-md); padding:18px; margin-bottom:12px;}
+.queue-top{display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px;}
+.queue-item h4{font-size:15px; font-weight:800; margin:0 0 3px;}
+.queue-meta{font-size:12px; color:var(--ink-faint); margin-bottom:8px;}
+.queue-context{font-size:13px; color:var(--ink-soft); margin:0;}
+.queue-links{display:flex; gap:14px; margin-top:8px; font-size:12px;}
+.queue-links a{color:var(--pine-dark); font-weight:700; text-decoration:underline; text-underline-offset:2px;}
+.queue-actions{display:flex; gap:8px; flex-shrink:0;}
+.token-row{display:flex; gap:10px; flex-wrap:wrap;}
+.token-row input{flex:1; min-width:200px; border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; font-family:inherit; font-size:14px;}
+
+/* ---------- saved ---------- */
+.saved-shell{padding:44px 0 80px;}
+
+/* ---------- toast ---------- */
+.toast-host{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:300; display:flex; flex-direction:column; gap:8px; align-items:center;}
+.toast{
+  background:var(--ink); color:#fff; padding:13px 22px; border-radius:100px; font-size:13.5px; font-weight:700;
+  box-shadow:var(--shadow-lg); display:flex; align-items:center; gap:9px; animation:toastIn .2s ease;
+}
+.toast svg{width:16px;height:16px; color:#5BD8AE; flex-shrink:0;}
+@keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+/* helper */
+.text-center{text-align:center;}
+.mt-0{margin-top:0;}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+
+<div class="crisis-strip">
+  In immediate danger or thinking about suicide? Call or text <strong>988</strong>, or call 911.
+  <a href="#" data-nav="resources" data-crisis="true">See emergency resources near you →</a>
+</div>
+
+<header class="site-header">
+  <div class="container header-row">
+    <a href="#" class="brand" data-nav="home">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.3C0.4 8.1 2 4.5 5.6 4c2.1-.3 4 .7 5.4 2.6C12.4 4.7 14.3 3.7 16.4 4c3.6.5 5.2 4.1 3.6 7.7C17.5 16.4 12 21 12 21Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 11.5l2.2 2.2L15 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span>
+        <span class="brand-text" style="display:block;">Foster Connect</span>
+        <span class="brand-sub">Verified support, your pace</span>
+      </span>
+    </a>
+
+    <nav class="main-nav" aria-label="Primary">
+      <button class="nav-link" data-nav="home" aria-current="page">Home</button>
+      <button class="nav-link" data-nav="resources">Find support</button>
+      <button class="nav-link" data-nav="roadmap">My journey</button>
+      <button class="nav-link" data-nav="add">Share a resource</button>
+      <button class="nav-link" data-nav="partners">Partner hub</button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="icon-btn" data-nav="saved" aria-label="Saved resources">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4.5c0-.83.67-1.5 1.5-1.5h9c.83 0 1.5.67 1.5 1.5v16l-6-4-6 4v-16Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <span class="saved-count" id="savedCount" hidden>0</span>
+      </button>
+      <button class="icon-btn menu-toggle" id="openDrawer" aria-label="Open menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="drawer-head">
+    <span class="brand-text">Menu</span>
+    <button class="icon-btn" id="closeDrawer" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <nav class="drawer-nav" aria-label="Mobile">
+    <button class="nav-link" data-nav="home">Home</button>
+    <button class="nav-link" data-nav="resources">Find support</button>
+    <button class="nav-link" data-nav="roadmap">My journey</button>
+    <button class="nav-link" data-nav="saved">Saved</button>
+    <button class="nav-link" data-nav="add">Share a resource</button>
+    <button class="nav-link" data-nav="partners">Partner hub</button>
+    <button class="nav-link" data-nav="privacy">Privacy &amp; data</button>
+  </nav>
+</div>
+
+<main id="main">
+
+<!-- ============ HOME ============ -->
+<section class="view active" id="view-home">
+  <div class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow-pill">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Built with young people who've been there
+        </span>
+        <h1>Find support that actually <em>fits your life</em>.</h1>
+        <p class="hero-lede">Foster Connect helps youth transitioning out of foster care find verified housing, money, school, and health resources — then turns that into a plan you control, one small step at a time.</p>
+        <div class="hero-cta-row">
+          <button class="btn btn-primary" data-nav="roadmap">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            Build my journey
+          </button>
+          <button class="btn btn-outline" data-nav="resources">Browse verified resources</button>
+        </div>
+        <div class="path-picker">
+          <button class="path-card" data-nav="resources">
+            <span class="p-ic" style="background:var(--pine-light); color:var(--pine-dark);">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 21V9l8-6 8 6v12M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </span>
+            <h3>I need support</h3>
+            <p>Search verified resources near you, right now.</p>
+          </button>
+          <button class="path-card" data-nav="resources">
+            <span class="p-ic" style="background:var(--dusk-light); color:var(--dusk);">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <h3>I'm helping someone</h3>
+            <p>Explore options together, at their pace.</p>
+          </button>
+          <button class="path-card" data-nav="partners">
+            <span class="p-ic" style="background:var(--clay-light); color:var(--clay-dark);">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <h3>I'm a nonprofit / partner</h3>
+            <p>See coverage data and review submissions.</p>
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <svg viewBox="0 0 480 460" class="journey-illustration">
+          <circle cx="240" cy="230" r="210" fill="#F3EADA"/>
+          <path d="M70 340 C 130 260, 150 400, 210 320 S 300 200, 360 260 S 420 150, 400 90" fill="none" stroke="#1F6F5C" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 14"/>
+          <g>
+            <circle cx="70" cy="340" r="15" fill="#D9663B"/>
+            <circle cx="70" cy="340" r="6" fill="#fff"/>
+          </g>
+          <g>
+            <circle cx="210" cy="320" r="13" fill="#4F7297"/>
+            <path d="M205 320l4 4 8-8" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <g>
+            <circle cx="360" cy="260" r="13" fill="#4F7297"/>
+            <path d="M355 260l4 4 8-8" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <g>
+            <circle cx="400" cy="90" r="19" fill="#C99A3A"/>
+            <path d="M400 82l3.5 7.2 8 1.1-5.8 5.6 1.4 7.9-7.1-3.7-7.1 3.7 1.4-7.9-5.8-5.6 8-1.1L400 82Z" fill="#fff"/>
+          </g>
+          <rect x="130" y="120" width="118" height="86" rx="18" fill="#fff" stroke="#E8DECD" stroke-width="2"/>
+          <rect x="150" y="140" width="60" height="8" rx="4" fill="#1F6F5C"/>
+          <rect x="150" y="156" width="78" height="6" rx="3" fill="#E8DECD"/>
+          <rect x="150" y="170" width="78" height="6" rx="3" fill="#E8DECD"/>
+          <rect x="150" y="184" width="46" height="6" rx="3" fill="#E8DECD"/>
+          <rect x="270" y="300" width="130" height="90" rx="18" fill="#fff" stroke="#E8DECD" stroke-width="2"/>
+          <circle cx="298" cy="330" r="12" fill="#E3F0EC"/>
+          <path d="M293 330l3.5 3.5 7-7" stroke="#1F6F5C" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="320" y="324" width="66" height="7" rx="3.5" fill="#26201A" opacity=".78"/>
+          <rect x="298" y="352" width="88" height="6" rx="3" fill="#E8DECD"/>
+          <rect x="298" y="366" width="60" height="6" rx="3" fill="#E8DECD"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="trust-strip">
+    <div class="container trust-row">
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v6c0 4.9-3 8.7-7 9.9-4-1.2-7-5-7-9.9V6l7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Every listing is human-verified before it's published
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
+        Anonymous by default — no account required
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.3C0.4 8.1 2 4.5 5.6 4c2.1-.3 4 .7 5.4 2.6C12.4 4.7 14.3 3.7 16.4 4c3.6.5 5.2 4.1 3.6 7.7C17.5 16.4 12 21 12 21Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        Written by people who work with foster youth
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Free, always
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="section-eyebrow">Start here</span>
+          <h2>What would help today?</h2>
+          <p class="lede">Pick one thing. You can always come back for the rest — you don't need to solve everything at once.</p>
+        </div>
+        <span class="result-count" id="homeResourceCount" style="margin-left:0;"></span>
+      </div>
+      <div class="needs-grid" id="needsGrid"></div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0;">
+    <div class="container">
+      <div class="duo">
+        <div class="callout callout-clay">
+          <span class="callout-ic" style="color:var(--brick);">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          </span>
+          <h3>Need help right now?</h3>
+          <p>See same-day shelter, crisis lines, and urgent options — no forms, no wizard.</p>
+          <button class="btn btn-outline" style="background:#fff;" data-nav="resources" data-crisis="true">Show urgent support</button>
+        </div>
+        <div class="callout callout-pine">
+          <span class="callout-ic" style="color:var(--pine-dark);">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          </span>
+          <h3>Ready to plan ahead?</h3>
+          <p>Turn a goal into small, trackable steps — pause or change direction anytime.</p>
+          <button class="btn btn-outline" style="background:#fff;" data-nav="roadmap">Start my journey</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--cream-deep); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+    <div class="container">
+      <div class="section-head">
+        <div><span class="section-eyebrow">How it works</span><h2>Three honest steps. No jargon.</h2></div>
+      </div>
+      <div class="steps-row">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Search what's actually verified</h3>
+          <p>Every organization, phone number, and eligibility rule is checked by a real person before it appears — not generated.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Build a plan that's yours</h3>
+          <p>Answer a couple of honest questions and get a plan broken into this week, this month, and beyond.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Track it at your pace</h3>
+          <p>Mark things done, paused, or blocked. Nothing is graded. Progress isn't linear and that's expected.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head" style="justify-content:center; text-align:center; flex-direction:column; align-items:center;">
+        <span class="section-eyebrow">Good questions</span>
+        <h2>Before you dive in</h2>
+      </div>
+      <div class="faq-list" id="faqList"></div>
+    </div>
+  </section>
+</section>
+
+<!-- ============ RESOURCES ============ -->
+<section class="view" id="view-resources">
+  <div class="container">
+    <div class="page-head">
+      <span class="section-eyebrow">Verified directory</span>
+      <h1>Find support</h1>
+      <p class="lede">Search by what you need. Open any listing to see who qualifies, what to bring, and exactly how to start — in plain language.</p>
+    </div>
+
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="text" class="search-input" id="resSearch" placeholder='Try "a place to stay tonight" or "help getting an ID"' aria-label="Search verified resources">
+      </div>
+      <div class="filter-row">
+        <div class="select-wrap">
+          <select id="filterCategory" aria-label="Filter by category"></select>
+        </div>
+        <div class="select-wrap">
+          <select id="filterCounty" aria-label="Filter by county"></select>
+        </div>
+        <button class="chip-toggle" id="filterUrgent" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          Urgent &amp; emergency only
+        </button>
+        <span class="result-count" id="resResultCount"></span>
+      </div>
+    </div>
+
+    <div id="resourceResults"></div>
+  </div>
+</section>
+
+<!-- ============ ROADMAP ============ -->
+<section class="view" id="view-roadmap">
+  <div class="container">
+    <div class="roadmap-shell" id="roadmapShell"></div>
+  </div>
+</section>
+
+<!-- ============ SAVED ============ -->
+<section class="view" id="view-saved">
+  <div class="container saved-shell">
+    <span class="section-eyebrow">Just for this browser</span>
+    <h1>Saved support</h1>
+    <p class="lede" style="margin-bottom:26px;">Resources you wanted to keep nearby. Saved items live only in this browser — nothing is tied to your name.</p>
+    <div id="savedResults"></div>
+  </div>
+</section>
+
+<!-- ============ ADD RESOURCE ============ -->
+<section class="view" id="view-add">
+  <div class="container">
+    <div class="form-shell">
+      <span class="section-eyebrow">Community contribution</span>
+      <h1>Share a resource for review</h1>
+      <p class="lede" style="margin-bottom:26px;">Know something that helped? Submissions never publish automatically — a partner checks the source, eligibility, and safety first.</p>
+
+      <div id="addResourceForm"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PARTNERS / INSIGHTS ============ -->
+<section class="view" id="view-partners">
+  <div class="container">
+    <div class="page-head" style="display:flex; align-items:flex-start; gap:16px; padding-top:44px;">
+      <div style="width:52px;height:52px;border-radius:16px;background:var(--dusk-light); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:24px;height:24px; color:var(--dusk);"><path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h1 style="margin-bottom:6px;">Partner hub</h1>
+        <p class="lede" style="margin:0;">Coverage, freshness, and community submissions — for nonprofits and county partners keeping this directory accurate.</p>
+      </div>
+    </div>
+
+    <div class="stat-band" id="statBand"></div>
+
+    <div class="insight-grid">
+      <div class="chart-card">
+        <h3>Verified coverage by need</h3>
+        <p class="cap">Where the directory is strong, and where it's thin</p>
+        <div id="categoryBars"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Resources by county</h3>
+        <p class="cap">Geographic distribution of verified listings</p>
+        <div class="donut-wrap">
+          <div id="donutChart"></div>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:20px;">
+      <h3>Coverage gap analysis</h3>
+      <p class="cap">Categories with fewer than 2 verified resources need attention</p>
+      <div class="gap-grid" id="gapGrid"></div>
+    </div>
+
+    <div class="chart-card">
+      <h3 style="display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:17px;height:17px; color:var(--pine);"><path d="M9 11l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Submission moderation
+      </h3>
+      <p class="cap">Demo-only: unlocks with the sample partner token below</p>
+      <div class="token-row" style="margin-bottom:18px;">
+        <input type="password" id="partnerToken" placeholder="Partner access token (try: demo-partner-access)">
+        <button class="btn btn-forest" id="unlockQueue">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
+          Open queue
+        </button>
+      </div>
+      <div id="queueError" style="display:none; color:var(--brick); font-size:13.5px; margin-bottom:14px;"></div>
+      <div id="submissionQueue"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRIVACY ============ -->
+<section class="view" id="view-privacy">
+  <div class="container form-shell">
+    <span class="section-eyebrow">Your data, your choices</span>
+    <h1>Privacy &amp; data controls</h1>
+    <p class="lede" style="margin-bottom:26px;">Plain-language controls for this anonymous browser session.</p>
+    <div class="card" style="padding:22px; margin-bottom:14px;">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width:20px;height:20px;color:var(--pine); margin-bottom:10px;"><path d="M12 3l7 3v6c0 4.9-3 8.7-7 9.9-4-1.2-7-5-7-9.9V6l7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <h3 style="font-size:16px; margin-bottom:6px;">What this demo stores</h3>
+      <p style="color:var(--ink-soft); font-size:13.5px; margin:0;">Your journey, saved resources, and step status live only in this browser (no account, no name required). This prototype has no backend connected yet — nothing leaves your device.</p>
+    </div>
+    <div class="card" style="padding:22px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:16px; margin-bottom:4px;">Clear this browser's data</h3>
+        <p style="color:var(--ink-soft); font-size:13.5px; margin:0;">Removes your saved resources and journey progress from this device.</p>
+      </div>
+      <button class="btn btn-danger" id="clearDataBtn">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Clear my data
+      </button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <span class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.3C0.4 8.1 2 4.5 5.6 4c2.1-.3 4 .7 5.4 2.6C12.4 4.7 14.3 3.7 16.4 4c3.6.5 5.2 4.1 3.6 7.7C17.5 16.4 12 21 12 21Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="footer-brand-text">Foster Connect</span>
+        </div>
+        <p>A calm, honest place to find verified support and build a plan that's actually yours. Free, always, no account required.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Explore</h4>
+        <ul>
+          <li><button data-nav="resources">Find support</button></li>
+          <li><button data-nav="roadmap">My journey</button></li>
+          <li><button data-nav="saved">Saved resources</button></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><button data-nav="add">Share a resource</button></li>
+          <li><button data-nav="partners">Partner hub</button></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Trust</h4>
+        <ul>
+          <li><button data-nav="privacy">Privacy &amp; data</button></li>
+          <li><a href="tel:988">Call or text 988</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>Design prototype — every organization, phone number, and address shown is fictional demo data.</span>
+      <span>Not yet connected to a backend.</span>
+    </div>
+  </div>
+</footer>
+
+<!-- resource detail modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" id="modalCard"></div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   MOCK DATA — swap this for real API calls later.
+   ============================================================ */
+const CATEGORY_META = {
+  "Housing":            { color:"#1F6F5C", light:"#E3F0EC", icon:"home" },
+  "Financial Aid":      { color:"#4F7297", light:"#E6EDF3", icon:"landmark" },
+  "Education":          { color:"#7C8FD9", light:"#E9EBFB", icon:"cap" },
+  "Employment":         { color:"#C99A3A", light:"#F6ECD6", icon:"briefcase" },
+  "Healthcare":         { color:"#B85C7A", light:"#F5E3EA", icon:"stethoscope" },
+  "Mental Health":      { color:"#8B6BB0", light:"#EEE7F5", icon:"heart2" },
+  "Food Assistance":    { color:"#7A9A3D", light:"#EAF1DE", icon:"food" },
+  "Transportation":     { color:"#3D9AA6", light:"#DFF0F1", icon:"bus" },
+  "Legal Support":      { color:"#6B5B95", light:"#E9E5F2", icon:"scale" },
+  "Community Support":  { color:"#D9663B", light:"#FBE7DA", icon:"users" },
+};
+
+const RESOURCES = [
+  {id:1,title:"Harborlight Transitional Housing",organization:"Harborlight Youth Services",category:"Housing",county:"Alameda",urgency:"Urgent",isCrisis:false,description:"24-month transitional apartments with case management for young adults ages 18–24 exiting foster care. Includes furnished units and life-skills coaching.",eligibility:"Ages 18–24, exited foster care within the last 3 years, Alameda County residency preferred.",steps:"Call the intake line or complete the online interest form. An intake coordinator follows up within 3 business days.",bring:"Photo ID or letter from a caseworker, proof of foster care history if available.",cost:"Free — rent is subsidized on a sliding scale based on income.",hours:"Intake line: Mon–Fri, 9am–5pm",languages:"English, Spanish",accessibility:"Wheelchair-accessible units available on request",phone:"(555) 201-4488",website:"https://harborlight.example.org",verified:"2026-06-02"},
+  {id:2,title:"Golden Gate Rapid Rehousing Fund",organization:"Golden Gate Housing Trust",category:"Housing",county:"Contra Costa",urgency:"Emergency",isCrisis:true,description:"Short-term rental assistance and move-in cost coverage for youth facing homelessness within the next 7 days.",eligibility:"Ages 16–24, facing imminent housing loss or currently unhoused, Contra Costa County.",steps:"Call the 24-hour access line. A navigator will meet you same-day or next-day.",bring:"Nothing is required to make the first call.",cost:"Free",hours:"24/7 access line",languages:"English, Spanish, Vietnamese",accessibility:"In-home visits available for mobility needs",phone:"(555) 340-9911",website:"https://ggh-trust.example.org",verified:"2026-07-14"},
+  {id:3,title:"Anchor Point Emergency Shelter",organization:"Anchor Point Youth Shelter",category:"Housing",county:"Alameda",urgency:"Emergency",isCrisis:true,description:"Same-night youth shelter beds. Walk-in or call ahead — no appointment or paperwork required for the first night.",eligibility:"Ages 12–24. No documentation required for emergency entry.",steps:"Walk in anytime or call the shelter line first if you'd like someone to expect you.",bring:"Nothing required. Bring medication if you take any.",cost:"Free",hours:"24/7",languages:"English, Spanish, ASL interpretation on request",accessibility:"Ground-floor accessible beds available",phone:"(555) 118-2020",website:"https://anchorpointshelter.example.org",verified:"2026-07-20"},
+  {id:4,title:"Bay Area Foster Youth Grant",organization:"Bay Area Youth Fund",category:"Financial Aid",county:"California",urgency:"Standard",isCrisis:false,description:"One-time $1,000 grant for basic needs — rent, food, transportation, or emergency costs. Simple online application.",eligibility:"Current or former foster youth, ages 16–25, California resident.",steps:"Apply online. Most decisions arrive within 10 business days.",bring:"Nothing to apply; verification documents may be requested after approval.",cost:"Free to apply",hours:"Applications accepted year-round",languages:"English, Spanish, Mandarin, Tagalog",accessibility:"Application available in large print and screen-reader friendly format",phone:"(555) 402-7765",website:"https://bayareayouthfund.example.org",verified:"2026-05-28"},
+  {id:5,title:"Compass Financial Literacy Lab",organization:"Compass Community Partners",category:"Financial Aid",county:"Contra Costa",urgency:"Standard",isCrisis:false,description:"Free workshops covering budgeting, opening a bank account, building credit, and avoiding predatory loans — built specifically for transition-age youth.",eligibility:"Ages 16–26, no income requirement.",steps:"Sign up for the next session online or by phone. Drop-ins welcome if space allows.",bring:"Nothing required.",cost:"Free, includes a $25 starter savings incentive for attendees",hours:"Workshops held Tuesdays and Saturdays",languages:"English, Spanish",accessibility:"Held in a wheelchair-accessible community room",phone:"(555) 665-3300",website:"https://compasscommunity.example.org",verified:"2026-06-19"},
+  {id:6,title:"Roadmap Scholars Tuition Waiver",organization:"California Community Colleges",category:"Education",county:"California",urgency:"Standard",isCrisis:false,description:"Full enrollment fee waiver plus a dedicated foster-youth counselor at any California community college.",eligibility:"Current or former foster youth under age 26, enrolled or enrolling at a CA community college.",steps:"Check the box on your college application or contact the campus foster-youth liaison directly.",bring:"None for the waiver itself; FAFSA or CA Dream Act application recommended for added aid.",cost:"Free — waives all enrollment fees",hours:"Campus offices: standard business hours",languages:"Varies by campus; most offer Spanish support",accessibility:"Campus disability services available at every location",phone:"(555) 778-2200",website:"https://roadmapscholars.example.org",verified:"2026-04-11"},
+  {id:7,title:"Fresh Start Career Pathways",organization:"Fresh Start Workforce Alliance",category:"Employment",county:"Alameda",urgency:"Standard",isCrisis:false,description:"Paid job training in tech support, trades, or healthcare admin — includes a laptop stipend and interview coaching.",eligibility:"Ages 18–24, no prior experience required.",steps:"Attend a Thursday info session (in-person or virtual) to start the application.",bring:"A photo ID for the info session sign-in.",cost:"Free — paid training stipend of $16/hr during the program",hours:"Info sessions: Thursdays 4pm",languages:"English, Spanish",accessibility:"Virtual attendance option available",phone:"(555) 221-9040",website:"https://freshstartalliance.example.org",verified:"2026-07-02"},
+  {id:8,title:"Open Door Community Health",organization:"Open Door Health Centers",category:"Healthcare",county:"Contra Costa",urgency:"Standard",isCrisis:false,description:"Free primary care, dental, and vision screenings — walk-in hours available, no insurance required.",eligibility:"All ages welcome; sliding-scale fee based on income, often $0 for foster youth.",steps:"Walk in during open hours or call ahead to schedule.",bring:"Insurance card if you have one (not required).",cost:"Free to low-cost depending on income",hours:"Mon–Sat, 8am–6pm, walk-ins welcome",languages:"English, Spanish, Cantonese",accessibility:"Fully wheelchair accessible, on-site interpreters",phone:"(555) 552-8810",website:"https://opendoorhealth.example.org",verified:"2026-06-25"},
+  {id:9,title:"Steady Ground Counseling Collective",organization:"Steady Ground Therapy",category:"Mental Health",county:"Alameda",urgency:"Urgent",isCrisis:false,description:"Free trauma-informed individual and group therapy on a sliding scale, with same-week intake appointments.",eligibility:"Ages 14–26, no diagnosis or insurance required.",steps:"Call or complete the online intake form. First appointment typically within 5–7 days.",bring:"Nothing required for the first session.",cost:"Free to sliding scale",hours:"Mon–Fri 9am–7pm, some weekend slots",languages:"English, Spanish, ASL on request",accessibility:"Teletherapy available for those who prefer remote sessions",phone:"(555) 883-1200",website:"https://steadygroundtherapy.example.org",verified:"2026-07-09"},
+  {id:10,title:"988 Suicide & Crisis Lifeline",organization:"988 Lifeline",category:"Mental Health",county:"National",urgency:"Emergency",isCrisis:true,description:"Free, confidential 24/7 support by call or text for anyone in emotional distress or crisis.",eligibility:"Anyone, any age, anywhere in the U.S.",steps:"Call or text 988 anytime. No forms, no wait for a human.",bring:"Nothing required.",cost:"Free",hours:"24/7/365",languages:"English, Spanish, and interpretation in 200+ languages",accessibility:"TTY and video relay available",phone:"988",website:"https://988lifeline.org",verified:"2026-07-25"},
+  {id:11,title:"Kinship Table Food Pantry",organization:"Kinship Table",category:"Food Assistance",county:"Contra Costa",urgency:"Standard",isCrisis:false,description:"Weekly grocery pantry with no ID or paperwork required — choose your own groceries, dignity-first setup.",eligibility:"Open to anyone in need — no proof of income or residency required.",steps:"Show up during pantry hours. First-timers get a short, friendly orientation.",bring:"A bag or box to carry groceries if you have one (extras available on site).",cost:"Free",hours:"Every Saturday, 10am–1pm",languages:"English, Spanish",accessibility:"Ground-level, wheelchair accessible",phone:"(555) 990-4471",website:"https://kinshiptable.example.org",verified:"2026-07-06"},
+  {id:12,title:"CalFresh Youth Outreach",organization:"CalFresh Outreach Partners",category:"Food Assistance",county:"National",urgency:"Standard",isCrisis:false,description:"Free one-on-one help applying for CalFresh (SNAP) food benefits — many former foster youth qualify for expedited approval.",eligibility:"Former foster youth up to age 26 often qualify regardless of income.",steps:"Call for a phone appointment or apply online with outreach worker support.",bring:"ID if available; not required to start the conversation.",cost:"Free to apply, no cost for the benefit itself",hours:"Mon–Fri 9am–5pm",languages:"English, Spanish, Vietnamese, Mandarin",accessibility:"Phone and video appointments available",phone:"(555) 610-3345",website:"https://calfresh-outreach.example.org",verified:"2026-05-30"},
+  {id:13,title:"East Bay Youth Mobility Pass",organization:"East Bay Transit Authority",category:"Transportation",county:"Alameda",urgency:"Standard",isCrisis:false,description:"Free unlimited transit pass for current and former foster youth under age 26 — covers bus and light rail.",eligibility:"Ages 24 and under, current or former foster youth.",steps:"Apply online with a caseworker letter or bring documentation to any transit office.",bring:"Photo ID and proof of foster care history (a caseworker letter works).",cost:"Free",hours:"Transit offices open Mon–Sat",languages:"English, Spanish",accessibility:"All vehicles ADA accessible",phone:"(555) 400-2200",website:"https://eastbaytransit.example.org",verified:"2026-06-11"},
+  {id:14,title:"Safe Passage Legal Aid",organization:"Safe Passage Legal Clinic",category:"Legal Support",county:"Contra Costa",urgency:"Standard",isCrisis:false,description:"Free legal help with ID recovery, expunging juvenile records, tenant rights, and understanding your legal status after aging out.",eligibility:"Ages 16–26, no income documentation required for intake.",steps:"Call to schedule a free 30-minute consultation.",bring:"Any legal paperwork you already have, though it's not required to start.",cost:"Free",hours:"Mon–Thu, 10am–4pm",languages:"English, Spanish",accessibility:"Phone consultations available",phone:"(555) 770-6690",website:"https://safepassagelegal.example.org",verified:"2026-06-30"},
+  {id:15,title:"First Steps ID & Documents Clinic",organization:"First Steps Youth Center",category:"Legal Support",county:"National",urgency:"Urgent",isCrisis:false,description:"Free help getting a birth certificate, state ID, or Social Security card replaced — often the first blocker to everything else.",eligibility:"Current or former foster youth, any age.",steps:"Call or walk in — most documents can be started same-visit.",bring:"Any existing ID or documents, even expired ones. Not required.",cost:"Free, including document replacement fees",hours:"Mon, Wed, Fri 10am–3pm",languages:"English, Spanish",accessibility:"Wheelchair accessible entrance and restrooms",phone:"(555) 512-8890",website:"https://firststepsdocs.example.org",verified:"2026-07-18"},
+  {id:16,title:"Bright Path Mentorship Circle",organization:"Bright Path Youth Network",category:"Community Support",county:"California",urgency:"Standard",isCrisis:false,description:"Ongoing peer mentorship plus monthly community dinners — built to reduce isolation after leaving care.",eligibility:"Ages 16–26, current or former foster youth.",steps:"Fill out a short interest form; a coordinator matches you with a mentor within 2 weeks.",bring:"Nothing required.",cost:"Free",hours:"Dinners: first Friday of each month, 6pm",languages:"English, Spanish",accessibility:"Accessible venue, virtual mentor matching available",phone:"(555) 340-1188",website:"https://brightpathnetwork.example.org",verified:"2026-06-07"},
+];
+
+const SUBMISSIONS = [
+  {id:101,title:"Willowmont Youth Drop-In Center",organization:"Willowmont Community House",category:"Community Support",county:"Alameda",relationship:"I'm a case manager and refer youth here weekly.",website:"https://willowmont.example.org",sourceUrl:"https://willowmont.example.org/services",status:"pending"},
+  {id:102,title:"Second Chance Auto Repair Vouchers",organization:"Second Chance Fund",category:"Transportation",county:"Contra Costa",relationship:"I used this program myself last year.",website:"https://secondchancefund.example.org",sourceUrl:"https://secondchancefund.example.org/vouchers",status:"pending"},
+  {id:103,title:"Evergreen Trades Apprenticeship",organization:"Evergreen Trades Guild",category:"Employment",county:"California",relationship:"I work in outreach for the Guild.",website:"https://evergreentrades.example.org",sourceUrl:"https://evergreentrades.example.org/apprentice",status:"pending"},
+];
+
+const NEEDS = [
+  {label:"A place to stay",category:"Housing",icon:"home"},
+  {label:"Money & benefits",category:"Financial Aid",icon:"landmark"},
+  {label:"School & training",category:"Education",icon:"cap"},
+  {label:"A job",category:"Employment",icon:"briefcase"},
+  {label:"Healthcare",category:"Healthcare",icon:"stethoscope"},
+  {label:"Food",category:"Food Assistance",icon:"food"},
+  {label:"Transportation",category:"Transportation",icon:"bus"},
+  {label:"Someone to talk to",category:"Mental Health",icon:"heart2"},
+];
+
+const FAQS = [
+  {q:"Is Foster Connect actually free?", a:"Yes — completely, always. There's no premium tier, no ads, and nothing to buy. It's built and maintained with nonprofit and county partner support."},
+  {q:"Do I need to make an account?", a:"No. Browsing and searching require nothing. If you build a journey plan or save resources, that's tied to a private, random ID stored only in your browser — not your name or email."},
+  {q:"Who checks that these resources are real?", a:"A human partner — not an algorithm — verifies every organization, phone number, and eligibility rule before it's published, and re-checks listings on a regular schedule."},
+  {q:"What if I can't find what I need?", a:"Say so. The directory will tell you honestly when there's no verified match instead of guessing — and you can ask a partner to look into a gap."},
+  {q:"Can I use this if I'm supporting someone else?", a:"Absolutely. Caseworkers, mentors, and family members use Foster Connect too — everything here is written to be shared."},
+];
+
+/* ============================================================
+   ICONS
+   ============================================================ */
+const ICONS = {
+  home:'<path d="M4 21V9l8-6 8 6v12M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+  landmark:'<path d="M3 21h18M4 21V10l8-5 8 5v11M9 21v-7M15 21v-7M3 10h18" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+  cap:'<path d="M12 3 2 8l10 5 10-5-10-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" stroke="currentColor" stroke-width="1.7"/>',
+  briefcase:'<rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="1.7"/>',
+  stethoscope:'<path d="M6 4v6a4 4 0 0 0 8 0V4M10 20a4 4 0 0 0 4-4v-2M18 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  food:'<path d="M7 3v7a2 2 0 0 0 2 2v9M7 3v9M11 3v7M11 3v16M18 3c-2 2-2 5-2 7s2 3 2 3v7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  bus:'<rect x="3" y="5" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M7 17v2M17 17v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="7.5" cy="14.5" r="1" fill="currentColor"/><circle cx="16.5" cy="14.5" r="1" fill="currentColor"/>',
+  heart2:'<path d="M12 21s-7.5-4.6-10-9.3C0.4 8.1 2 4.5 5.6 4c2.1-.3 4 .7 5.4 2.6C12.4 4.7 14.3 3.7 16.4 4c3.6.5 5.2 4.1 3.6 7.7C17.5 16.4 12 21 12 21Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+  scale:'<path d="M12 3v18M5 8l-3 6a3 3 0 0 0 6 0l-3-6ZM19 8l-3 6a3 3 0 0 0 6 0l-3-6ZM5 8h6M13 8h6M8 21h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  pin:'<path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3" stroke="currentColor" stroke-width="1.7"/>',
+  clock:'<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3.2 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  shield:'<path d="M12 3l7 3v6c0 4.9-3 8.7-7 9.9-4-1.2-7-5-7-9.9V6l7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+  bookmark:'<path d="M6 4.5c0-.83.67-1.5 1.5-1.5h9c.83 0 1.5.67 1.5 1.5v16l-6-4-6 4v-16Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+  bookmarkFilled:'<path d="M6 4.5c0-.83.67-1.5 1.5-1.5h9c.83 0 1.5.67 1.5 1.5v16l-6-4-6 4v-16Z" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  check:'<path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  search:'<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  external:'<path d="M14 4h6v6M20 4 10 14M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  phone:'<path d="M6.6 10.8a15.6 15.6 0 0 0 6.6 6.6l2.2-2.2a1.3 1.3 0 0 1 1.3-.3c1.1.4 2.3.6 3.5.6a1.3 1.3 0 0 1 1.3 1.3V20a1.3 1.3 0 0 1-1.3 1.3C10.7 21.3 2.7 13.3 2.7 3.8A1.3 1.3 0 0 1 4 2.5h3.2A1.3 1.3 0 0 1 8.5 3.8c0 1.2.2 2.4.6 3.5.1.4 0 .9-.3 1.3L6.6 10.8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  flag:'<path d="M5 21V4M5 4h13l-3 4 3 4H5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+  circle:'<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/>',
+  dashed:'<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 3"/>',
+  pause:'<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M10 9v6M14 9v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  sparkle:'<path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  trophy:'<path d="M8 4h8v5a4 4 0 0 1-8 0V4ZM5 6H3v2a3 3 0 0 0 3 3M19 6h2v2a3 3 0 0 1-3 3M9 20h6M12 15v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  chevron:'<path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  filter:'<path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  bars:'<path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  lock:'<rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  plus:'<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  help:'<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 9a2.5 2.5 0 1 1 3.7 2.2c-.8.5-1.2 1-1.2 1.9M12 17h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+};
+function icon(name, extra){ return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" '+(extra||'')+'>'+ICONS[name]+'</svg>'; }
+
+/* ============================================================
+   STATE
+   ============================================================ */
+/* Safe storage: falls back to an in-memory store if localStorage is
+   unavailable (e.g. Safari blocks it for file:// pages opened by double-click). */
+const memoryStore = {};
+const safeStorage = {
+  get(key, fallback){
+    try { const v = window.localStorage.getItem(key); return v===null ? fallback : v; }
+    catch(e){ return key in memoryStore ? memoryStore[key] : fallback; }
+  },
+  set(key, value){
+    try { window.localStorage.setItem(key, value); }
+    catch(e){ memoryStore[key] = value; }
+  },
+};
+
+const state = {
+  view:"home",
+  saved: JSON.parse(safeStorage.get("fc_saved","[]")),
+  roadmap: JSON.parse(safeStorage.get("fc_roadmap","null")),
+  wizardStep:0,
+  wizardForm:{ youthName:"", age:"", county:"", need:"", currentNeeds:"", futurePlan:"" },
+  resFilters:{ q:"", category:"All", county:"All", urgentOnly:false },
+  submissions: SUBMISSIONS.slice(),
+  queueUnlocked:false,
+  faqOpen:{},
+};
+
+function persistSaved(){ safeStorage.set("fc_saved", JSON.stringify(state.saved)); }
+function persistRoadmap(){ safeStorage.set("fc_roadmap", JSON.stringify(state.roadmap)); }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg){
+  const host = document.getElementById("toastHost");
+  const el = document.createElement("div");
+  el.className="toast";
+  el.innerHTML = icon("check") + "<span>"+msg+"</span>";
+  host.appendChild(el);
+  setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .2s ease"; setTimeout(()=>el.remove(),200); }, 2600);
+}
+
+/* ============================================================
+   NAV / ROUTER
+   ============================================================ */
+function go(view, opts){
+  opts = opts || {};
+  state.view = view;
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById("view-"+view).classList.add("active");
+  document.querySelectorAll("[data-nav]").forEach(el=>{
+    if(el.tagName==="BUTTON" && el.classList.contains("nav-link")){
+      if(el.dataset.nav===view) el.setAttribute("aria-current","page");
+      else el.removeAttribute("aria-current");
+    }
+  });
+  closeDrawer();
+  window.scrollTo({top:0, behavior:"instant" in window ? "instant" : "auto"});
+  if(view==="resources"){
+    if(opts.category){ state.resFilters.category = opts.category; }
+    if(opts.crisis){ state.resFilters.urgentOnly = true; }
+    renderResourcesView();
+  }
+  if(view==="saved") renderSaved();
+  if(view==="roadmap") renderRoadmap();
+  if(view==="add") renderAddForm();
+  if(view==="partners") renderPartners();
+  if(view==="home") { renderNeedsGrid(); renderFaq(); }
+}
+document.addEventListener("click", function(e){
+  const t = e.target.closest("[data-nav]");
+  if(!t) return;
+  e.preventDefault();
+  go(t.dataset.nav, { category:t.dataset.category, crisis:t.dataset.crisis==="true" });
+});
+
+/* drawer */
+const drawer=document.getElementById("drawer"), backdrop=document.getElementById("drawerBackdrop");
+function openDrawer(){ drawer.classList.add("open"); backdrop.classList.add("open"); document.getElementById("openDrawer").setAttribute("aria-expanded","true"); }
+function closeDrawer(){ drawer.classList.remove("open"); backdrop.classList.remove("open"); document.getElementById("openDrawer").setAttribute("aria-expanded","false"); }
+document.getElementById("openDrawer").addEventListener("click", openDrawer);
+document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
+backdrop.addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeDrawer(); closeModal(); } });
+
+/* ============================================================
+   HOME — needs grid + faq
+   ============================================================ */
+function renderNeedsGrid(){
+  const grid = document.getElementById("needsGrid");
+  grid.innerHTML = NEEDS.map(n=>{
+    const meta = CATEGORY_META[n.category];
+    return '<button class="need-card" data-nav="resources" data-category="'+n.category+'">'+
+      '<span class="need-ic" style="background:'+meta.light+'; color:'+meta.color+';">'+icon(n.icon)+'</span>'+
+      '<h3>'+n.label+'</h3>'+
+      '<span class="go">See options '+icon("arrow")+'</span>'+
+    '</button>';
+  }).join("");
+  document.getElementById("homeResourceCount").textContent = RESOURCES.length + " verified demo resources";
+}
+function renderFaq(){
+  const list = document.getElementById("faqList");
+  list.innerHTML = FAQS.map((f,i)=>{
+    const open = !!state.faqOpen[i];
+    return '<div class="faq-item" data-open="'+open+'">'+
+      '<button class="faq-q" data-faq="'+i+'" aria-expanded="'+open+'">'+f.q + icon("plus") +'</button>'+
+      '<div class="faq-a"><div class="faq-a-inner">'+f.a+'</div></div>'+
+    '</div>';
+  }).join("");
+  list.querySelectorAll("[data-faq]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const i = btn.dataset.faq;
+      state.faqOpen[i] = !state.faqOpen[i];
+      renderFaq();
+    });
+  });
+}
+
+/* ============================================================
+   RESOURCES — search / filter / cards / modal
+   ============================================================ */
+function populateFilterSelects(){
+  const cats = ["All", ...Object.keys(CATEGORY_META)];
+  const counties = ["All","Alameda","Contra Costa","California","National"];
+  document.getElementById("filterCategory").innerHTML = cats.map(c=>'<option value="'+c+'">'+(c==="All"?"Any kind of support":c)+'</option>').join("");
+  document.getElementById("filterCounty").innerHTML = counties.map(c=>'<option value="'+c+'">'+(c==="All"?"Any location":c)+'</option>').join("");
+}
+populateFilterSelects();
+
+function matchesFilters(r){
+  const f = state.resFilters;
+  const q = f.q.trim().toLowerCase();
+  const matchesQ = !q || (r.title+" "+r.description+" "+r.organization).toLowerCase().includes(q);
+  const matchesCat = f.category==="All" || r.category===f.category;
+  const matchesCounty = f.county==="All" || r.county===f.county;
+  const matchesUrgent = !f.urgentOnly || r.urgency==="Urgent" || r.urgency==="Emergency";
+  return matchesQ && matchesCat && matchesCounty && matchesUrgent;
+}
+
+function resourceCard(r, compact){
+  const meta = CATEGORY_META[r.category];
+  const saved = state.saved.includes(r.id);
+  const urgencyPill = r.urgency!=="Standard" ? '<span class="pill '+(r.isCrisis?"pill-brick":"pill-clay")+'">'+r.urgency+'</span>' : "";
+  return '<div class="res-card" data-id="'+r.id+'">'+
+    '<div class="res-card-bar" style="background:'+meta.color+';"></div>'+
+    '<div class="res-card-body">'+
+      '<div class="res-card-top">'+
+        '<div class="res-tags"><span class="pill pill-pine">'+r.category+'</span>'+urgencyPill+'</div>'+
+        '<button class="save-btn" data-save="'+r.id+'" aria-pressed="'+saved+'" aria-label="'+(saved?"Remove from saved":"Save")+' '+r.title+'">'+icon(saved?"bookmarkFilled":"bookmark")+'</button>'+
+      '</div>'+
+      '<div>'+
+        '<h3>'+r.title+'</h3>'+
+        '<p class="res-org">'+r.organization+'</p>'+
+      '</div>'+
+      '<p class="res-desc">'+r.description+'</p>'+
+      '<div class="res-meta">'+
+        '<span>'+icon("pin")+r.county+'</span>'+
+        '<span class="verified">'+icon("shield")+'Checked '+formatDate(r.verified)+'</span>'+
+      '</div>'+
+      '<div class="res-card-actions"><button class="btn btn-outline btn-block btn-sm" data-open-detail="'+r.id+'">See details &amp; next steps</button></div>'+
+    '</div>'+
+  '</div>';
+}
+function formatDate(iso){
+  const d = new Date(iso+"T00:00:00");
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+}
+
+function renderResourcesView(){
+  document.getElementById("resSearch").value = state.resFilters.q;
+  document.getElementById("filterCategory").value = state.resFilters.category;
+  document.getElementById("filterCounty").value = state.resFilters.county;
+  document.getElementById("filterUrgent").setAttribute("aria-pressed", state.resFilters.urgentOnly);
+  renderResourceResults();
+}
+function renderResourceResults(){
+  const list = RESOURCES.filter(matchesFilters);
+  document.getElementById("resResultCount").textContent = list.length + " match" + (list.length===1?"":"es");
+  const host = document.getElementById("resourceResults");
+  if(list.length===0){
+    host.innerHTML = '<div class="empty-state">'+icon("search")+'<h3>No verified match yet</h3><p>Try fewer words or a broader location. We\'ll always tell you honestly when there\'s no verified option — never a guess.</p></div>';
+    return;
+  }
+  host.innerHTML = '<div class="resource-grid">'+list.map(r=>resourceCard(r)).join("")+'</div>';
+}
+document.getElementById("resSearch").addEventListener("input", e=>{ state.resFilters.q = e.target.value; renderResourceResults(); });
+document.getElementById("filterCategory").addEventListener("change", e=>{ state.resFilters.category = e.target.value; renderResourceResults(); });
+document.getElementById("filterCounty").addEventListener("change", e=>{ state.resFilters.county = e.target.value; renderResourceResults(); });
+document.getElementById("filterUrgent").addEventListener("click", e=>{
+  state.resFilters.urgentOnly = !state.resFilters.urgentOnly;
+  e.currentTarget.setAttribute("aria-pressed", state.resFilters.urgentOnly);
+  renderResourceResults();
+});
+
+/* delegated: save + open detail (works across resources/saved/roadmap views) */
+document.addEventListener("click", function(e){
+  const saveBtn = e.target.closest("[data-save]");
+  if(saveBtn){
+    const id = Number(saveBtn.dataset.save);
+    toggleSave(id);
+    return;
+  }
+  const detailBtn = e.target.closest("[data-open-detail]");
+  if(detailBtn){
+    openDetail(Number(detailBtn.dataset.openDetail));
+  }
+});
+function toggleSave(id){
+  const idx = state.saved.indexOf(id);
+  const r = RESOURCES.find(x=>x.id===id);
+  if(idx>-1){ state.saved.splice(idx,1); toast("Removed from saved"); }
+  else { state.saved.push(id); toast("Saved for later"); }
+  persistSaved();
+  updateSavedCount();
+  if(state.view==="resources") renderResourceResults();
+  if(state.view==="saved") renderSaved();
+  document.querySelectorAll('[data-save="'+id+'"]').forEach(btn=>{
+    const nowSaved = state.saved.includes(id);
+    btn.setAttribute("aria-pressed", nowSaved);
+    btn.innerHTML = icon(nowSaved?"bookmarkFilled":"bookmark");
+    btn.setAttribute("aria-label", (nowSaved?"Remove from saved":"Save")+" "+(r?r.title:""));
+  });
+}
+function updateSavedCount(){
+  const el = document.getElementById("savedCount");
+  if(state.saved.length>0){ el.hidden=false; el.textContent = state.saved.length; }
+  else el.hidden = true;
+}
+
+/* ---------- saved page ---------- */
+function renderSaved(){
+  const host = document.getElementById("savedResults");
+  const items = RESOURCES.filter(r=>state.saved.includes(r.id));
+  if(items.length===0){
+    host.innerHTML = '<div class="empty-state">'+icon("bookmark")+'<h3>Nothing saved yet</h3><p>Use the bookmark icon on any verified resource to keep it here.</p></div>';
+    return;
+  }
+  host.innerHTML = '<div class="resource-grid">'+items.map(r=>resourceCard(r)).join("")+'</div>';
+}
+
+/* ---------- detail modal ---------- */
+const modalBackdrop = document.getElementById("modalBackdrop");
+const modalCard = document.getElementById("modalCard");
+function openDetail(id){
+  const r = RESOURCES.find(x=>x.id===id);
+  if(!r) return;
+  const meta = CATEGORY_META[r.category];
+  const saved = state.saved.includes(r.id);
+  modalCard.innerHTML =
+    '<div class="modal-head" style="background:linear-gradient(155deg,'+meta.light+',#fff);">'+
+      '<button class="modal-close" id="modalCloseBtn" aria-label="Close">'+icon("x")+'</button>'+
+      '<div class="modal-tags"><span class="pill pill-pine">'+r.category+'</span><span class="pill pill-neutral">'+r.county+'</span>'+(r.urgency!=="Standard"?'<span class="pill '+(r.isCrisis?"pill-brick":"pill-clay")+'">'+r.urgency+'</span>':'')+'</div>'+
+      '<h2 id="modalTitle">'+r.title+'</h2>'+
+      '<p class="modal-org">'+r.organization+'</p>'+
+    '</div>'+
+    '<div class="modal-body">'+
+      '<p class="modal-desc">'+r.description+'</p>'+
+      '<div class="detail-block"><h4>Who may qualify</h4><p>'+r.eligibility+'</p></div>'+
+      '<div class="detail-block"><h4>How to start</h4><p>'+r.steps+'</p></div>'+
+      '<div class="detail-block"><h4>What to bring</h4><p>'+r.bring+'</p></div>'+
+      '<div class="detail-grid">'+
+        '<div class="detail-block"><h4>Cost</h4><p>'+r.cost+'</p></div>'+
+        '<div class="detail-block"><h4>Hours</h4><p>'+r.hours+'</p></div>'+
+        '<div class="detail-block"><h4>Languages</h4><p>'+r.languages+'</p></div>'+
+        '<div class="detail-block"><h4>Accessibility</h4><p>'+r.accessibility+'</p></div>'+
+      '</div>'+
+      '<div class="verified-strip">'+icon("check")+'<span><strong>Verified demo resource.</strong> Checked '+formatDate(r.verified)+'. This prototype uses fictional organizations and contact details so it can be safely tweaked before real resources replace them.</span></div>'+
+      '<div class="modal-actions">'+
+        (r.phone?'<a class="btn btn-forest" href="tel:'+r.phone.replace(/[^\\d+]/g,"")+'">'+icon("phone")+'Call</a>':"")+
+        (r.website?'<a class="btn btn-outline" href="'+r.website+'" target="_blank" rel="noreferrer">'+icon("external")+'Website</a>':"")+
+        '<button class="btn btn-outline" data-save="'+r.id+'" aria-pressed="'+saved+'">'+icon(saved?"bookmarkFilled":"bookmark")+(saved?"Saved":"Save")+'</button>'+
+        '<button class="btn btn-ghost" id="reportBtn">Report outdated information</button>'+
+      '</div>'+
+      '<div class="report-box" id="reportBox" style="display:none;">'+
+        '<p style="margin:0; font-size:13px; color:var(--ink-soft);">Tell a partner what looks outdated or unsafe. This does not contact the organization directly.</p>'+
+        '<textarea id="reportText" placeholder="What should be checked?"></textarea>'+
+        '<button class="btn btn-forest btn-sm" id="sendReport">Send report</button>'+
+      '</div>'+
+    '</div>';
+  modalBackdrop.classList.add("open");
+  document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+  document.getElementById("reportBtn").addEventListener("click", ()=>{ document.getElementById("reportBox").style.display="block"; });
+  document.getElementById("sendReport").addEventListener("click", ()=>{
+    const txt = document.getElementById("reportText").value.trim();
+    if(txt.length<5){ toast("Tell us a little more, then send"); return; }
+    closeModal(); toast("Sent to a partner for review");
+  });
+}
+function closeModal(){ modalBackdrop.classList.remove("open"); }
+modalBackdrop.addEventListener("click", e=>{ if(e.target===modalBackdrop) closeModal(); });
+
+/* ============================================================
+   ROADMAP — intake wizard + generated timeline
+   ============================================================ */
+const PHASES = ["This Week","30 Days","3-6 Months","6-12 Months"];
+const PHASE_COPY = {
+  "This Week":{eyebrow:"Now", title:"Create some breathing room", detail:"Small, useful steps for what matters most first."},
+  "30 Days":{eyebrow:"Next", title:"Build steadier ground", detail:"Follow-ups that help things feel more stable."},
+  "3-6 Months":{eyebrow:"Then", title:"Move toward your goal", detail:"Progress that can grow over time."},
+  "6-12 Months":{eyebrow:"Ahead", title:"Reach the next milestone", detail:"Bigger steps for when you're ready."},
+};
+// category -> resource ids to reference + task copy templates for This Week / 30 Days
+const CATEGORY_PLAN = {
+  "Housing":{resourceIds:[1,2,3], weekTask:"Call or message a housing navigator about emergency and transitional options", monthTask:"Complete a housing application and gather ID documents"},
+  "Financial Aid":{resourceIds:[4,5], weekTask:"Apply for a one-time emergency financial grant", monthTask:"Attend a budgeting and banking workshop"},
+  "Education":{resourceIds:[6], weekTask:"Contact your campus (or a nearby college) foster-youth liaison", monthTask:"Submit your enrollment fee waiver paperwork"},
+  "Employment":{resourceIds:[7], weekTask:"Sign up for a paid job-training info session", monthTask:"Update your resume and complete mock interview practice"},
+  "Healthcare":{resourceIds:[8], weekTask:"Book a free primary care visit to get a baseline check-up", monthTask:"Establish an ongoing provider and confirm any medication refills"},
+  "Mental Health":{resourceIds:[9,10], weekTask:"Reach out for a same-week counseling intake appointment", monthTask:"Attend your first two sessions and note what's working"},
+  "Food Assistance":{resourceIds:[11,12], weekTask:"Visit a no-ID-required food pantry this week", monthTask:"Apply for ongoing CalFresh food benefits"},
+  "Transportation":{resourceIds:[13], weekTask:"Apply for a free youth transit pass", monthTask:"Map your regular routes to school, work, and appointments"},
+};
+function buildRoadmap(form){
+  const primary = CATEGORY_PLAN[form.need] || CATEGORY_PLAN["Housing"];
+  const secondaryKeys = Object.keys(CATEGORY_PLAN).filter(k=>k!==form.need);
+  const eduTask = { text:"Explore a tuition waiver or scholarship that matches your goal: “"+truncate(form.futurePlan,60)+"”", phase:"3-6 Months", cat:"Education", resourceId:6 };
+  const commTask = { text:"Join a peer mentorship circle to build a support network outside the system", phase:"6-12 Months", cat:"Community Support", resourceId:16 };
+  const legalTask = { text:"Confirm your ID, birth certificate, and Social Security card are all current", phase:"30 Days", cat:"Legal Support", resourceId:15 };
+
+  const tasks = [
+    { text:primary.weekTask, phase:"This Week", cat:form.need, resourceId:primary.resourceIds[0], why:"This is the step most connected to what you told us matters most right now." },
+    { text:legalTask.text, phase:"30 Days", cat:"Legal Support", resourceId:legalTask.resourceId, why:"Missing documents quietly block almost everything else — clearing this early saves time later." },
+    { text:primary.monthTask, phase:"30 Days", cat:form.need, resourceId:primary.resourceIds[1]||primary.resourceIds[0], why:"Building on the first step keeps momentum going once the urgent part is handled." },
+    { text:eduTask.text, phase:"3-6 Months", cat:"Education", resourceId:eduTask.resourceId, why:"This moves you toward the goal you described, not just today's need." },
+    { text:commTask.text, phase:"6-12 Months", cat:"Community Support", resourceId:commTask.resourceId, why:"A steady support network makes every future step easier to carry." },
+  ];
+  return tasks.map((t,i)=>({
+    id:i+1, taskText:t.text, taskCategory:t.cat, timeframe:t.phase, whyItMatters:t.why,
+    status:"not_started", resourceId:t.resourceId, order:i,
+  }));
+}
+function truncate(str,n){ str = str||""; return str.length>n ? str.slice(0,n)+"…" : str; }
+
+function renderRoadmap(){
+  if(state.roadmap) renderTimeline(); else renderWizard();
+}
+function renderWizard(){
+  const step = state.wizardStep;
+  const f = state.wizardForm;
+  const host = document.getElementById("roadmapShell");
+  let inner = "";
+  if(step===0){
+    inner =
+      '<span class="q-label">Question 1 of 3</span>'+
+      '<h2>Where should we look for support?</h2>'+
+      '<p class="hint">Your name and age are optional — location helps us show better matches.</p>'+
+      '<div class="field"><label for="wCounty">County or service area</label>'+
+      '<select id="wCounty"><option value="">Choose a location</option>'+
+      ["Alameda","Contra Costa","California","National"].map(c=>'<option value="'+c+'"'+(f.county===c?" selected":"")+'>'+c+'</option>').join("")+
+      '</select></div>'+
+      '<div class="field-grid">'+
+        '<div class="field"><label for="wName">Name you’d like us to use <span class="opt">(optional)</span></label><input type="text" id="wName" value="'+f.youthName+'"></div>'+
+        '<div class="field"><label for="wAge">Age <span class="opt">(optional)</span></label><input type="number" id="wAge" min="13" max="30" value="'+f.age+'"></div>'+
+      '</div>';
+  } else if(step===1){
+    inner =
+      '<span class="q-label">Question 2 of 3</span>'+
+      '<h2>What’s taking up the most space right now?</h2>'+
+      '<p class="hint">Pick the closest match, then add a sentence or two if you want.</p>'+
+      '<div class="need-pick-grid">'+NEEDS.map(n=>'<button type="button" class="need-pick" data-need="'+n.category+'" aria-pressed="'+(f.need===n.category)+'">'+icon(n.icon)+n.label+'</button>').join("")+'</div>'+
+      '<div class="field" style="margin-top:16px;"><label for="wNeeds">Tell us a bit more <span class="opt">(optional)</span></label><textarea id="wNeeds" placeholder="For example: I need somewhere stable to stay and I’m not sure what documents I need...">'+f.currentNeeds+'</textarea></div>';
+  } else {
+    inner =
+      '<span class="q-label">Question 3 of 3</span>'+
+      '<h2>What are you working toward?</h2>'+
+      '<p class="hint">This can be practical, personal, or still a little uncertain.</p>'+
+      '<div class="field"><textarea id="wFuture" placeholder="For example: stable housing and starting a nursing program...">'+f.futurePlan+'</textarea></div>';
+  }
+  host.innerHTML =
+    '<span class="pill pill-pine" style="margin-bottom:18px;">'+icon("sparkle")+'About two minutes</span>'+
+    '<h1 style="font-size:30px;">Let’s build a journey that fits your life.</h1>'+
+    '<p class="hint" style="margin-bottom:0; color:var(--ink-soft); font-size:14px;">You decide what to share. Your plan stays only in this browser.</p>'+
+    '<div class="progress-dots">'+[0,1,2].map(i=>'<span class="'+(i<=step?"done":"")+'"></span>').join("")+'</div>'+
+    '<div class="card wizard-card">'+inner+
+      '<div class="wizard-nav">'+
+        '<button class="btn btn-ghost" id="wBack" '+(step===0?"disabled":"")+'>'+icon("chevron",'style="transform:rotate(180deg)"')+'Back</button>'+
+        (step<2 ? '<button class="btn btn-forest" id="wNext">Continue'+icon("arrow")+'</button>'
+                 : '<button class="btn btn-primary" id="wSubmit">'+icon("sparkle")+'Build my journey</button>')+
+      '</div>'+
+    '</div>'+
+    '<div class="wizard-foot-note">'+icon("lock")+'You can clear this plan anytime from Privacy &amp; data.</div>';
+
+  // wire inputs back into state
+  const byId = id=>document.getElementById(id);
+  if(byId("wCounty")) byId("wCounty").addEventListener("change", e=>f.county=e.target.value);
+  if(byId("wName")) byId("wName").addEventListener("input", e=>f.youthName=e.target.value);
+  if(byId("wAge")) byId("wAge").addEventListener("input", e=>f.age=e.target.value);
+  if(byId("wNeeds")) byId("wNeeds").addEventListener("input", e=>f.currentNeeds=e.target.value);
+  if(byId("wFuture")) byId("wFuture").addEventListener("input", e=>f.futurePlan=e.target.value);
+  host.querySelectorAll("[data-need]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ f.need = btn.dataset.need; renderWizard(); });
+  });
+  if(byId("wBack")) byId("wBack").addEventListener("click", ()=>{ state.wizardStep=Math.max(0,step-1); renderWizard(); });
+  if(byId("wNext")) byId("wNext").addEventListener("click", ()=>{
+    if(step===0 && !f.county){ toast("Choose a location to continue"); return; }
+    if(step===1 && !f.need){ toast("Pick what’s closest to how you feel"); return; }
+    state.wizardStep = step+1; renderWizard();
+  });
+  if(byId("wSubmit")) byId("wSubmit").addEventListener("click", ()=>{
+    if(!f.futurePlan.trim()){ toast("Add a word or two about what you’re working toward"); return; }
+    const tasks = buildRoadmap(f);
+    state.roadmap = {
+      title: (f.youthName? f.youthName+"’s" : "Your") + " journey",
+      goalSummary: "Focused on " + (f.need||"getting steady") + ", building toward: " + truncate(f.futurePlan,90),
+      greeting: "Hi " + (f.youthName||"there") + " — this plan starts with what you told us matters most, then builds toward “" + truncate(f.futurePlan,70) + "” one phase at a time.",
+      closing: "This is demo data generated from your answers, not a live AI call yet — but the structure is real: small steps now, bigger ones later, always at your pace.",
+      county: f.county, youthName: f.youthName, tasks: tasks,
+    };
+    persistRoadmap();
+    toast("Your journey is ready");
+    renderTimeline();
+  });
+}
+
+function renderTimeline(){
+  const rm = state.roadmap;
+  const host = document.getElementById("roadmapShell");
+  const completed = rm.tasks.filter(t=>t.status==="completed").length;
+  const progress = rm.tasks.length ? Math.round(completed/rm.tasks.length*100) : 0;
+  const next = rm.tasks.find(t=>t.status!=="completed" && t.status!=="blocked");
+
+  let html =
+    '<div class="journey-head">'+
+      '<div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; align-items:flex-start;">'+
+        '<div><span class="eyebrow">My journey</span><h1>'+rm.title+'</h1><p>'+rm.goalSummary+'</p></div>'+
+        '<button class="btn btn-outline" style="border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.1); color:#fff;" id="restartRoadmap">Start another</button>'+
+      '</div>'+
+      '<div class="journey-progress-row">'+
+        '<div class="journey-bar-wrap"><div class="journey-bar-labels"><span>'+completed+' of '+rm.tasks.length+' steps complete</span><span>'+progress+'%</span></div><div class="journey-bar"><div class="journey-bar-fill" style="width:'+progress+'%;"></div></div></div>'+
+        (next?'<div class="next-step-chip"><div class="l1">Next step</div><div class="l2">'+next.taskText+'</div></div>':'')+
+      '</div>'+
+    '</div>'+
+    '<p style="text-align:center; max-width:640px; margin:24px auto 0; color:var(--ink-soft); font-size:14.5px;">'+rm.greeting+'</p>'+
+    '<div class="timeline">';
+
+  PHASES.forEach((phase,pi)=>{
+    const tasks = rm.tasks.filter(t=>t.timeframe===phase);
+    if(!tasks.length) return;
+    const copy = PHASE_COPY[phase];
+    const phaseDone = tasks.every(t=>t.status==="completed");
+    const phaseActive = !phaseDone && tasks.some(t=>t.status!=="not_started");
+    html += '<div class="phase"><div class="phase-rail"></div>'+
+      '<div class="phase-dot '+(phaseDone?"complete":phaseActive?"active":"")+'">'+icon("flag")+'</div>'+
+      '<div><span class="phase-eyebrow">'+copy.eyebrow+' · '+phase+'</span><h2>'+copy.title+'</h2><p class="phase-detail">'+copy.detail+'</p>'+
+      tasks.map(t=>taskCardHtml(t)).join("")+
+      '</div></div>';
+  });
+  html += '</div>';
+
+  if(progress===100){
+    html += '<div class="celebration">'+icon("trophy")+'<h2>You completed this version of your journey.</h2><p>That doesn’t mean everything went perfectly. It means you kept choosing the next step that worked for you.</p></div>';
+  }
+
+  const resourceIds = [...new Set(rm.tasks.map(t=>t.resourceId).filter(Boolean))];
+  const relatedResources = RESOURCES.filter(r=>resourceIds.includes(r.id));
+  html += '<section style="margin-top:52px;"><h2 style="font-size:22px;">Resources connected to your journey</h2><p style="color:var(--ink-soft); font-size:13.5px; margin-bottom:18px;">Contact details come from verified records.</p><div class="resource-grid" style="padding:0;">'+relatedResources.map(r=>resourceCard(r,true)).join("")+'</div></section>';
+
+  html += '<div class="card" style="margin-top:30px; padding:20px; font-style:italic; color:var(--ink-soft); font-size:14px;">'+icon("heart2",'style="width:16px;height:16px;display:inline;vertical-align:-3px;color:var(--pine);margin-right:8px;"')+rm.closing+'</div>';
+
+  host.innerHTML = html;
+  document.getElementById("restartRoadmap").addEventListener("click", ()=>{
+    state.roadmap = null; persistRoadmap(); state.wizardStep=0; renderWizard();
+  });
+  host.querySelectorAll("[data-toggle-task]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = Number(btn.dataset.toggleTask);
+      const task = rm.tasks.find(t=>t.id===id);
+      task.status = task.status==="completed" ? "not_started" : "completed";
+      persistRoadmap();
+      if(task.status==="completed") toast("That step counts. Nice work.");
+      renderTimeline();
+    });
+  });
+  host.querySelectorAll("[data-task-action]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = Number(btn.dataset.id);
+      const task = rm.tasks.find(t=>t.id===id);
+      task.status = btn.dataset.taskAction;
+      persistRoadmap();
+      renderTimeline();
+    });
+  });
+}
+function taskCardHtml(t){
+  const statusMeta = {
+    not_started:{label:"Ready when you are", ic:"circle"},
+    in_progress:{label:"Working on it", ic:"dashed"},
+    completed:{label:"Done", ic:"check"},
+    blocked:{label:"I’m blocked", ic:"pause"},
+  }[t.status];
+  const resource = RESOURCES.find(r=>r.id===t.resourceId);
+  return '<div class="task-card" data-status="'+t.status+'">'+
+    '<div class="task-top">'+
+      '<button class="task-check" data-toggle-task="'+t.id+'" aria-label="'+(t.status==="completed"?"Mark incomplete":"Mark complete")+': '+t.taskText+'">'+icon("check")+'</button>'+
+      '<div class="task-body">'+
+        '<div class="task-row-top"><h3>'+t.taskText+'</h3><span class="pill '+(t.status==="completed"?"pill-pine":t.status==="in_progress"?"pill-dusk":t.status==="blocked"?"pill-gold":"pill-neutral")+'">'+statusMeta.label+'</span></div>'+
+        '<p class="task-why">'+t.whyItMatters+'</p>'+
+        (resource?'<button class="resource-chip" data-open-detail="'+resource.id+'">Connected to '+resource.title+icon("external")+'</button>':"")+
+        '<div class="task-actions">'+
+          '<button class="btn btn-outline btn-sm" data-task-action="in_progress" data-id="'+t.id+'">I’m working on it</button>'+
+          '<button class="btn btn-outline btn-sm" data-task-action="blocked" data-id="'+t.id+'">'+icon("pause")+'I’m blocked</button>'+
+        '</div>'+
+        (t.status==="blocked"?'<p class="blocked-note">Being blocked is information, not failure — come back anytime or explore another resource above.</p>':"")+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ============================================================
+   ADD RESOURCE
+   ============================================================ */
+const ADD_CATEGORIES = Object.keys(CATEGORY_META);
+const ADD_COUNTIES = ["Alameda","Contra Costa","California","National"];
+let addFormState = { title:"", organization:"", description:"", category:"", county:"", website:"", sourceUrl:"", relationship:"" };
+let addFormDone = false;
+function renderAddForm(){
+  const host = document.getElementById("addResourceForm");
+  if(addFormDone){
+    host.innerHTML = '<div class="card success-card">'+icon("shield")+'<h2>Submitted for verification</h2><p>Thank you — this resource is pending and won’t appear in search or the navigator until a partner reviews it.</p><button class="btn btn-forest" id="addAnother">Submit another</button></div>';
+    document.getElementById("addAnother").addEventListener("click", ()=>{ addFormDone=false; addFormState={title:"",organization:"",description:"",category:"",county:"",website:"",sourceUrl:"",relationship:""}; renderAddForm(); });
+    return;
+  }
+  const f = addFormState;
+  const valid = f.title.length>=3 && f.organization.length>=2 && f.description.length>=20 && f.category && f.county && f.website && f.sourceUrl && f.relationship.length>=5;
+  host.innerHTML = '<div class="card" style="padding:28px;">'+
+    '<div class="notice-box notice-dusk">'+icon("search")+'<span>Please use the program’s official page as the source. Personal stories help reviewers understand context but don’t replace verification.</span></div>'+
+    field("aTitle","Program name",f.title)+
+    field("aOrg","Organization",f.organization)+
+    '<div class="field"><label for="aDesc">What does it offer and who is it for?</label><textarea id="aDesc">'+f.description+'</textarea></div>'+
+    '<div class="field-grid">'+selectField("aCat","Category",f.category,ADD_CATEGORIES)+selectField("aCounty","County or region",f.county,ADD_COUNTIES)+'</div>'+
+    field("aWeb","Program website",f.website,"url")+
+    field("aSource","Official page used to verify details",f.sourceUrl,"url")+
+    '<div class="field"><label for="aRel">How do you know about this resource?</label><textarea id="aRel" placeholder="For example: I used it, I work there, or I found it through...">'+f.relationship+'</textarea></div>'+
+    '<button class="btn btn-primary btn-block" id="submitAdd" '+(valid?"":"disabled")+'>'+icon("shield")+'Submit for verification</button>'+
+  '</div>';
+  function field(id,label,val,type){ return '<div class="field"><label for="'+id+'">'+label+'</label><input type="'+(type||"text")+'" id="'+id+'" value="'+val+'"></div>'; }
+  function selectField(id,label,val,opts){ return '<div class="field"><label for="'+id+'">'+label+'</label><select id="'+id+'"><option value="">Choose one</option>'+opts.map(o=>'<option value="'+o+'"'+(val===o?" selected":"")+'>'+o+'</option>').join("")+'</select></div>'; }
+  const bind = (id,key)=>{ const el=document.getElementById(id); el.addEventListener("input", e=>{ addFormState[key]=e.target.value; syncSubmitState(); }); el.addEventListener("change", e=>{ addFormState[key]=e.target.value; syncSubmitState(); }); };
+  bind("aTitle","title"); bind("aOrg","organization"); bind("aDesc","description");
+  bind("aCat","category"); bind("aCounty","county"); bind("aWeb","website"); bind("aSource","sourceUrl"); bind("aRel","relationship");
+  function syncSubmitState(){
+    const ff = addFormState;
+    const ok = ff.title.length>=3 && ff.organization.length>=2 && ff.description.length>=20 && ff.category && ff.county && ff.website && ff.sourceUrl && ff.relationship.length>=5;
+    document.getElementById("submitAdd").disabled = !ok;
+  }
+  document.getElementById("submitAdd").addEventListener("click", ()=>{
+    addFormDone = true; renderAddForm(); toast("Thanks for contributing!");
+  });
+}
+
+/* ============================================================
+   PARTNERS / INSIGHTS
+   ============================================================ */
+function renderPartners(){
+  const total = RESOURCES.length;
+  const crisis = RESOURCES.filter(r=>r.isCrisis).length;
+  const counties = new Set(RESOURCES.map(r=>r.county)).size;
+  const pending = state.submissions.filter(s=>s.status==="pending").length;
+
+  document.getElementById("statBand").innerHTML = [
+    {label:"Verified resources", value:total, ic:"shield", bg:"var(--pine-light)", fg:"var(--pine-dark)"},
+    {label:"Emergency options", value:crisis, ic:"flag", bg:"var(--brick-light)", fg:"var(--brick)"},
+    {label:"Service areas covered", value:counties, ic:"pin", bg:"var(--dusk-light)", fg:"var(--dusk)"},
+    {label:"Pending review", value:pending, ic:"help", bg:"var(--gold-light)", fg:"#8A6A22"},
+  ].map(s=>'<div class="card stat-card"><span class="s-ic" style="background:'+s.bg+'; color:'+s.fg+';">'+icon(s.ic)+'</span><div class="stat-num">'+s.value+'</div><div class="stat-label">'+s.label+'</div></div>').join("");
+
+  // category bars
+  const catCounts = {};
+  RESOURCES.forEach(r=>{ catCounts[r.category]=(catCounts[r.category]||0)+1; });
+  const maxCat = Math.max(...Object.values(catCounts));
+  document.getElementById("categoryBars").innerHTML = Object.entries(catCounts).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>{
+    const meta = CATEGORY_META[cat];
+    return '<div class="bar-row"><span class="b-label">'+cat+'</span><div class="bar-track"><div class="bar-fill" style="width:'+(count/maxCat*100)+'%; background:'+meta.color+';"></div></div><span class="b-val">'+count+'</span></div>';
+  }).join("");
+
+  // county donut
+  const countyCounts = {};
+  RESOURCES.forEach(r=>{ countyCounts[r.county]=(countyCounts[r.county]||0)+1; });
+  const donutColors = ["#1F6F5C","#4F7297","#D9663B","#C99A3A"];
+  document.getElementById("donutChart").innerHTML = buildDonut(countyCounts, donutColors);
+  document.getElementById("donutLegend").innerHTML = Object.entries(countyCounts).map(([k,v],i)=>
+    '<div class="legend-row"><span class="legend-swatch" style="background:'+donutColors[i%donutColors.length]+';"></span><span class="lname">'+k+'</span><span class="lval">'+v+'</span></div>'
+  ).join("");
+
+  // gap analysis
+  document.getElementById("gapGrid").innerHTML = Object.keys(CATEGORY_META).map(cat=>{
+    const count = catCounts[cat]||0;
+    let level, color, bg;
+    if(count>=3){ level="Strong"; color="var(--pine-dark)"; bg="var(--pine-light)"; }
+    else if(count>=2){ level="Moderate"; color="#8A6A22"; bg="var(--gold-light)"; }
+    else { level="Needs coverage"; color="var(--brick)"; bg="var(--brick-light)"; }
+    return '<div class="gap-row"><div><div class="gname">'+cat+'</div><div class="gcount">'+count+' verified</div></div><span class="pill" style="background:'+bg+'; color:'+color+';">'+level+'</span></div>';
+  }).join("");
+
+  renderQueue();
+}
+function buildDonut(counts, colors){
+  const entries = Object.entries(counts);
+  const total = entries.reduce((s,[,v])=>s+v,0);
+  const r = 60, cx=70, cy=70, circumference = 2*Math.PI*r;
+  let offset = 0;
+  const segs = entries.map(([k,v],i)=>{
+    const frac = v/total;
+    const dash = frac*circumference;
+    const seg = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+colors[i%colors.length]+'" stroke-width="20" '+
+      'stroke-dasharray="'+dash+' '+(circumference-dash)+'" stroke-dashoffset="'+(-offset)+'" transform="rotate(-90 '+cx+' '+cy+')" stroke-linecap="butt"/>';
+    offset += dash;
+    return seg;
+  }).join("");
+  return '<svg viewBox="0 0 140 140" width="150" height="150" role="img" aria-label="Resources by county donut chart">'+segs+
+    '<circle cx="70" cy="70" r="42" fill="var(--cream)"/>'+
+    '<text x="70" y="65" text-anchor="middle" font-family="Fraunces, serif" font-size="24" font-weight="600" fill="var(--ink)">'+total+'</text>'+
+    '<text x="70" y="82" text-anchor="middle" font-family="Work Sans, sans-serif" font-size="10" fill="var(--ink-faint)">resources</text>'+
+    '</svg>';
+}
+function renderQueue(){
+  const host = document.getElementById("submissionQueue");
+  const err = document.getElementById("queueError");
+  err.style.display="none";
+  if(!state.queueUnlocked){
+    host.innerHTML = '<div class="empty-state" style="padding:40px 24px;">'+icon("lock")+'<h3 style="font-size:16px;">Queue is locked</h3><p style="font-size:13px;">Enter the demo partner token above to review pending community submissions.</p></div>';
+    return;
+  }
+  host.innerHTML = state.submissions.map(s=>{
+    return '<div class="queue-item"><div class="queue-top"><div>'+
+      '<div style="display:flex; align-items:center; gap:8px;"><h4>'+s.title+'</h4><span class="pill pill-neutral">'+s.status+'</span></div>'+
+      '<div class="queue-meta">'+s.organization+' · '+s.category+' · '+s.county+'</div>'+
+      '<p class="queue-context">Submitter context: '+s.relationship+'</p>'+
+      '<div class="queue-links"><a href="'+s.website+'" target="_blank" rel="noreferrer">Program page</a><a href="'+s.sourceUrl+'" target="_blank" rel="noreferrer">Verification source</a></div>'+
+    '</div>'+
+    (s.status==="pending" ? '<div class="queue-actions"><button class="btn btn-forest btn-sm" data-review="'+s.id+'" data-decision="approved">'+icon("check")+'Approve</button><button class="btn btn-outline btn-sm" data-review="'+s.id+'" data-decision="rejected">'+icon("x")+'Reject</button></div>' : '')+
+    '</div></div>';
+  }).join("");
+  host.querySelectorAll("[data-review]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = Number(btn.dataset.review);
+      const sub = state.submissions.find(s=>s.id===id);
+      sub.status = btn.dataset.decision;
+      toast(btn.dataset.decision==="approved" ? "Approved — now visible in the directory" : "Submission rejected");
+      renderPartners();
+    });
+  });
+}
+document.getElementById("unlockQueue").addEventListener("click", ()=>{
+  const token = document.getElementById("partnerToken").value.trim();
+  const err = document.getElementById("queueError");
+  if(token==="demo-partner-access"){
+    state.queueUnlocked = true; err.style.display="none"; renderQueue();
+    toast("Queue unlocked");
+  } else {
+    err.textContent = "That partner token wasn't accepted. Try: demo-partner-access"; err.style.display="block";
+  }
+});
+
+/* ============================================================
+   PRIVACY
+   ============================================================ */
+document.getElementById("clearDataBtn").addEventListener("click", ()=>{
+  state.saved = []; state.roadmap = null; state.wizardStep = 0;
+  persistSaved(); persistRoadmap(); updateSavedCount();
+  toast("This browser's data was cleared");
+  go("home");
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+updateSavedCount();
+renderNeedsGrid();
+renderFaq();
+})();
+</script>
+</body>
+</html>

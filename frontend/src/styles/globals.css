@@ -1,0 +1,265 @@
+@import "tailwindcss" source("..");
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Foster Connect — "Petrol & Sand"
+ *
+ * Deep teal-petrol carries authority; brass keeps it human. Light by
+ * default because most of this gets read in daylight, on a phone, by
+ * someone who is not in a crisis — the crisis path has its own colour.
+ *
+ * Colour discipline, which is what stops this looking generic:
+ *   brand   petrol. Navigation, links, primary action. The default voice.
+ *   deep    near-black teal. Focal surfaces only — one per screen, max.
+ *   sand    brass. Labels on deep surfaces, and small moments of warmth.
+ *   green   COMPLETION ONLY. Never decoration. That is what makes it land.
+ *   crisis  crisis affordances ONLY. Never a delete button, never an error.
+ */
+
+:root {
+  /* surfaces */
+  --ground: #f6f5f1;
+  --surface: #ffffff;
+  --sunk: #eeece6;
+
+  /* text — warm-biased neutrals, never pure grey */
+  --ink: #16191c;
+  --ink-soft: #5e6a6e;
+  --ink-faint: #67767b;
+  --rule: #e3e1da;
+  --rule-soft: #edebe4;
+
+  /* semantic — each has exactly one job */
+  --brand: #0e6b7d;
+  --brand-deep: #0e2b32;
+  --brand-soft: #e4eff1;
+  --sand: #d9a441;
+  --sand-soft: #f7edd8;
+  --green: #2f7d57;      /* completion ONLY */
+  --green-soft: #e2f0e9;
+  --crisis: #9c3325;     /* crisis affordances ONLY */
+  --crisis-soft: #f8e8e5;
+
+  /* text that sits on a deep or brand surface */
+  --on-deep: #f4f2ec;
+  --on-deep-soft: #9fb0b4;
+  --on-brand: #ffffff;
+
+  --radius: 0.75rem;
+
+  /* shadcn mappings */
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
+  --secondary: var(--sunk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sunk);
+  --muted-foreground: var(--ink-faint);
+  --accent: var(--sand);
+  --accent-foreground: var(--brand-deep);
+  --destructive: var(--crisis);
+  --destructive-foreground: #ffffff;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--brand);
+  --chart-1: var(--brand);
+  --chart-2: var(--green);
+  --chart-3: var(--sand);
+  --chart-4: #5b8fa8;
+  --chart-5: var(--crisis);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--on-brand);
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--brand);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--brand);
+}
+
+.dark {
+  --ground: #0d1416;
+  --surface: #131c1f;
+  --sunk: #1a2528;
+
+  --ink: #e9eeee;
+  --ink-soft: #9fb0b4;
+  --ink-faint: #7b8c90;
+  --rule: #223034;
+  --rule-soft: #1b262a;
+
+  --brand: #4fb3c4;
+  --brand-deep: #14454f;
+  --brand-soft: #14313a;
+  --sand: #e8bd6a;
+  --sand-soft: #33280f;
+  --green: #56b98a;
+  --green-soft: #143023;
+  --crisis: #ef8b78;
+  --crisis-soft: #3a1e18;
+
+  --on-deep: #f0f5f5;
+  --on-deep-soft: #a8bcc0;
+  --on-brand: #06222a;
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
+  --secondary: var(--sunk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sunk);
+  --muted-foreground: var(--ink-faint);
+  --accent: var(--sand);
+  --accent-foreground: #1a1408;
+  --destructive: var(--crisis);
+  --destructive-foreground: #2a120d;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--brand);
+  --chart-1: var(--brand);
+  --chart-2: var(--green);
+  --chart-3: var(--sand);
+  --chart-4: #7fb0c6;
+  --chart-5: var(--crisis);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--on-brand);
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--brand);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--brand);
+}
+
+@theme inline {
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 10px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Foster Connect semantic tokens — bg-ground, text-ink-soft, bg-brand-deep… */
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
+  --color-brand: var(--brand);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-soft: var(--brand-soft);
+  --color-sand: var(--sand);
+  --color-sand-soft: var(--sand-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-crisis: var(--crisis);
+  --color-crisis-soft: var(--crisis-soft);
+  --color-on-deep: var(--on-deep);
+  --color-on-deep-soft: var(--on-deep-soft);
+  --color-on-brand: var(--on-brand);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Archivo, set tight. The old headings were 28px and timid; display type
+     is most of what stops an interface reading as a template. */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Archivo", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    line-height: 1.05;
+  }
+
+  /* iOS Safari auto-zooms on any input under 16px, which breaks the layout
+     and reads as broken. Nothing here goes below 16. */
+  input, textarea, select { font-size: 16px; }
+
+  /* Figures line up in columns wherever they are compared. */
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@layer utilities {
+  /* Wide editorial container. Desktop is a real layout, not a stretched
+     phone screen — the app-shell approach left it looking plain. */
+  .container-wide { max-width: 1240px; margin-inline: auto; padding-inline: 20px; }
+  @media (min-width: 900px) { .container-wide { padding-inline: 40px; } }
+
+  .text-hero { font-family: "Archivo", sans-serif; font-weight: 700; font-size: clamp(38px, 5.2vw, 62px); line-height: 0.96; letter-spacing: -0.04em; }
+
+  /* Respect the iPhone home indicator under the tab bar. */
+  .pb-safe { padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)); }
+  .h-safe-tabbar { height: calc(3.75rem + env(safe-area-inset-bottom)); }
+
+  /* Display sizes. Used directly so the scale stays in one place. */
+  .text-display   { font-family: "Archivo", sans-serif; font-weight: 700; font-size: 40px; line-height: 0.98; letter-spacing: -0.035em; }
+  .text-display-sm{ font-family: "Archivo", sans-serif; font-weight: 700; font-size: 32px; line-height: 1.0;  letter-spacing: -0.032em; }
+  .text-eyebrow   { font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
