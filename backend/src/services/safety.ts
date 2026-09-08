@@ -68,17 +68,48 @@ export function normalize(input: string): string {
   return text;
 }
 
-/** Figurative uses that must never route someone to a crisis line. */
+/**
+ * Figurative uses that must never, on their own, route someone to a crisis line.
+ *
+ * These are REMOVED from the text before the rules run (see `stripFigurative`),
+ * not used as a whole-message early return. A message can contain an idiom and
+ * a real disclosure in the same breath: "I'm dying to get this job. I want to
+ * kill myself tonight." Bailing out on the first idiom silenced the second half.
+ *
+ * Each pattern is global so every occurrence is removed.
+ */
 const FIGURATIVE: RegExp[] = [
-  /\b(dying|dyin) to\b/,                          // "dying to get this job"
-  /\bkill(ing)? (it|time|the vibe)\b/,
-  /\bdead (tired|serious|end|line|weight)\b/,
-  /\bto die for\b/,
-  /\bkill(ed|s|ing)? (my|the) (battery|phone|charger|vibe|mood)\b/,
-  /\bsuicide (squad|prevention (class|training|month|week)|awareness)\b/,
-  /\b(my (dad|mom|parent)s? (would|will|might) kill me)\b/, // "my mom will kill me if I fail"
-  /\bhomework is killing me\b/,
+  /\b(dying|dyin) to\b/g,                          // "dying to get this job"
+  /\bkill(ing)? (it|time|the vibe)\b/g,
+  /\bdead (tired|serious|end|line|weight)\b/g,
+  /\bto die for\b/g,
+  /\bkill(ed|s|ing)? (my|the) (battery|phone|charger|vibe|mood)\b/g,
+  /\bsuicide (squad|prevention (class|training|month|week)|awareness)\b/g,
+  /\bhomework is killing me\b/g,
+  // "my mom will kill me if I fail" — only an idiom when a consequence clause
+  // follows. A bare "my mom will kill me" is left in place and handled below.
+  /\b(my )?(foster )?(dad|mom|mother|father|parent)s? (would|will|might|is going to|is gonna|s gonna|gonna) kill me\b(?=.*\b(if|when|for|because|cause|cuz|bc|over|about|once)\b)/g,
 ];
+
+/**
+ * A parent/caregiver "kill me" phrase with no consequence clause. Not an idiom
+ * we can rule out, not a disclosure we can confirm. Surfaces as `concern` so
+ * the person gets a quiet offer of support rather than either silence or an
+ * interruption. If the message also contains a real danger signal (a weapon,
+ * "hits me"), the crisis rules catch that independently.
+ */
+const BARE_PARENT_THREAT =
+  /\b(my )?(foster )?(dad|mom|mother|father|parent)s? (would|will|might|is going to|is gonna|s gonna|gonna) kill me\b/;
+
+/** Remove every figurative span so the remaining text can be assessed alone. */
+function stripFigurative(text: string): string {
+  let stripped = text;
+  for (const pattern of FIGURATIVE) {
+    pattern.lastIndex = 0;
+    stripped = stripped.replace(pattern, " ");
+  }
+  return stripped.replace(/\s+/g, " ").trim();
+}
 
 interface Rule {
   category: CrisisCategory;
@@ -221,12 +252,12 @@ const CONCERN_PATTERNS: RegExp[] = [
  */
 export function assessSafety(input: string): SafetyAssessment {
   try {
-    const text = normalize(input || "");
-    if (!text) return { level: "none", categories: [], normalized: "" };
+    const normalized = normalize(input || "");
+    if (!normalized) return { level: "none", categories: [], normalized: "" };
 
-    if (FIGURATIVE.some(pattern => pattern.test(text))) {
-      return { level: "none", categories: [], normalized: text };
-    }
+    // Idioms are cut out, not used to dismiss the whole message.
+    const text = stripFigurative(normalized);
+    if (!text) return { level: "none", categories: [], normalized };
 
     const categories = new Set<CrisisCategory>();
 
@@ -247,14 +278,14 @@ export function assessSafety(input: string): SafetyAssessment {
     }
 
     if (categories.size > 0) {
-      return { level: "crisis", categories: [...categories], normalized: text };
+      return { level: "crisis", categories: [...categories], normalized };
     }
 
-    if (CONCERN_PATTERNS.some(pattern => pattern.test(text))) {
-      return { level: "concern", categories: ["general"], normalized: text };
+    if (CONCERN_PATTERNS.some(pattern => pattern.test(text)) || BARE_PARENT_THREAT.test(text)) {
+      return { level: "concern", categories: ["general"], normalized };
     }
 
-    return { level: "none", categories: [], normalized: text };
+    return { level: "none", categories: [], normalized };
   } catch {
     // If triage itself fails, fail toward showing help.
     return { level: "concern", categories: ["general"], normalized: "" };

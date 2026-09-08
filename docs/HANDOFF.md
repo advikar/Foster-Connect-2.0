@@ -1,11 +1,11 @@
 # Current handoff
 
-Updated: 2026-09-08, after dual-interface implementation and cross-tool workflow setup.
-Status: idle; no implementation task is claimed.
-Owner: none. Last writer: Codex/Astra.
+Updated: 2026-09-08, after FC-01 implementation (Claude Code / Fable 5.1).
+Status: FC-01 implemented and tested; awaiting independent review (Astra). Ownership released.
+Owner: none. Last writer: Claude Code/Fable.
 Workspace: `/Users/advikarichhariya/StudentHub/Projects/FosterConnect2.0`
-Git: no repository detected. No branch, commit or clean-diff claim is available.
-Recommended next task: FC-01 in TASKS.md. Good first bounded trial for Fable; Astra can review afterward. This recommendation is not a dispatched task.
+Git: repository exists, remote `https://github.com/advikar/Foster-Connect-2.0`, baseline commit "Initial commit". FC-01 changes are uncommitted in the working tree; commit them after review.
+Recommended next task: review FC-01, then FC-02 (grounding/provider fallback). See "Next action".
 
 ## Completed
 
@@ -16,14 +16,20 @@ Recommended next task: FC-01 in TASKS.md. Good first bounded trial for Fable; As
 - Staff guide has a separate authenticated endpoint/prompt, no youth-data or publishing tools. Live provider output was not evaluated.
 - Frontend type-check script corrected to check app and Vite configs; existing RoadmapPage typing issues fixed.
 - Shared workflow entry points: root AGENTS.md, CLAUDE.md; docs/WORKFLOW.md, HANDOFF.md and TASKS.md.
+- FC-01 (Fable, 2026-09-08): `assessSafety` no longer returns `none` for a whole message when any idiom matches. Figurative spans are now stripped from the normalized text and the remainder is assessed by the ordinary rules. The "my mom will kill me" idiom is only stripped when a consequence clause follows (if/when/for/because/over/...); a bare parental "kill me" phrase now surfaces as `concern`. Six mixed-message regressions added, plus three new ordinary cases and a bare-threat test. Fixed a pre-existing false positive: "my foster mom is going to kill me when she sees my grades" used to route to violence crisis.
 
-## Last verification (previous implementation turn; not rerun for documentation setup)
+## Last verification (FC-01 turn, 2026-09-08)
 
-- `npm test --prefix backend`: 23 tests passed, including isolated API integration for auth, submission ownership, reviewer restrictions, status updates and logout.
-- Frontend actual type checks, changed-file ESLint, production build: passed.
+- `npm test --prefix backend`: 24 tests passed (was 23; one new test). New regressions were observed failing before the fix (six NOT CRISIS, one bare-threat assertion, one FALSE POSITIVE) and pass after it. Includes isolated API integration for auth, submission ownership, reviewer restrictions, status updates and logout.
+- Frontend checks not rerun: no frontend files changed.
+- No browser check: no UI change.
+
+Carried over from the previous (dual-interface) turn, not rerun:
+
+- Frontend type checks, changed-file ESLint, production build: passed.
 - Browser: desktop partner overview, real category/region coverage, mobile navigation, signed-out gating and return to youth shell checked.
 - Signed-in partner UI was not browser-tested; access behavior was API-tested with temporary fixtures.
-- Safety tests passing do NOT resolve the known FC-01 mixed-disclosure bug.
+- Safety detection is still rule-based. Known limits (documented in TASKS FC-01): idioms not in the list are not stripped; a disclosure phrased in a way no rule covers is still missed; concern-level output for bare parental threats is a judgment call, not a verified clinical threshold. Independent review pending.
 
 ## Files to start from
 
@@ -48,7 +54,9 @@ This temporary backup may expire; it is not durable disaster recovery.
 
 ## Next action
 
-If instructed to continue FC-01: read `backend/src/services/safety.ts` and its tests. Add a failing regression for a message containing both figurative language and explicit danger. Fix the broad figurative early return without suppressing real disclosures or routing ordinary idioms to crisis. Do not redesign the UI.
+1. Independent review of FC-01 (Astra or another model, read-only): `backend/src/services/safety.ts` (`FIGURATIVE`, `BARE_PARENT_THREAT`, `stripFigurative`, `assessSafety`) and `safety.test.ts`. Check especially: whether stripping a span could ever create a false match by joining neighbouring words (spans are replaced by a space, so it should not), and whether the consequence-clause lookahead is too permissive (e.g. "my mom will kill me, she said that about my brother" would be treated as idiom because of "about").
+2. After review, commit FC-01 to Git.
+3. Then FC-02 (grounding and provider failure recovery).
 
 ## Active checkpoint template (replace when claiming a task)
 

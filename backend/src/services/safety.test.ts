@@ -79,6 +79,16 @@ const CRISIS_CASES: Case[] = [
   ["I have nowhere to go", "homeless_tonight"],
   ["I need a shelter tonight", "homeless_tonight"],
 
+  // -- Mixed messages: figurative idiom AND a real disclosure (FC-01) -------
+  // The old code returned "none" for the whole message as soon as any idiom
+  // matched, which silenced the disclosure that followed it.
+  ["I am dying to get this job. I want to kill myself tonight.", "suicide"],
+  ["My mom will kill me. She has a gun.", "violence"],
+  ["homework is killing me and honestly I don't want to be here anymore", "suicide"],
+  ["I'm dead serious, my foster dad hits me", "abuse"],
+  ["dying to get out of here, I have nowhere to sleep tonight", "homeless_tonight"],
+  ["this job would be to die for but my placement threatens me", "abuse"],
+
   // -- Spanish -------------------------------------------------------------
   ["estoy pensando en suicidarme", "suicide"],
   ["quiero morirme", "suicide"],
@@ -134,7 +144,19 @@ const ORDINARY_CASES = [
   "what documents do I need for MediCal",
   "I've been cutting my hair myself to save money",
   "I've been cutting class a lot",
+  "my dad would kill me for spending that much",
+  "my foster mom is going to kill me when she sees my grades",
+  "I'm dead tired but I need to find a job",
 ];
+
+test("a bare parental threat is a concern, not dismissed as an idiom", () => {
+  // "my mom will kill me if I fail" is an idiom. "my mom will kill me" with
+  // no consequence clause is ambiguous and must not be categorically harmless.
+  for (const message of ["my mom will kill me", "my foster dad would kill me"]) {
+    const result = assessSafety(message);
+    assert.equal(result.level, "concern", `${JSON.stringify(message)} -> ${result.level}`);
+  }
+});
 
 test("ordinary and figurative messages are not flagged", () => {
   const failures: string[] = [];

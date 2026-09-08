@@ -4,15 +4,17 @@ These are proposed next tasks, not authorization to execute the entire backlog. 
 
 ## FC-01 — Fix mixed-message crisis detection
 
-Status: ready. Suggested implementer: Fable trial; reviewer: Astra.
+Status: implemented 2026-09-08 by Fable; tests pass; awaiting independent review by Astra, then commit.
 Scope: `backend/src/services/safety.ts` and `safety.test.ts`.
+Approach taken: figurative spans are stripped from the normalized text (not used as a whole-message early return); remaining text goes through the normal rules. Parental "kill me" idiom is stripped only with a consequence clause; bare form is `concern`.
+Limitations of rule-based detection (for reviewers and future work): only listed idioms are stripped; disclosures outside the pattern list are missed; stripping cannot understand negation or sarcasm; the concern threshold for a bare parental threat is a product judgment, not a validated clinical one. A model-based second pass would help but must never replace this deterministic net.
 Problem: `FIGURATIVE.some(...)` returns `none` for the entire message before checking explicit danger.
 Reproduced example: "I am dying to get this job. I want to kill myself tonight." returned `none`. Another: "My mom will kill me. She has a gun."
 Acceptance: add failing regressions first; mixed disclosures reach appropriate safety categories; ordinary figurative statements stay non-crisis; avoid treating a parent's threatening phrase as categorically harmless; existing cases still pass. Explain limitations of rule-based detection. No UI changes or real disclosures in fixtures.
 
 ## FC-02 — Roadmap grounding and provider failure recovery
 
-Status: ready after FC-01. Suggested implementer: Fable or Astra.
+Status: ready (FC-01 done). Suggested implementer: Fable or Astra.
 Scope: AI service, grounding, roadmap endpoint and targeted tests.
 Problem: invalid resource IDs become null while unsupported prose survives; contact sanitation isn't applied to every roadmap field; configured provider errors bypass deterministic fallback.
 Acceptance: unsupported claims/tasks are rejected or safely regenerated; user-visible contact facts grounded across all output fields; timeout/error/malformed response paths covered with mocked providers; fallback clearly labeled; no network calls or user data in tests.

@@ -21,6 +21,13 @@ Foster Connect helps current and former foster youth find useful local support a
 
 Do not spend a premium-model session redoing a solved small task. Escalate a task after a demonstrated failure or genuine ambiguity. No model may certify service accuracy or human safety based on its confidence alone.
 
+Notes on the allocation (added after the FC-01 trial, 2026-09-08):
+
+- The table was drafted by Astra and assigns Astra design lead and integrator. Treat that as a proposal, not a verdict: give Astra the same kind of bounded trial on a UI task that Fable got on FC-01, and compare.
+- Safety-module tests (`safety.test.ts`) encode judgment calls about what counts as a disclosure. Keep test authorship with whichever model owns the fix; do not farm those fixtures out as "routine test writing".
+- Opus is optional. The practical escalation ladder is Sonnet, then Fable (or Astra). Add a fourth opinion only when two models disagree.
+- Independent review is required, not optional, for: safety/crisis detection, auth and roles, publishing/data integrity, and AI grounding.
+
 ## One task, one editor, small checkpoints
 
 1. Read HANDOFF, then the selected task and relevant files. Confirm current file state; handoff notes can be stale after an abrupt cutoff.
@@ -63,7 +70,7 @@ Do not rerun all checks for documentation-only edits. Run broader checks when ch
 
 Never run root `npm run etl` casually: it still points to legacy `data/run_etl.py`, which drops application tables. Use isolated test fixtures. Back up local data before migrations; never assume production credentials or databases are safe test targets. The partner account script changes passwords and revokes sessions for existing accounts; it is not a read-only role viewer.
 
-No `.git` directory was present at setup. Until a repository and safe baseline exist, use sequential editing. Establish local version control with appropriate exclusions before parallel work; don't blindly commit databases, raw spreadsheets, credentials, or personal data. No remote publication is part of this workflow setup.
+Git: repository initialised 2026-09-08 with remote `https://github.com/advikar/Foster-Connect-2.0`. Commit after each reviewed task; parallel editing still needs separate branches or worktrees. Don't commit databases, raw spreadsheets, credentials, or personal data. Pushing is the user's call, never an agent default.
 
 ## Reusable prompts
 
