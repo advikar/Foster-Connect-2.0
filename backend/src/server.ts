@@ -806,7 +806,14 @@ app.post("/api/roadmaps", requireSession, asyncRoute(async (req, res) => {
     db.execute({ sql: "SELECT * FROM roadmap_tasks WHERE roadmap_id=? ORDER BY task_order", args: [roadmapId] }),
     resourcesByIds(roadmap.recommendedResourceIds),
   ]);
-  res.status(201).json({ ...mapRoadmap(roadmapRow.rows[0]), tasks: taskRows.rows.map(mapTask), recommendedResources: recommended });
+  res.status(201).json({
+    ...mapRoadmap(roadmapRow.rows[0]),
+    tasks: taskRows.rows.map(mapTask),
+    recommendedResources: recommended,
+    // "fallback" means the deterministic plan was used (no key, provider
+    // down, or the model draft failed grounding). The UI labels it.
+    generatedBy: roadmap.generatedBy,
+  });
 }));
 
 app.get("/api/roadmaps", requireSession, asyncRoute(async (req, res) => {

@@ -1,11 +1,11 @@
 # Current handoff
 
 Updated: 2026-09-08, after FC-01 implementation (Claude Code / Fable 5.1).
-Status: FC-01 implemented and tested; awaiting independent review (Astra). Ownership released.
+Status: FC-01 committed (536af28). FC-02 implemented and tested, uncommitted, awaiting independent review. Ownership released.
 Owner: none. Last writer: Claude Code/Fable.
 Workspace: `/Users/advikarichhariya/StudentHub/Projects/FosterConnect2.0`
 Git: repository exists, remote `https://github.com/advikar/Foster-Connect-2.0`, baseline commit "Initial commit". FC-01 changes are uncommitted in the working tree; commit them after review.
-Recommended next task: review FC-01, then FC-02 (grounding/provider fallback). See "Next action".
+Recommended next task: review FC-01 and FC-02, commit, then FC-04 (transactional publishing). See "Next action".
 
 ## Completed
 
@@ -16,13 +16,14 @@ Recommended next task: review FC-01, then FC-02 (grounding/provider fallback). S
 - Staff guide has a separate authenticated endpoint/prompt, no youth-data or publishing tools. Live provider output was not evaluated.
 - Frontend type-check script corrected to check app and Vite configs; existing RoadmapPage typing issues fixed.
 - Shared workflow entry points: root AGENTS.md, CLAUDE.md; docs/WORKFLOW.md, HANDOFF.md and TASKS.md.
+- FC-02 (Fable, 2026-09-08): roadmap model output is treated as a draft and passed through `groundRoadmapDraft` in `ai.service.ts`. Tasks naming a resourceId not supplied are dropped (previously nulled, leaving the invented program in the text). Every text field is run through the chat contact sanitiser with the supplied resources + crisis lines as the allow-list; a task that needed a phone/URL removed is dropped. Under four surviving tasks rejects the draft. All provider failures (timeout, non-2xx, empty body, JSON/schema failure after one repair) are wrapped in `ProviderError` and fall back to the deterministic plan. Roadmaps carry `generatedBy: "ai" | "fallback"`; the POST route returns it and RoadmapPage shows a short notice for fallback. Navigator suggested tasks with unknown resource IDs are dropped too. 16 mocked-fetch tests in `ai.service.test.ts`.
 - FC-01 (Fable, 2026-09-08): `assessSafety` no longer returns `none` for a whole message when any idiom matches. Figurative spans are now stripped from the normalized text and the remainder is assessed by the ordinary rules. The "my mom will kill me" idiom is only stripped when a consequence clause follows (if/when/for/because/over/...); a bare parental "kill me" phrase now surfaces as `concern`. Six mixed-message regressions added, plus three new ordinary cases and a bare-threat test. Fixed a pre-existing false positive: "my foster mom is going to kill me when she sees my grades" used to route to violence crisis.
 
-## Last verification (FC-01 turn, 2026-09-08)
+## Last verification (FC-01 + FC-02 turn, 2026-09-08)
 
-- `npm test --prefix backend`: 24 tests passed (was 23; one new test). New regressions were observed failing before the fix (six NOT CRISIS, one bare-threat assertion, one FALSE POSITIVE) and pass after it. Includes isolated API integration for auth, submission ownership, reviewer restrictions, status updates and logout.
-- Frontend checks not rerun: no frontend files changed.
-- No browser check: no UI change.
+- `npm test --prefix backend`: 40 tests passed (23 original, 1 FC-01, 16 FC-02). FC-01 regressions were observed failing before the fix. FC-02 tests mock `globalThis.fetch`; no network, no real key.
+- `npm run type-check --prefix frontend`, ESLint on `RoadmapPage.tsx` and `lib/api.ts`, `npm run build --prefix frontend`: passed.
+- Not done: browser check of the fallback notice on RoadmapPage (backend not restarted this turn). Live provider output not evaluated; grounding was tested only against synthetic drafts.
 
 Carried over from the previous (dual-interface) turn, not rerun:
 
@@ -54,9 +55,12 @@ This temporary backup may expire; it is not durable disaster recovery.
 
 ## Next action
 
-1. Independent review of FC-01 (Astra or another model, read-only): `backend/src/services/safety.ts` (`FIGURATIVE`, `BARE_PARENT_THREAT`, `stripFigurative`, `assessSafety`) and `safety.test.ts`. Check especially: whether stripping a span could ever create a false match by joining neighbouring words (spans are replaced by a space, so it should not), and whether the consequence-clause lookahead is too permissive (e.g. "my mom will kill me, she said that about my brother" would be treated as idiom because of "about").
-2. After review, commit FC-01 to Git.
-3. Then FC-02 (grounding and provider failure recovery).
+1. Independent review (Astra or another model, read-only) of:
+   - FC-01: `backend/src/services/safety.ts` (`FIGURATIVE`, `BARE_PARENT_THREAT`, `stripFigurative`, `assessSafety`) and `safety.test.ts`. Check whether the consequence-clause lookahead is too permissive (e.g. "my mom will kill me, she said that about my brother" is treated as idiom because of "about").
+   - FC-02: `ai.service.ts` (`ProviderError`, `callLLM`, `groundRoadmapDraft`, `generateGroundedRoadmap`, `dropUnknownResourceTasks`), the roadmap POST in `server.ts`, `ai.service.test.ts`, and the notice in `frontend/src/pages/RoadmapPage.tsx`. Open questions: is dropping a task on any removed contact too aggressive (a null-id task quoting 988 is kept; one quoting an unknown number is gone)? The grounding cannot detect an invented ORGANISATION NAME with no phone/URL and no resourceId ("Call Sunrise Youth Housing" with resourceId null survives). A name allow-list against `organization`/`title` would be the next layer; deferred, noted in TASKS.
+   - Browser: generate a plan with `LLM_API_KEY` unset and confirm the fallback notice renders and the design still reads calm.
+2. Commit FC-02 (FC-01 is already committed as 536af28).
+3. Then FC-04 (transactional publishing).
 
 ## Active checkpoint template (replace when claiming a task)
 

@@ -155,6 +155,11 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
         <Button onClick={onNew} variant="outline" size="sm" className="rounded-full border-rule"><PencilLine className="size-3.5" />Start another</Button>
       </div>
       <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-soft">{roadmap.goalSummary}</p>
+      {roadmap.generatedBy === "fallback" && (
+        <p className="mt-3 max-w-xl rounded-xl border border-rule bg-sunk px-4 py-3 text-sm leading-relaxed text-ink-soft" role="status">
+          Maya couldn’t help write this one, so it was built straight from the verified directory. Every step is still real. Ask Maya later if you want it reworked.
+        </p>
+      )}
       {done.length > 0 && (
         <p className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-green">
           <Check className="size-4" strokeWidth={2.5} aria-hidden />

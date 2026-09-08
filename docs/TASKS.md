@@ -14,8 +14,10 @@ Acceptance: add failing regressions first; mixed disclosures reach appropriate s
 
 ## FC-02 — Roadmap grounding and provider failure recovery
 
-Status: ready (FC-01 done). Suggested implementer: Fable or Astra.
-Scope: AI service, grounding, roadmap endpoint and targeted tests.
+Status: implemented 2026-09-08 by Fable; tests pass; awaiting independent review, then commit.
+Scope: AI service, grounding, roadmap endpoint and targeted tests. Also a small fallback notice on RoadmapPage.
+Approach taken: model output is a draft; `groundRoadmapDraft` drops tasks with unsupplied resource IDs, sanitises every text field against the resource + crisis allow-list, drops tasks that needed contact details removed, rejects drafts with under four surviving tasks. All provider failures fall back to the deterministic plan, labelled `generatedBy: "fallback"`.
+Known gap (next layer, not done): an invented organisation name with no phone, URL, or resourceId still survives in prose. Would need an allow-list of supplied `organization`/`title` strings plus a proper-noun heuristic, and a false-positive budget for ordinary capitalised words. Prompting alone does not close this; the check must be in code.
 Problem: invalid resource IDs become null while unsupported prose survives; contact sanitation isn't applied to every roadmap field; configured provider errors bypass deterministic fallback.
 Acceptance: unsupported claims/tasks are rejected or safely regenerated; user-visible contact facts grounded across all output fields; timeout/error/malformed response paths covered with mocked providers; fallback clearly labeled; no network calls or user data in tests.
 

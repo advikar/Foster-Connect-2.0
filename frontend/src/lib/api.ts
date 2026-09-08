@@ -85,6 +85,12 @@ export interface Roadmap {
   updatedAt: string;
   tasks: RoadmapTask[];
   recommendedResources: ResourceItem[];
+  /**
+   * Present on a freshly generated plan. "fallback" means the assistant was
+   * unavailable (no key, provider error, or its draft failed grounding) and
+   * the plan was built from the verified directory alone.
+   */
+  generatedBy?: "ai" | "fallback";
 }
 
 export type HousingStatus =

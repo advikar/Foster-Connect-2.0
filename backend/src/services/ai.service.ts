@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { SYSTEM_PROMPTS } from "../config/prompts";
+import { CRISIS_CONTACTS } from "../config/crisis";
+import { buildAllowList, sanitiseReply, type AllowedContacts } from "./grounding";
 
 export interface GroundedResource {
   id: number;
@@ -71,6 +73,18 @@ const roadmapResponseSchema = z.object({
   closing: z.string().min(2).max(1000),
 });
 
+/**
+ * Anything that goes wrong between us and the provider: network, timeout,
+ * non-2xx, empty body, or JSON that still fails validation after one repair.
+ * Callers use this to decide "fall back", never to show the raw message.
+ */
+export class ProviderError extends Error {
+  constructor(message: string, readonly cause?: unknown) {
+    super(message);
+    this.name = "ProviderError";
+  }
+}
+
 function hasValidApiKey() {
   const apiKey = process.env.LLM_API_KEY;
   return Boolean(apiKey && apiKey !== "your_api_key_here");
@@ -107,12 +121,19 @@ async function callLLM(messages: { role: string; content: string }[], schema: z.
   };
 
   try {
-    return schema.parse(await run());
-  } catch (error) {
-    if (error instanceof SyntaxError || error instanceof z.ZodError) {
-      return schema.parse(await run("Your previous response did not match the required JSON schema. Return corrected JSON only."));
+    try {
+      return schema.parse(await run());
+    } catch (error) {
+      if (error instanceof SyntaxError || error instanceof z.ZodError) {
+        return schema.parse(await run("Your previous response did not match the required JSON schema. Return corrected JSON only."));
+      }
+      throw error;
     }
-    throw error;
+  } catch (error) {
+    // Normalise every failure mode into one type so callers can fall back
+    // without inspecting fetch/abort/zod internals.
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new ProviderError(`AI provider call failed: ${reason.slice(0, 300)}`, error);
   }
 }
 
@@ -143,8 +164,12 @@ function resourcesToContext(resources: GroundedResource[]) {
   );
 }
 
-function retainValidResourceIds<T extends { resourceId: number | null }>(items: T[], allowed: Set<number>) {
-  return items.map(item => ({ ...item, resourceId: item.resourceId && allowed.has(item.resourceId) ? item.resourceId : null }));
+/**
+ * Drop any suggested task that names a resource we did not supply. Nulling the
+ * ID and keeping the text left the invented program name in place (FC-02).
+ */
+function dropUnknownResourceTasks<T extends { resourceId: number | null }>(items: T[], allowed: Set<number>) {
+  return items.filter(item => item.resourceId === null || allowed.has(item.resourceId));
 }
 
 export async function getNavigatorResponse(
@@ -167,7 +192,7 @@ export async function getNavigatorResponse(
   return {
     ...result,
     resourceIds: [...new Set(result.resourceIds.filter(id => allowed.has(id)))],
-    suggestedTasks: retainValidResourceIds(result.suggestedTasks, allowed),
+    suggestedTasks: dropUnknownResourceTasks(result.suggestedTasks, allowed),
   };
 }
 
@@ -231,9 +256,96 @@ const HOUSING_URGENCY: Record<string, string> = {
   unsaid: "They did not say.",
 };
 
-export async function generateGroundedRoadmap(input: RoadmapInput, resources: GroundedResource[]) {
-  if (!hasValidApiKey()) return buildDeterministicRoadmap(input, resources);
-  const allowed = new Set(resources.map(resource => resource.id));
+export type RoadmapDraft = z.infer<typeof roadmapResponseSchema>;
+export type GeneratedRoadmap = RoadmapDraft & {
+  /** "ai" = model output that passed grounding; "fallback" = deterministic plan. */
+  generatedBy: "ai" | "fallback";
+  /** Why the fallback was used. Logged, never shown verbatim to the person. */
+  fallbackReason?: string;
+  /** Anything grounding removed from the model draft, for logging. */
+  groundingRemoved: string[];
+};
+
+/**
+ * Model output is a DRAFT until it survives this pass.
+ *
+ * The old ID filter used to null out an invented ID and keep the task,
+ * so "Call Sunrise Youth Housing at 510-555-0199" survived with the ID gone
+ * and the invented name and number still in the text. The rule is now:
+ *
+ * 1. A task that named a resourceId we did not supply is DROPPED, not nulled.
+ *    The model was asserting a specific program; we cannot stand behind it.
+ * 2. Every text field (title, greeting, closing, summary, each task's three
+ *    strings) goes through the same contact sanitiser Maya's chat uses, with
+ *    the allow-list built from the supplied resources and the crisis lines.
+ * 3. A task whose text needed a phone/URL removed is dropped too. A roadmap
+ *    step with "the number on their listing" and no listing is worse than no
+ *    step. (Greeting/closing/summary are kept with the placeholder.)
+ * 4. If fewer than four tasks survive, the draft is rejected and the
+ *    deterministic plan is used, labelled as such.
+ *
+ * Exported for tests. Pure: no I/O.
+ */
+export function groundRoadmapDraft(
+  draft: RoadmapDraft,
+  resources: GroundedResource[],
+  allowList?: AllowedContacts,
+): { roadmap: RoadmapDraft; removed: string[] } | { roadmap: null; removed: string[]; reason: string } {
+  const allowedIds = new Set(resources.map(resource => resource.id));
+  const allowed = allowList ?? buildAllowList(resources, CRISIS_CONTACTS);
+  const removed: string[] = [];
+
+  const clean = (text: string, label: string) => {
+    const result = sanitiseReply(text, { ...allowed });
+    result.removed.forEach(item => removed.push(`${label}: ${item}`));
+    return result;
+  };
+
+  const tasks: RoadmapDraft["tasks"] = [];
+  for (const task of draft.tasks) {
+    if (task.resourceId !== null && !allowedIds.has(task.resourceId)) {
+      removed.push(`task dropped, unknown resourceId ${task.resourceId}: ${task.taskText}`);
+      continue;
+    }
+    const taskText = clean(task.taskText, "taskText");
+    const why = clean(task.whyItMatters, "whyItMatters");
+    const note = clean(task.motivationNote, "motivationNote");
+    if (taskText.removed.length || why.removed.length || note.removed.length) {
+      removed.push(`task dropped, unverified contact details: ${task.taskText}`);
+      continue;
+    }
+    tasks.push({ ...task, taskText: taskText.reply, whyItMatters: why.reply, motivationNote: note.reply });
+  }
+
+  if (tasks.length < 4) {
+    return { roadmap: null, removed, reason: `only ${tasks.length} of ${draft.tasks.length} tasks survived grounding` };
+  }
+
+  return {
+    removed,
+    roadmap: {
+      title: clean(draft.title, "title").reply,
+      goalSummary: clean(draft.goalSummary, "goalSummary").reply,
+      greeting: clean(draft.greeting, "greeting").reply,
+      closing: clean(draft.closing, "closing").reply,
+      tasks,
+      recommendedResourceIds: [...new Set(draft.recommendedResourceIds.filter(id => allowedIds.has(id)))],
+    },
+  };
+}
+
+function fallbackRoadmap(input: RoadmapInput, resources: GroundedResource[], reason: string, removed: string[] = []): GeneratedRoadmap {
+  return { ...buildDeterministicRoadmap(input, resources), generatedBy: "fallback", fallbackReason: reason, groundingRemoved: removed };
+}
+
+/**
+ * Never throws for provider reasons. A configured-but-broken provider
+ * (timeout, 5xx, garbage JSON, or a draft that fails grounding) produces the
+ * deterministic plan with `generatedBy: "fallback"`, exactly as a missing key
+ * does. Programming errors elsewhere still propagate.
+ */
+export async function generateGroundedRoadmap(input: RoadmapInput, resources: GroundedResource[]): Promise<GeneratedRoadmap> {
+  if (!hasValidApiKey()) return fallbackRoadmap(input, resources, "no API key configured");
   const missing = Object.keys(DOCUMENT_LABELS).filter(id => !(input.documents || []).includes(id));
   const personInput = {
     ...input,
@@ -243,18 +355,30 @@ export async function generateGroundedRoadmap(input: RoadmapInput, resources: Gr
     deadlines: input.deadlines?.length ? input.deadlines : "none given",
   };
   const userPrompt = `PERSON_INPUT\n${JSON.stringify(personInput, null, 2)}\n\nRESOURCE_CONTEXT\n${resourcesToContext(resources)}`;
-  const result = await callLLM(
-    [
-      { role: "system", content: SYSTEM_PROMPTS.ROADMAP_GENERATOR },
-      { role: "user", content: userPrompt },
-    ],
-    roadmapResponseSchema,
-  ) as z.infer<typeof roadmapResponseSchema>;
-  return {
-    ...result,
-    tasks: retainValidResourceIds(result.tasks, allowed),
-    recommendedResourceIds: [...new Set(result.recommendedResourceIds.filter(id => allowed.has(id)))],
-  };
+  let draft: RoadmapDraft;
+  try {
+    draft = await callLLM(
+      [
+        { role: "system", content: SYSTEM_PROMPTS.ROADMAP_GENERATOR },
+        { role: "user", content: userPrompt },
+      ],
+      roadmapResponseSchema,
+    ) as RoadmapDraft;
+  } catch (error) {
+    if (error instanceof ProviderError) {
+      console.error("Roadmap provider failure, using deterministic plan", error.message);
+      return fallbackRoadmap(input, resources, error.message);
+    }
+    throw error;
+  }
+
+  const grounded = groundRoadmapDraft(draft, resources);
+  if (!grounded.roadmap) {
+    console.error("Roadmap draft rejected by grounding, using deterministic plan", grounded.reason, grounded.removed);
+    return fallbackRoadmap(input, resources, grounded.reason, grounded.removed);
+  }
+  if (grounded.removed.length) console.warn("Roadmap grounding removed unverified content", grounded.removed);
+  return { ...grounded.roadmap, generatedBy: "ai", groundingRemoved: grounded.removed };
 }
 
 /**
