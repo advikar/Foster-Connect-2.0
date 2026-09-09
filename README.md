@@ -7,7 +7,7 @@ timeline. The original `FosterConnect/` project is not modified.
 ## What is new
 
 - Needs-first home experience for youth and people supporting someone
-- 24 structured, explicitly synthetic resources for safe testing
+- Resource catalog built from a researched spreadsheet (`data/build_resources.py` -> `data/import_resources.py`); the legacy 24-row synthetic set is retired
 - SQLite FTS5 search with county, age, category, and urgency filtering
 - Detailed eligibility, cost, application, document, accessibility, language,
   verification, and freshness fields
@@ -23,12 +23,12 @@ timeline. The original `FosterConnect/` project is not modified.
 - Partner coverage and moderation workspace
 - Reduced-motion support and clearer keyboard focus
 
-## Important demo warning
+## Important data warning
 
-Every organization, address, website, and phone number in the included resource
-catalog is fictional. Websites use the reserved `.invalid` domain and phone
-numbers use the 555 range. Replace the catalog with reviewed real resources
-before any public or service-delivery use.
+The resource catalog is built from a researched spreadsheet, not invented, but
+it has not been independently re-verified by calling each service. The crisis
+contacts in `backend/src/config/crisis.ts` are all marked UNVERIFIED. Do not put
+this in front of young people until both are confirmed. See `docs/DEPLOY.md`.
 
 ## Run locally
 
@@ -37,15 +37,15 @@ Requirements: Node.js 22+ and Python 3.
 ```bash
 npm install
 npm run install:all
-python3 data/run_etl.py
+npm run import:resources
 npm run dev
 ```
 
 Open <http://localhost:5173>. The API runs on <http://localhost:4000>.
 
-The local partner demo token is `demo-partner-access`. It is intentionally a
-non-secret development value. Replace it with real partner authentication before
-deployment.
+Partner access uses real accounts. Create one with
+`npm run partner --prefix backend -- you@example.org "Name" "Org" --role=reviewer`.
+There is no shared token.
 
 ## Groq / Llama configuration
 
@@ -82,9 +82,10 @@ Changing the prompt alone is not the grounding guarantee. The API also:
 - `roadmap_tasks`: session-owned timeline steps
 - `saved_resources`: session-owned bookmarks
 
-Run `python3 data/run_etl.py` to reset the 2.0 demo database and reload the 24
-synthetic resources. This reset removes demo roadmaps, tasks, submissions, and
-reports from the 2.0 database.
+`npm run import:resources` upserts the built catalog without touching plans or
+submissions. `npm run backup` copies the local database to `data/backups/`.
+The legacy `data/run_etl.py` drops every table and now refuses to run unless
+`FC_ALLOW_DESTRUCTIVE_RESET=1` is set.
 
 ## API highlights
 
@@ -103,7 +104,12 @@ reports from the 2.0 database.
 - `GET|PATCH /api/partner/submissions`
 
 Session-owned endpoints require an `X-Session-ID` header. Partner endpoints
-require `Authorization: Bearer <PARTNER_ACCESS_TOKEN>`.
+require `Authorization: Bearer <session token>` from `POST /api/partner/login`.
+
+## Deploying
+
+See `docs/DEPLOY.md` for hosts, environment variables, backups, and the human
+launch blockers.
 
 ## Before a real pilot
 

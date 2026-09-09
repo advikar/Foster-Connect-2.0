@@ -2,13 +2,17 @@
   "name": "foster-connect",
   "version": "0.1.0",
   "private": true,
-  "description": "Foster Connect — standalone app (frontend + backend + data), no Foundry dependency",
+  "description": "Foster Connect \u2014 standalone app (frontend + backend + data), no Foundry dependency",
   "scripts": {
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
     "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
-    "etl": "python3 data/run_etl.py"
+    "test": "npm test --prefix backend && npm run type-check --prefix frontend && npm run build --prefix frontend",
+    "import:resources": "python3 data/import_resources.py",
+    "import:resources:dry-run": "python3 data/import_resources.py --dry-run",
+    "backup": "node scripts/backup-db.mjs",
+    "etl": "node -e \"console.error('npm run etl is retired: it dropped every table including saved plans. Use npm run import:resources. The legacy script is data/run_etl.py and refuses to run without FC_ALLOW_DESTRUCTIVE_RESET=1.'); process.exit(1)\""
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

@@ -1,6 +1,18 @@
 import csv
 import os
 import sqlite3
+import sys
+
+# LEGACY, DESTRUCTIVE. Drops every table including roadmaps and roadmap_tasks,
+# then loads 24 synthetic .invalid resources. Kept only for rebuilding a throwaway
+# demo database. Use data/import_resources.py for anything real.
+if os.environ.get("FC_ALLOW_DESTRUCTIVE_RESET") != "1":
+    sys.stderr.write(
+        "run_etl.py refuses to run: it deletes all plans, submissions, and resources.\n"
+        "Use `npm run import:resources` instead. To rebuild a throwaway demo database on\n"
+        "purpose, back up first (`npm run backup`) and set FC_ALLOW_DESTRUCTIVE_RESET=1.\n"
+    )
+    sys.exit(2)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(SCRIPT_DIR, "raw", "synthetic_resources.csv")

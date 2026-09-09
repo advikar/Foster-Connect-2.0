@@ -1,11 +1,11 @@
 # Current handoff
 
 Updated: 2026-09-08, after FC-01 implementation (Claude Code / Fable 5.1).
-Status: FC-01 committed (536af28). FC-02 implemented and tested, uncommitted, awaiting independent review. Ownership released.
+Status: FC-01 (536af28) and FC-02 (4966ca2) committed. FC-04 and FC-06 slice 1 implemented and tested, both uncommitted, awaiting independent review. Ownership released.
 Owner: none. Last writer: Claude Code/Fable.
 Workspace: `/Users/advikarichhariya/StudentHub/Projects/FosterConnect2.0`
 Git: repository exists, remote `https://github.com/advikar/Foster-Connect-2.0`, baseline commit "Initial commit". FC-01 changes are uncommitted in the working tree; commit them after review.
-Recommended next task: review FC-01 and FC-02, commit, then FC-04 (transactional publishing). See "Next action".
+Recommended next task: commit FC-04 + FC-06 slice 1, then the human launch blockers in docs/DEPLOY.md (crisis numbers, resource ownership), then FC-03 after Astra's design call. See "Next action".
 
 ## Completed
 
@@ -16,6 +16,8 @@ Recommended next task: review FC-01 and FC-02, commit, then FC-04 (transactional
 - Staff guide has a separate authenticated endpoint/prompt, no youth-data or publishing tools. Live provider output was not evaluated.
 - Frontend type-check script corrected to check app and Vite configs; existing RoadmapPage typing issues fixed.
 - Shared workflow entry points: root AGENTS.md, CLAUDE.md; docs/WORKFLOW.md, HANDOFF.md and TASKS.md.
+- FC-06 slice 1 (Fable, 2026-09-08): `data/foster_connect.db` untracked from Git (was committed; local copy kept) and `data/*.db`, `data/backups/`, `.claude/launch.json` ignored. `npm run etl` now refuses with a message; `data/run_etl.py` refuses unless `FC_ALLOW_DESTRUCTIVE_RESET=1`. New `npm run import:resources[:dry-run]`, `npm run backup` (`scripts/backup-db.mjs`, sqlite3 online backup + integrity check, verified once: 425 resources), root `npm test` runs backend tests + frontend type-check + build. `CHAT_SIGNING_SECRET` missing in production now exits at boot like `DATABASE_URL`. New `docs/DEPLOY.md`: hosts, env vars, order of operations, human launch blockers, backups, verification list. README stale claims fixed (demo token, 24 synthetic rows, run_etl).
+- FC-04 (Fable, 2026-09-08): new `backend/src/services/persistence.ts`. `publishSubmission` runs resource insert, FTS index, submission claim, and two audit rows in one write transaction; the claim is a conditional `UPDATE ... WHERE resource_id IS NULL` so a lost race rolls the whole thing back and returns `already_published` (409). `persistRoadmap` inserts the plan and all tasks in one transaction. All write transactions and audit inserts go through an in-process queue because the local libsql client shares one connection. Routes in `server.ts` now call these; `recordAudit` uses the same queue. 10 tests in `persistence.test.ts` against temporary SQLite files: injected failures (FTS dropped, audit dropped, bad FK on task 3), ten concurrent approvals, cross-instance claim, concurrent plan creation.
 - FC-02 (Fable, 2026-09-08): roadmap model output is treated as a draft and passed through `groundRoadmapDraft` in `ai.service.ts`. Tasks naming a resourceId not supplied are dropped (previously nulled, leaving the invented program in the text). Every text field is run through the chat contact sanitiser with the supplied resources + crisis lines as the allow-list; a task that needed a phone/URL removed is dropped. Under four surviving tasks rejects the draft. All provider failures (timeout, non-2xx, empty body, JSON/schema failure after one repair) are wrapped in `ProviderError` and fall back to the deterministic plan. Roadmaps carry `generatedBy: "ai" | "fallback"`; the POST route returns it and RoadmapPage shows a short notice for fallback. Navigator suggested tasks with unknown resource IDs are dropped too. 16 mocked-fetch tests in `ai.service.test.ts`.
 - FC-01 (Fable, 2026-09-08): `assessSafety` no longer returns `none` for a whole message when any idiom matches. Figurative spans are now stripped from the normalized text and the remainder is assessed by the ordinary rules. The "my mom will kill me" idiom is only stripped when a consequence clause follows (if/when/for/because/over/...); a bare parental "kill me" phrase now surfaces as `concern`. Six mixed-message regressions added, plus three new ordinary cases and a bare-threat test. Fixed a pre-existing false positive: "my foster mom is going to kill me when she sees my grades" used to route to violence crisis.
 
@@ -58,9 +60,12 @@ This temporary backup may expire; it is not durable disaster recovery.
 1. Independent review (Astra or another model, read-only) of:
    - FC-01: `backend/src/services/safety.ts` (`FIGURATIVE`, `BARE_PARENT_THREAT`, `stripFigurative`, `assessSafety`) and `safety.test.ts`. Check whether the consequence-clause lookahead is too permissive (e.g. "my mom will kill me, she said that about my brother" is treated as idiom because of "about").
    - FC-02: `ai.service.ts` (`ProviderError`, `callLLM`, `groundRoadmapDraft`, `generateGroundedRoadmap`, `dropUnknownResourceTasks`), the roadmap POST in `server.ts`, `ai.service.test.ts`, and the notice in `frontend/src/pages/RoadmapPage.tsx`. Open questions: is dropping a task on any removed contact too aggressive (a null-id task quoting 988 is kept; one quoting an unknown number is gone)? The grounding cannot detect an invented ORGANISATION NAME with no phone/URL and no resourceId ("Call Sunrise Youth Housing" with resourceId null survives). A name allow-list against `organization`/`title` would be the next layer; deferred, noted in TASKS.
-   - Browser: generate a plan with `LLM_API_KEY` unset and confirm the fallback notice renders and the design still reads calm.
-2. Commit FC-02 (FC-01 is already committed as 536af28).
-3. Then FC-04 (transactional publishing).
+   - FC-04: `backend/src/services/persistence.ts` and its test; route changes at the roadmap POST and submission PATCH in `server.ts`. Questions: is the in-process queue (`serialised`) an acceptable throughput cost for a single-instance deploy (every write waits for the previous write)? Should the redundant pre-check `if (Number(submission.resource_id))` in the route be removed now that `publishSubmission` handles it?
+   - Browser: generate a plan with `LLM_API_KEY` unset and confirm the fallback notice renders; approve a submission as a reviewer and confirm it appears in search.
+   - FC-06 slice 1: `docs/DEPLOY.md` accuracy against `server.ts` env handling; `scripts/backup-db.mjs`; the `run_etl.py` guard; README edits.
+2. Commit FC-04 and FC-06 slice 1.
+3. Human launch blockers (no code): verify every crisis number in `backend/src/config/crisis.ts` and set `verifiedOn`; decide resource verification ownership (FC-05).
+4. FC-06 later slices: CI, uptime ping, Turso restore drill. FC-03 after Astra settles the intake interaction.
 
 ## Active checkpoint template (replace when claiming a task)
 

@@ -5,3 +5,11 @@ node_modules/
 dist/
 .env
 *.log
+
+# Runtime data: never commit a live database or its backups.
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/backups/
+.claude/launch.json

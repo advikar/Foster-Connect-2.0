@@ -29,8 +29,8 @@ Acceptance: distinguish have/need/unknown/prefer-not-to-answer; skipped document
 
 ## FC-04 — Transactional publishing and plan persistence
 
-Status: ready. Suggested implementer: Fable; Sonnet may execute a concrete agreed design.
-Scope: backend routes and isolated integration tests.
+Status: implemented 2026-09-08 by Fable; tests pass; awaiting independent review, then commit.
+Scope: backend routes and isolated integration tests. Implemented in `backend/src/services/persistence.ts` (see HANDOFF for design). Follow-up not done: an HTTP-level approve test in `partner-access.test.ts`.
 Acceptance: resource/index/submission/audit writes are atomic; concurrent approvals don't publish duplicates; failure during plan creation doesn't leave a partial plan; injected-failure/concurrency tests use temporary databases.
 
 ## FC-05 — Trustworthy resource freshness
@@ -41,10 +41,9 @@ Acceptance: imported/extracted information isn't labeled human-verified by defau
 
 ## FC-06 — Launch foundations
 
-Status: ready for a scoped operator task; not permission to deploy.
-Suggested implementer: Sonnet for defined setup, Astra/Fable for review.
-First slice: establish safe local Git baseline and ignore sensitive/runtime artifacts without publishing a remote.
-Later separate slices: retire dangerous legacy ETL entry point, durable backups/restore test, environment configuration, CI, readiness monitoring, account recovery. Keep each slice independently reviewable.
+Status: slice 1 done 2026-09-08 (Fable): database untracked and ignored, legacy ETL disarmed, backup command, root test command, production secret guard, docs/DEPLOY.md, README corrections. Not permission to deploy.
+Suggested implementer for later slices: Sonnet for defined setup, Astra/Fable for review.
+Remaining slices, each independently reviewable: CI running root `npm test`; uptime ping on `/api/health`; Turso backup + restore drill; partner password reset flow (today: re-run partner script). Human blockers listed in docs/DEPLOY.md are not agent work.
 
 ## FC-07 — Independent pilot readiness review
 

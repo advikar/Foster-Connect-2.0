@@ -41,9 +41,12 @@ const SIGNING_SECRET =
   process.env.CHAT_SIGNING_SECRET || crypto.randomBytes(32).toString("hex");
 
 if (!process.env.CHAT_SIGNING_SECRET && process.env.NODE_ENV === "production") {
-  console.warn(
-    "CHAT_SIGNING_SECRET is not set. Chat history tokens will not survive a restart.",
+  // Same policy as DATABASE_URL: a production deploy missing a required secret
+  // should fail loudly at boot, not degrade quietly after the first restart.
+  console.error(
+    "CHAT_SIGNING_SECRET is not set. Refusing to start in production; see docs/DEPLOY.md.",
   );
+  process.exit(1);
 }
 
 function canonical(sessionId: string, messages: SignedMessage[]) {

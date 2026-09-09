@@ -18,6 +18,7 @@ import { assessSafety, assessFields, type SafetyAssessment } from "./services/sa
 import { buildAllowList, sanitiseReply, signHistory, verifyHistory, type SignedMessage } from "./services/grounding";
 import { canReview, hashPassword, hashToken, newSessionToken, normaliseEmail, passwordProblem, verifyPassword, type Partner } from "./services/partners";
 import { contactsFor, CRISIS_CONTACTS, CRISIS_REPLIES, CONCERN_NOTE, type CrisisCategory } from "./config/crisis";
+import { audit, executeSerialised, persistRoadmap, publishSubmission } from "./services/persistence";
 
 dotenv.config();
 
@@ -149,11 +150,7 @@ async function recordAudit(
   targetId: number | null,
   detail = "",
 ) {
-  await db.execute({
-    sql: `INSERT INTO audit_log(partner_id, partner_email, action, target_type, target_id, detail)
-          VALUES (?, ?, ?, ?, ?, ?)`,
-    args: [partner.id, partner.email, action, targetType, targetId, detail],
-  });
+  await executeSerialised(db, audit(partner, action, targetType, targetId, detail));
 }
 
 function rowString(row: Row, key: string) {
@@ -781,26 +778,13 @@ app.post("/api/roadmaps", requireSession, asyncRoute(async (req, res) => {
     deadlines: input.deadlines,
   }, grounded);
 
-  const result = await db.execute({
-    sql: `INSERT INTO roadmaps(session_id, title, goal_summary, greeting, closing, county, youth_name, intake_json)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [req.sessionId!, roadmap.title, roadmap.goalSummary, roadmap.greeting, roadmap.closing,
-      input.county, input.youthName || "Friend",
-      JSON.stringify({
-        needs: input.needs, housingStatus: input.housingStatus,
-        documents: input.documents, deadlines: input.deadlines,
-      })],
+  // One transaction: the plan and every task, or nothing (FC-04).
+  const roadmapId = await persistRoadmap(db, req.sessionId!, {
+    title: roadmap.title, goalSummary: roadmap.goalSummary, greeting: roadmap.greeting, closing: roadmap.closing,
+    county: input.county, youthName: input.youthName || "Friend",
+    intake: { needs: input.needs, housingStatus: input.housingStatus, documents: input.documents, deadlines: input.deadlines },
+    tasks: roadmap.tasks,
   });
-  const roadmapId = Number(result.lastInsertRowid);
-  for (const [index, task] of roadmap.tasks.entries()) {
-    await db.execute({
-      sql: `INSERT INTO roadmap_tasks
-        (roadmap_id, session_id, task_text, task_category, timeframe, why_it_matters, motivation_note, resource_id, task_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [roadmapId, req.sessionId!, task.taskText, task.taskCategory, task.timeframe,
-        task.whyItMatters, task.motivationNote, task.resourceId, index],
-    });
-  }
   const [roadmapRow, taskRows, recommended] = await Promise.all([
     db.execute({ sql: "SELECT * FROM roadmaps WHERE id=?", args: [roadmapId] }),
     db.execute({ sql: "SELECT * FROM roadmap_tasks WHERE roadmap_id=? ORDER BY task_order", args: [roadmapId] }),
@@ -1038,48 +1022,15 @@ app.patch("/api/partner/submissions/:id", requirePartner, requireReviewer, async
     return;
   }
 
-  const detail = update.resource;
-  const today = new Date().toISOString().slice(0, 10);
-  const inserted = await db.execute({
-    sql: `INSERT INTO resources
-      (title, organization, description, category, county, service_area, eligibility,
-       age_min, age_max, cost, application_steps, what_to_bring, website, phone, address,
-       hours, languages, accessibility, delivery_mode, urgency_level, is_crisis,
-       source_url, verified_at, verified_by, status, tags)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'verified', ?)`,
-    args: [
-      String(submission.title), String(submission.organization), String(submission.description),
-      String(submission.category), String(submission.county),
-      detail.serviceArea || String(submission.county),
-      detail.eligibility,
-      detail.ageMin ?? null, detail.ageMax ?? null,
-      detail.cost, detail.applicationSteps, detail.whatToBring,
-      String(submission.website), detail.phone || String(submission.contact || ""),
-      detail.address, detail.hours, detail.languages, detail.accessibility,
-      detail.deliveryMode, detail.urgencyLevel, detail.isCrisis ? 1 : 0,
-      String(submission.source_url), today, partner.email, "community",
-    ],
-  });
-  const resourceId = Number(inserted.lastInsertRowid);
-
-  // The FTS table is external-content with no triggers (see data/run_etl.py),
-  // so a new row is invisible to search until it is indexed by hand.
-  await db.execute({
-    sql: `INSERT INTO resources_fts(rowid, title, organization, description, category,
-            county, service_area, eligibility, application_steps, tags)
-          SELECT id, title, organization, description, category, county, service_area,
-            eligibility, application_steps, tags FROM resources WHERE id = ?`,
-    args: [resourceId],
-  });
-
-  await db.execute({
-    sql: `UPDATE resource_submissions SET status='approved', moderator_note=?, reviewed_by=?,
-          resource_id=?, reviewed_at=CURRENT_TIMESTAMP WHERE id=?`,
-    args: [update.moderatorNote, partner.email, resourceId, id],
-  });
-  await recordAudit(partner, "submission.approved", "submission", id, `published as resource ${resourceId}`);
-  await recordAudit(partner, "resource.published", "resource", resourceId, String(submission.title));
-
+  // Resource, search index, submission link, and audit rows land together or
+  // not at all, and a submission publishes exactly once (FC-04).
+  const published = await publishSubmission(db, id, partner, update.resource, update.moderatorNote);
+  if (!published.ok) {
+    if (published.reason === "not_found") { res.status(404).json({ error: "That submission no longer exists" }); return; }
+    res.status(409).json({ error: "That submission has already been published." });
+    return;
+  }
+  const { resourceId, publishedAt: today } = published;
   res.json({ id, status: "approved", resourceId, publishedAt: today });
 }));
 
