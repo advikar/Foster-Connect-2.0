@@ -1,11 +1,11 @@
 # Current handoff
 
-Updated: 2026-09-08, after FC-01 implementation (Claude Code / Fable 5.1).
-Status: FC-01 (536af28) and FC-02 (4966ca2) committed. FC-04 and FC-06 slice 1 implemented and tested, both uncommitted, awaiting independent review. Ownership released.
+Updated: 2026-09-10, after the full audit and the Housing + Mental Health directory review (Claude Code / Fable 5.1).
+Status: FC-01 (536af28), FC-02 (4966ca2), FC-04 + FC-06 slice 1 (14a53fb) committed. Uncommitted: docs/AUDIT.md, docs/DIRECTORY-REVIEW.md, data/review/. Ownership released.
 Owner: none. Last writer: Claude Code/Fable.
 Workspace: `/Users/advikarichhariya/StudentHub/Projects/FosterConnect2.0`
-Git: repository exists, remote `https://github.com/advikar/Foster-Connect-2.0`, baseline commit "Initial commit". FC-01 changes are uncommitted in the working tree; commit them after review.
-Recommended next task: commit FC-04 + FC-06 slice 1, then the human launch blockers in docs/DEPLOY.md (crisis numbers, resource ownership), then FC-03 after Astra's design call. See "Next action".
+Git: repository exists, remote `https://github.com/advikar/Foster-Connect-2.0`. Database file is untracked and ignored.
+Recommended next task: see `docs/AUDIT.md` (2026-09-10). Directory data pass for Housing + Mental Health is in `docs/DIRECTORY-REVIEW.md` and `data/review/housing-mental-health-review.csv` (2026-09-10, web-read only, not phone-verified, nothing written to the DB). Next: a human calls down the CSV; then Sonnet builds `data/apply_review.py` to upsert only human-verified rows and add Calli House.
 
 ## Completed
 

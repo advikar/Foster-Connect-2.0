@@ -2,6 +2,14 @@
 
 These are proposed next tasks, not authorization to execute the entire backlog. One editor claims one task in HANDOFF. Update status here when completed. Recommendations can change based on observed results.
 
+A full prioritised audit with 26 items lives in `docs/AUDIT.md` (2026-09-10). New task packets should be cut from it.
+
+## FC-08 — Directory data pass (Housing + Mental Health)
+
+Status: web review done 2026-09-10 (Fable); see `docs/DIRECTORY-REVIEW.md` and `data/review/housing-mental-health-review.csv`. Phone verification: not started (human). Import tooling: not started.
+Scope: `data/review/*.csv`, new `data/apply_review.py`, `data/import_resources.py`.
+Acceptance: a script upserts only rows where `human_verified_on` is set, writes `verified_by`/`verified_at` from the CSV, never overwrites a human-verified row with a web-read value, adds new entries (Calli House, Northern CA Family Center, WestCoast EMPOWR, FYI voucher contacts) as pending until verified, and reports what it changed. Dry-run mode required. No model may set `verified_by` to itself.
+
 ## FC-01 — Fix mixed-message crisis detection
 
 Status: implemented 2026-09-08 by Fable; tests pass; awaiting independent review by Astra, then commit.
