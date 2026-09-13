@@ -47,7 +47,7 @@ Notes on the allocation (added after the FC-01 trial, 2026-09-08):
 
 ## Product decisions to preserve
 
-- Keep the current calm teal/sand identity, readable text, clear actions and responsive navigation. Don't restyle unrelated pages during backend tasks.
+- The user requested a complete UI redesign on 2026-09-13, superseding the teal/sand identity default. See docs/UI-DIRECTION.md for research and proposed navigation. Preserve readable text, clear actions and responsive navigation. Do not restyle unrelated pages during backend tasks.
 - Keep youth and partner experiences separate; do not expose youth plans or chat to partners.
 - New/unassigned accounts are contributors; reviewers are explicitly designated. Never bypass sign-in to make a preview work.
 - Coverage counts are not proof of service gaps, available beds, or eligibility.
@@ -70,7 +70,7 @@ Do not rerun all checks for documentation-only edits. Run broader checks when ch
 
 Never run root `npm run etl` casually: it still points to legacy `data/run_etl.py`, which drops application tables. Use isolated test fixtures. Back up local data before migrations; never assume production credentials or databases are safe test targets. The partner account script changes passwords and revokes sessions for existing accounts; it is not a read-only role viewer.
 
-Git: repository initialised 2026-09-08 with remote `https://github.com/advikar/Foster-Connect-2.0`. Commit after each reviewed task; parallel editing still needs separate branches or worktrees. Don't commit databases, raw spreadsheets, credentials, or personal data. Pushing is the user's call, never an agent default.
+Git: repository initialised 2026-09-08 with remote `https://github.com/advikar/Foster-Connect-2.0`. Commit after each reviewed task; parallel editing still needs separate branches or worktrees. Don't commit databases, raw spreadsheets, credentials, or personal data. User authorization updated 2026-09-13: commit and push completed, reviewed project checkpoints to this GitHub remote so Codex and Claude share durable progress. Verify remote synchronization and report failures. Never push credentials, private youth records, runtime databases or unreviewed unrelated changes. GitHub source storage does not itself deploy the app.
 
 ## Reusable prompts
 

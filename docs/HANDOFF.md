@@ -1,5 +1,17 @@
 # Current handoff
 
+## 2026-09-13 — project orientation and redesign research
+
+- Task: establish current checkout/GitHub state, reopen local UI, research visual and navigation direction requested by user.
+- Owner: Codex; documentation-only editor. Previous owner released ownership.
+- Intended files: docs/HANDOFF.md, docs/WORKFLOW.md, docs/UI-DIRECTION.md.
+- Checkpoint: live fetch confirms main is four commits ahead of origin/main; clean checkout. Latest commit 057b519 includes the audit and directory review previously described below as uncommitted. FosterConnect is the earlier standalone copy; Foster is the legacy project.
+- User instruction: save project work on GitHub; this supersedes the prior push-only-on-separate-request default. Complete reviewed checkpoints should be committed and pushed; exclude credentials, private records and runtime databases.
+- Completed: frontend started at http://127.0.0.1:5173/ and homepage visually checked. Design research and navigation proposal saved in docs/UI-DIRECTION.md; shared workflow updated with the user's standing GitHub sync instruction and redesign request. No app source changed.
+- Checks: live fetch, clean initial checkout, backend working-directory inspection, homepage browser observation, documentation diff whitespace check. Application tests not rerun for documentation-only work.
+- Next: commit/push this checkpoint and the four existing commits; then implement the proposed youth shell/home visual slice in a future implementation checkpoint. Research direction is proposed, not final user selection.
+- Ownership released: yes.
+
 Updated: 2026-09-10, after the full audit and the Housing + Mental Health directory review (Claude Code / Fable 5.1).
 Status: FC-01 (536af28), FC-02 (4966ca2), FC-04 + FC-06 slice 1 (14a53fb) committed. Uncommitted: docs/AUDIT.md, docs/DIRECTORY-REVIEW.md, data/review/. Ownership released.
 Owner: none. Last writer: Claude Code/Fable.
