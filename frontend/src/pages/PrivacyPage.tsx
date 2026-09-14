@@ -47,7 +47,7 @@ export function PrivacyPage() {
   };
 
   return (
-    <div className="mx-auto w-full px-5 lg:px-10 max-w-[720px] pb-16 pt-9 lg:pt-14">
+    <div className="container-wide"><div className="max-w-[760px] pb-16 pt-8 lg:pt-12">
       <h1 className="text-display-sm text-ink">Your data</h1>
       <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
         Short version: there&apos;s no account, we never asked for your name, and you can
@@ -128,6 +128,6 @@ export function PrivacyPage() {
           )}
         </div>
       </section>
-    </div>
+    </div></div>
   );
 }

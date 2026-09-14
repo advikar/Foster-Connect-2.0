@@ -11,7 +11,10 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
   const directory = await mkdtemp(path.join(tmpdir(), "fc-partner-test-"));
   const dbPath = path.join(directory, "test.db");
   const db = createClient({ url: `file:${dbPath}` });
-  await db.execute("CREATE TABLE resources(id INTEGER PRIMARY KEY)");
+  // The columns the partner analytics endpoint reads; the real table comes from the import script.
+  await db.execute(`CREATE TABLE resources(id INTEGER PRIMARY KEY, title TEXT, organization TEXT, category TEXT, county TEXT,
+    cost TEXT DEFAULT '', phone TEXT, website TEXT, hours TEXT, address TEXT, languages TEXT, source_url TEXT,
+    age_min INTEGER, age_max INTEGER, is_crisis INTEGER DEFAULT 0, verified_at TEXT, status TEXT DEFAULT 'verified')`);
   const child = spawn(process.execPath, [path.resolve(__dirname, "../server.js")], {
     env: { ...process.env, PORT: "4497", HOST: "127.0.0.1", NODE_ENV: "test", DB_PATH: dbPath, DATABASE_URL: "", DATABASE_AUTH_TOKEN: "", LLM_API_KEY: "" },
     stdio: ["ignore", "pipe", "pipe"],
@@ -43,6 +46,14 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     assert.equal((await request(`/submissions/${mine[0].id}`, 3, "PATCH", {status:"rejected",moderatorNote:"Test review"})).status, 200);
     const reviewed = await (await request("/my-submissions", 1)).json() as {status: string}[];
     assert.equal(reviewed[0].status, "rejected");
+    assert.equal((await request("/analytics")).status, 401);
+    const analytics = await request("/analytics", 1);
+    assert.equal(analytics.status, 200);
+    const stats = await analytics.json() as { totals: { verified: number }; pipeline: { pending: number; rejected: number }; byCategory: unknown[]; freshness: unknown; completeness: unknown; reports: unknown[] };
+    assert.equal(Number(stats.pipeline.rejected), 1);
+    assert.equal(Number(stats.pipeline.pending), 0);
+    assert.ok(Array.isArray(stats.byCategory) && Array.isArray(stats.reports));
+    assert.ok(stats.freshness && stats.completeness);
     assert.equal((await request("/logout", 1, "POST")).status, 204);
     assert.equal((await request("/my-submissions", 1)).status, 401);
   } finally {

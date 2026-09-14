@@ -140,14 +140,14 @@ export function IntakeConversation({
                 type="button"
                 aria-pressed={has}
                 onClick={() => set("documents", toggle(answers.documents, document.id))}
-                className={`flex min-h-[52px] w-full items-center gap-3 rounded-xl border px-4 text-left text-[15px] font-medium transition-colors ${
-                  has ? "border-brand bg-brand-soft text-ink" : "border-rule bg-surface text-ink-soft"
+                className={`flex min-h-[52px] w-full items-center gap-3 rounded-md border px-4 text-left text-[16px] font-medium transition-colors ${
+                  has ? "border-ink bg-sand-soft text-ink" : "border-rule bg-surface text-ink-soft"
                 }`}
               >
                 <span
                   aria-hidden
-                  className={`flex size-5 shrink-0 items-center justify-center rounded-md border ${
-                    has ? "border-brand bg-brand text-on-brand" : "border-rule"
+                  className={`flex size-5 shrink-0 items-center justify-center rounded border ${
+                    has ? "border-brand bg-brand text-white" : "border-rule"
                   }`}
                 >
                   {has && <Check className="size-3.5" strokeWidth={3} />}
@@ -199,7 +199,7 @@ export function IntakeConversation({
           value={answers.futurePlan}
           onChange={event => set("futurePlan", event.target.value)}
           placeholder="my own place, and back in school"
-          className="min-h-28 rounded-xl border-rule bg-surface text-base"
+          className="min-h-28 rounded-md border-rule bg-surface text-base"
           aria-label="What would you want to be different in six months?"
         />
       ),
@@ -251,13 +251,13 @@ export function IntakeConversation({
   };
 
   return (
-    <div className="mx-auto w-full px-5 lg:px-10 flex min-h-[calc(100vh-260px)] max-w-[680px] flex-col pb-10 pt-8 lg:min-h-0 lg:pt-16">
+    <div className="container-wide"><div className="flex min-h-[calc(100vh-260px)] max-w-[760px] flex-col pb-10 pt-6 lg:min-h-0 lg:pt-14">
       <div className="flex items-center gap-3">
         {step > 0 && (
           <button
             type="button"
             onClick={() => setStep(value => value - 1)}
-            className="flex size-9 items-center justify-center rounded-full text-ink-faint hover:bg-sunk"
+            className="-ml-2 flex size-11 items-center justify-center rounded-md text-ink-faint hover:bg-sunk"
             aria-label="Back to the previous question"
           >
             <ArrowLeft className="size-4" />
@@ -272,32 +272,33 @@ export function IntakeConversation({
           aria-label={`Question ${step + 1} of ${steps.length}`}
         >
           {steps.map((_, index) => (
-            <span key={index} className={`h-1 flex-1 rounded-full transition-colors ${index <= step ? "bg-brand" : "bg-sunk"}`} />
+            <span key={index} className={`h-1 flex-1 rounded-sm transition-colors ${index <= step ? "bg-brand" : "bg-rule"}`} />
           ))}
         </div>
       </div>
 
-      <div className="mt-9 flex-1 lg:flex-none">
-        <h1 ref={headingRef} tabIndex={-1} className="text-display-sm max-w-[16ch] text-ink outline-none lg:text-[44px] lg:leading-[0.98]">
+      <div className="mt-8 flex-1 lg:flex-none">
+        <p className="text-eyebrow text-brand">Question {step + 1} of {steps.length}</p>
+        <h1 ref={headingRef} tabIndex={-1} className="text-display-sm mt-2 max-w-[18ch] text-ink outline-none lg:text-[40px]">
           {current.question}
         </h1>
-        <p className="mt-3 max-w-[42ch] text-[15px] leading-relaxed text-ink-soft">{current.hint}</p>
+        <p className="mt-3 max-w-[48ch] text-[15px] leading-relaxed text-ink-soft">{current.hint}</p>
         <div className="mt-7">{current.body}</div>
       </div>
 
       {/* Sits above Quick exit and the tab bar, both of which are fixed. */}
-      <div className="sticky bottom-[76px] mt-10 bg-ground pt-4 lg:static lg:mt-12 lg:max-w-[320px]">
+      <div className="sticky bottom-[80px] mt-10 bg-ground pt-4 lg:static lg:mt-12 lg:max-w-[320px]">
         <Button
           type="button"
           disabled={!current.valid || building}
           onClick={() => (isLast ? submit() : setStep(value => value + 1))}
-          className="min-h-[52px] w-full rounded-xl bg-brand text-base font-semibold text-on-brand hover:opacity-90"
+          className="min-h-[52px] w-full rounded-md bg-brand text-base font-semibold text-white hover:bg-brand-deep"
         >
           {building && <Loader2 className="size-4 animate-spin" />}
           {building ? "Putting it together" : isLast ? "Build my plan" : "Next"}
         </Button>
       </div>
-    </div>
+    </div></div>
   );
 }
 
@@ -316,7 +317,7 @@ function LabelledInput({
         type={type}
         value={value}
         onChange={event => onChange(event.target.value)}
-        className="mt-1.5 h-12 rounded-xl border-rule bg-surface text-base"
+        className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base"
       />
     </div>
   );

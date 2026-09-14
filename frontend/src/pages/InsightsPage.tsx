@@ -1,76 +1,189 @@
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Check, ExternalLink, Loader2, X } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
 import {
-  fetchSubmissions, partnerLogin, reviewSubmission,
+  fetchPartnerAnalytics, fetchSubmissions, partnerLogin, reviewSubmission,
   type ApprovalDetail, type PartnerIdentity, type Submission,
 } from "@/lib/api";
+import { describeChecked } from "@/lib/checked";
+import { Stat, ago } from "./PartnerPages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Chip } from "@/components/primitives/Chip";
 import { toast } from "sonner";
 
-interface Analytics {
-  category: { category: string; count: number }[];
-  county: { county: string; count: number }[];
-  totals: { verified: number; crisis: number };
-}
-
-async function analytics() {
-  const response = await fetch(`${API_BASE_URL}/api/analytics`);
-  if (!response.ok) throw new Error("Could not load coverage");
-  return response.json() as Promise<Analytics>;
-}
-
+/**
+ * Coverage: what the directory holds, how fresh it is, what's missing from
+ * each listing, the review pipeline, and what young people have flagged.
+ * Every number describes listings, never open beds or eligibility.
+ */
 export function Coverage() {
-  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["analytics"], queryFn: analytics });
-  if (isLoading) return <div role="status" className="mt-8 rounded-2xl border border-rule bg-surface p-6 text-ink-soft">Loading directory coverage…</div>;
-  if (isError) return <div role="status" className="mt-8 rounded-2xl border border-rule bg-surface p-6"><h2 className="font-semibold text-ink">Coverage is temporarily unavailable</h2><p className="mt-2 text-sm text-ink-soft">We couldn’t load the directory totals. Try again to see current coverage.</p><Button variant="outline" className="mt-4 min-h-11" onClick={() => { void refetch(); }}>Try again</Button></div>;
-  const max = Math.max(...(data?.category.map(item => Number(item.count)) || [1]), 1);
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["partner-analytics"], queryFn: fetchPartnerAnalytics, retry: 1 });
+  const [county, setCounty] = useState("All");
+  if (isLoading) return <div role="status" className="rounded-md border border-rule bg-surface p-6 text-ink-soft">Loading directory coverage…</div>;
+  if (isError || !data) {
+    return (
+      <div role="status" className="rounded-md border border-rule bg-surface p-6">
+        <h2 className="font-semibold text-ink">Coverage is temporarily unavailable</h2>
+        <p className="mt-2 text-sm text-ink-soft">We couldn&rsquo;t load the directory totals. Try again to see current coverage.</p>
+        <Button variant="outline" className="mt-4 h-11 rounded-md border-ink" onClick={() => { void refetch(); }}>Try again</Button>
+      </div>
+    );
+  }
+
+  const n = (value: unknown) => Number(value ?? 0);
+  const verified = n(data.totals.verified);
+  const counties = data.byCounty.map(row => row.county);
+  const matrixFor = (category: string) => county === "All"
+    ? n(data.byCategory.find(row => row.category === category)?.count)
+    : n(data.matrix.find(row => row.category === category && row.county === county)?.count);
+  const rows = data.byCategory.map(row => ({ ...row, shown: matrixFor(row.category) })).sort((a, b) => b.shown - a.shown);
+  const max = Math.max(1, ...rows.map(row => row.shown));
+  const fresh = n(data.freshness.fresh), aging = n(data.freshness.aging), stale = n(data.freshness.stale);
+  const completeness: [string, number][] = [
+    ["Has a phone number", n(data.completeness.phone)],
+    ["Has a website", n(data.completeness.website)],
+    ["Cost is stated", n(data.completeness.cost_known)],
+    ["Age range is known", n(data.completeness.age_known)],
+    ["Hours listed", n(data.completeness.hours)],
+    ["Address listed", n(data.completeness.address)],
+    ["Languages listed", n(data.completeness.languages)],
+  ];
 
   return (
-    <section className="mt-8">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Metric label="Published resources" value={Number(data?.totals.verified || 0)} />
-        <Metric label="Flagged as crisis" value={Number(data?.totals.crisis || 0)} />
-        <Metric label="Regions represented" value={data?.county.length || 0} />
+    <div className="flex flex-col gap-10">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Published listings" value={verified} detail={`${n(data.totals.retired)} retired`} />
+        <Stat label="Checked in last 30 days" value={n(data.totals.checked_last_30)} detail={`${n(data.totals.publishedLast30)} newly published`} tone="green" />
+        <Stat label="Need a re-check" value={stale} detail="Older than 180 days" tone={stale ? "rust" : "ink"} />
+        <Stat label="Awaiting review" value={n(data.pipeline.pending)} detail={n(data.pipeline.pending_over_week) ? `${n(data.pipeline.pending_over_week)} waiting over a week` : "None over a week"} tone={n(data.pipeline.pending_over_week) ? "rust" : "ink"} />
       </div>
 
-      <div className="mt-4 rounded-2xl border border-rule bg-surface p-6">
-        <h2 className="font-display text-[17px] font-bold tracking-[-0.02em] text-ink">Coverage by need</h2>
-        <p className="mt-1 text-[13.5px] text-ink-soft">Listing counts show directory coverage, not service availability or unmet demand.</p>
-        <ul className="mt-5 space-y-3">
-          {data?.category.map(item => (
-            <li key={item.category}>
-              <div className="mb-1.5 flex justify-between text-[13px]">
-                <span className="font-medium text-ink-soft">{item.category}</span>
-                <span className="tabular text-ink-faint">{item.count}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-sunk">
-                <div className="h-full rounded-full bg-brand" style={{ width: `${(Number(item.count) / max) * 100}%` }} />
-              </div>
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-[22px] font-bold text-ink">By kind of support</h2>
+            <p className="mt-1 text-[14px] text-ink-faint">Listings, how many are free, how many still have no cost, and how many need a re-check.</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <Chip selected={county === "All"} onClick={() => setCounty("All")} className="min-h-9 text-[13px]">All regions</Chip>
+            {counties.map(item => <Chip key={item} selected={county === item} onClick={() => setCounty(item)} className="min-h-9 text-[13px]">{item}</Chip>)}
+          </div>
+        </div>
+        <div className="mt-4 hidden grid-cols-[200px_1fr_56px_56px_56px_72px] gap-3 pb-2 text-eyebrow text-ink-faint md:grid">
+          <span>Kind</span><span /><span className="text-right">Total</span><span className="text-right">Free</span><span className="text-right">Cost ?</span><span className="text-right">Re-check</span>
+        </div>
+        <ul className="divide-y divide-rule border-t border-rule">
+          {rows.map(row => (
+            <li key={row.category} className="grid grid-cols-[1fr_auto] items-center gap-3 py-2.5 text-[14px] md:grid-cols-[200px_1fr_56px_56px_56px_72px]">
+              <span className="text-ink-soft">{row.category}</span>
+              <div className="col-span-2 h-2.5 rounded-sm bg-brand-soft md:col-span-1"><div className="h-2.5 rounded-sm bg-brand" style={{ width: `${(row.shown / max) * 100}%` }} /></div>
+              <span className="tabular text-right font-semibold text-ink">{row.shown}</span>
+              <span className="tabular hidden text-right text-green md:block">{n(row.free)}</span>
+              <span className="tabular hidden text-right text-ink-faint md:block">{n(row.cost_unknown)}</span>
+              <span className={`tabular hidden text-right md:block ${n(row.stale) ? "text-crisis" : "text-ink-faint"}`}>{n(row.stale)}</span>
             </li>
           ))}
         </ul>
+        {county !== "All" && <p className="mt-2 text-[13px] text-ink-faint">Free / cost / re-check columns are directory-wide; the bar and total are for {county}.</p>}
+      </section>
+
+      <div className="grid gap-10 lg:grid-cols-2">
+        <section>
+          <h2 className="font-display text-[22px] font-bold text-ink">By region</h2>
+          <ul className="mt-3 divide-y divide-rule border-t border-rule">
+            {data.byCounty.map(row => (
+              <li key={row.county} className="grid grid-cols-[140px_1fr_48px] items-center gap-3 py-2.5 text-[14px]">
+                <span className="text-ink-soft">{row.county}</span>
+                <div className="h-2.5 rounded-sm bg-brand-soft"><div className="h-2.5 rounded-sm bg-brand" style={{ width: `${(n(row.count) / Math.max(1, ...data.byCounty.map(r => n(r.count)))) * 100}%` }} /></div>
+                <span className="tabular text-right font-semibold text-ink">{n(row.count)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[13px] text-ink-faint">Statewide and national programs may also serve each county.</p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-[22px] font-bold text-ink">Freshness</h2>
+          <div className="mt-3 flex h-3 overflow-hidden rounded-sm bg-sunk">
+            <div className="bg-green" style={{ width: `${(fresh / Math.max(1, verified)) * 100}%` }} />
+            <div className="bg-sand" style={{ width: `${(aging / Math.max(1, verified)) * 100}%` }} />
+            <div className="bg-crisis" style={{ width: `${(stale / Math.max(1, verified)) * 100}%` }} />
+          </div>
+          <ul className="mt-3 divide-y divide-rule border-t border-rule text-[14px]">
+            {([["Checked in the last 90 days", fresh, "bg-green"], ["90–180 days", aging, "bg-sand"], ["Older than 180 days", stale, "bg-crisis"]] as const).map(([label, count, dot]) => (
+              <li key={label} className="flex items-center justify-between py-2.5"><span className="flex items-center gap-2 text-ink-soft"><span className={`size-2.5 rounded-full ${dot}`} />{label}</span><span className="tabular font-semibold text-ink">{count}</span></li>
+            ))}
+          </ul>
+          <a href="#recheck" className="mt-2 inline-block text-[14px] text-brand hover:underline">See the oldest listings ↓</a>
+        </section>
       </div>
-      <div className="mt-4 rounded-2xl border border-rule bg-surface p-6">
-        <h2 className="text-lg font-semibold text-ink">Coverage by region</h2>
-        <p className="mt-1 text-sm text-ink-soft">Records grouped by their listed region. Statewide and regional programs may also serve individual counties.</p>
-        <ul className="mt-4 divide-y divide-rule">{data?.county.map(item => <li key={item.county} className="flex justify-between gap-4 py-3 text-sm"><span>{item.county}</span><span className="font-semibold tabular-nums text-brand">{item.count}</span></li>)}</ul>
+
+      <section>
+        <h2 className="font-display text-[22px] font-bold text-ink">What listings are missing</h2>
+        <p className="mt-1 text-[14px] text-ink-faint">Share of published listings with each field filled in. Gaps here are the fastest way to make the directory more useful.</p>
+        <ul className="mt-3 divide-y divide-rule border-t border-rule">
+          {completeness.map(([label, count]) => {
+            const pct = Math.round((count / Math.max(1, verified)) * 100);
+            return (
+              <li key={label} className="grid grid-cols-[1fr_auto] items-center gap-3 py-2.5 text-[14px] sm:grid-cols-[220px_1fr_64px]">
+                <span className="text-ink-soft">{label}</span>
+                <div className="col-span-2 h-2.5 rounded-sm bg-sunk sm:col-span-1"><div className={`h-2.5 rounded-sm ${pct < 50 ? "bg-crisis" : pct < 80 ? "bg-sand" : "bg-brand"}`} style={{ width: `${pct}%` }} /></div>
+                <span className="tabular text-right font-semibold text-ink">{pct}%</span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <div className="grid gap-10 lg:grid-cols-2">
+        <section id="recheck">
+          <h2 className="font-display text-[22px] font-bold text-ink">Oldest checks</h2>
+          <p className="mt-1 text-[14px] text-ink-faint">Start here when re-verifying. {data.staleList.length} shown, oldest first.</p>
+          <ul className="mt-3 divide-y divide-rule border-t border-rule">
+            {data.staleList.map(item => (
+              <li key={item.id} className="flex items-baseline justify-between gap-3 py-2.5">
+                <div className="min-w-0"><p className="truncate text-[15px] font-semibold text-ink">{item.title}</p><p className="truncate text-[13px] text-ink-faint">{item.organization} · {item.category} · {item.county}</p></div>
+                <span className={`text-stamp shrink-0 ${describeChecked(item.verified_at).stale ? "text-crisis" : ""}`}>{item.verified_at}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section id="reports">
+          <h2 className="font-display text-[22px] font-bold text-ink">Flagged by young people</h2>
+          <p className="mt-1 text-[14px] text-ink-faint">Reports sent from a listing&rsquo;s &ldquo;something is wrong&rdquo; link. Treat the text as a lead, not a verified fact.</p>
+          {data.reports.length === 0 ? (
+            <p className="mt-3 rounded-md border border-dashed border-rule p-5 text-[14px] text-ink-soft">No reports yet.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-rule border-t border-rule">
+              {data.reports.map(report => (
+                <li key={report.id} className="py-3">
+                  <div className="flex items-baseline justify-between gap-3"><p className="truncate text-[15px] font-semibold text-ink">{report.title}</p><span className="text-stamp shrink-0">{ago(report.created_at)}</span></div>
+                  <p className="mt-1 text-[14px] text-ink-soft">&ldquo;{report.reason}&rdquo;</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
-    </section>
+
+      <section className="grid gap-3 rounded-md border border-rule bg-surface p-6 sm:grid-cols-4">
+        <div className="sm:col-span-4"><h2 className="font-display text-[20px] font-bold text-ink">Review pipeline</h2></div>
+        <Pipe label="Submitted, last 30 days" value={n(data.pipeline.submitted_last_30)} />
+        <Pipe label="Awaiting review" value={n(data.pipeline.pending)} />
+        <Pipe label="Published" value={n(data.pipeline.approved)} />
+        <Pipe label="Not approved" value={n(data.pipeline.rejected)} />
+      </section>
+
+      <p className="text-[12px] text-ink-faint">Counts computed {new Date(data.generatedAt).toLocaleString()}. They describe the directory, not services on the ground.</p>
+    </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-rule bg-surface p-5">
-      <p className="tabular font-display text-[30px] font-bold tracking-[-0.03em] text-ink">{value}</p>
-      <p className="mt-1 text-[13px] font-medium text-ink-soft">{label}</p>
-    </div>
-  );
+function Pipe({ label, value }: { label: string; value: number }) {
+  return <div><p className="text-eyebrow text-ink-faint">{label}</p><p className="tabular mt-1 font-display text-[28px] font-bold leading-none text-ink">{value}</p></div>;
 }
 
 export function SignIn({ onSignedIn }: { onSignedIn: (partner: PartnerIdentity) => void }) {
@@ -95,50 +208,50 @@ export function SignIn({ onSignedIn }: { onSignedIn: (partner: PartnerIdentity) 
   };
 
   return (
-    <form onSubmit={submit} className="max-w-[420px] rounded-2xl border border-rule bg-surface p-6">
-      <h2 className="font-display text-[19px] font-bold tracking-[-0.02em] text-ink">Sign in</h2>
-      <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
-        Sign in to submit resources, track review status, and use the partner guide.
+    <form onSubmit={submit} className="max-w-[420px] rounded-md border border-rule bg-surface p-6 sm:p-8">
+      <h2 className="font-display text-[26px] font-bold text-ink">Sign in</h2>
+      <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">
+        Sign in to submit resources, track review status, and use the staff guide.
       </p>
 
       <div className="mt-5 space-y-4">
         <div>
-          <label htmlFor={emailId} className="text-[13px] font-medium text-ink-soft">Email</label>
+          <label htmlFor={emailId} className="text-[13px] font-semibold text-ink-soft">Work email</label>
           <Input
             id={emailId}
             type="email"
             autoComplete="username"
             value={email}
             onChange={event => setEmail(event.target.value)}
-            className="mt-1.5 h-12 rounded-xl border-rule text-base"
+            className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base"
           />
         </div>
         <div>
-          <label htmlFor={passwordId} className="text-[13px] font-medium text-ink-soft">Password</label>
+          <label htmlFor={passwordId} className="text-[13px] font-semibold text-ink-soft">Password</label>
           <Input
             id={passwordId}
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={event => setPassword(event.target.value)}
-            className="mt-1.5 h-12 rounded-xl border-rule text-base"
+            className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base"
           />
         </div>
       </div>
 
-      {error && <p role="alert" className="mt-4 rounded-xl bg-crisis-soft px-4 py-3 text-[13.5px] text-crisis">{error}</p>}
+      {error && <p role="alert" className="mt-4 rounded-md bg-crisis-soft px-4 py-3 text-[14px] text-crisis">{error}</p>}
 
       <Button
         type="submit"
         disabled={busy || !email || !password}
-        className="mt-5 h-12 w-full rounded-xl bg-brand text-base font-semibold text-on-brand hover:opacity-90"
+        className="mt-5 h-12 w-full rounded-md bg-brand text-base font-semibold text-white hover:bg-brand-deep"
       >
         {busy && <Loader2 className="size-4 animate-spin" />}
         {busy ? "Signing in" : "Sign in"}
       </Button>
 
-      <p className="mt-4 text-[12.5px] leading-relaxed text-ink-faint">
-        Partner access is by invitation. Contact your Foster Connect coordinator to join your organization. You can still share a resource without signing in.
+      <p className="mt-4 text-[13px] leading-relaxed text-ink-faint">
+        Accounts are created by Foster Connect — there&rsquo;s no self sign-up. Contact your coordinator to join your organization. You can still share a resource without signing in.
       </p>
     </form>
   );
@@ -152,13 +265,13 @@ export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
   });
 
   if (isLoading) {
-    return <div className="rounded-2xl border border-rule bg-surface p-10 text-center text-ink-soft">Loading the queue…</div>;
+    return <div className="rounded-md border border-rule bg-surface p-10 text-center text-ink-soft">Loading the queue…</div>;
   }
   if (isError) {
     return (
-      <div className="rounded-2xl border border-rule bg-surface p-10 text-center">
+      <div className="rounded-md border border-rule bg-surface p-10 text-center">
         <p className="text-ink-soft">Could not load the queue.</p>
-        <Button variant="outline" className="mt-4 rounded-full border-rule" onClick={() => refetch()}>Try again</Button>
+        <Button variant="outline" className="mt-4 rounded-md border-ink" onClick={() => refetch()}>Try again</Button>
       </div>
     );
   }
@@ -168,12 +281,12 @@ export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
 
   return (
     <div>
-      <h2 className="font-display text-[22px] font-bold tracking-[-0.025em] text-ink">
+      <h2 className="font-display text-[22px] font-bold text-ink">
         {pending.length} waiting on you
       </h2>
 
       {pending.length === 0 ? (
-        <p className="mt-4 rounded-2xl border border-dashed border-rule bg-surface p-10 text-center text-[14.5px] text-ink-soft">
+        <p className="mt-4 rounded-md border border-dashed border-rule bg-surface p-10 text-center text-[14.5px] text-ink-soft">
           Nothing in the queue. Community submissions land here before anyone can see them.
         </p>
       ) : (
@@ -186,8 +299,8 @@ export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
 
       {reviewed.length > 0 && (
         <section className="mt-12">
-          <h2 className="font-display text-[19px] font-bold tracking-[-0.025em] text-ink">Already reviewed</h2>
-          <ul className="mt-4 divide-y divide-rule-soft overflow-hidden rounded-2xl border border-rule bg-surface">
+          <h2 className="font-display text-[20px] font-bold text-ink">Already reviewed</h2>
+          <ul className="mt-4 divide-y divide-rule-soft overflow-hidden rounded-md border border-rule bg-surface">
             {reviewed.map(item => (
               <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                 <div className="min-w-0">
@@ -257,8 +370,8 @@ function SubmissionCard({
   };
 
   return (
-    <article className="rounded-2xl border border-rule bg-surface p-5 lg:p-6">
-      <h3 className="font-display text-[19px] font-bold tracking-[-0.02em] text-ink">{submission.title}</h3>
+    <article className="rounded-md border border-rule bg-surface p-5 lg:p-6">
+      <h3 className="font-display text-[22px] font-bold text-ink">{submission.title}</h3>
       <p className="mt-1 text-[13.5px] text-ink-faint">
         {submission.organization} · {submission.category} · {submission.county}
       </p>
@@ -286,18 +399,18 @@ function SubmissionCard({
 
       {!approving ? (
         <div className="mt-5 flex flex-wrap gap-2">
-          <Button onClick={() => setApproving(true)} className="h-11 rounded-xl bg-brand px-5 font-semibold text-on-brand hover:opacity-90">
+          <Button onClick={() => setApproving(true)} className="h-11 rounded-md bg-brand px-5 font-semibold text-white hover:bg-brand-deep">
             <Check className="size-4" />
             Approve and publish
           </Button>
-          <Button variant="outline" disabled={busy} onClick={() => act("rejected")} className="h-11 rounded-xl border-rule px-5">
+          <Button variant="outline" disabled={busy} onClick={() => act("rejected")} className="h-11 rounded-md border-rule px-5">
             <X className="size-4" />
             Reject
           </Button>
         </div>
       ) : (
         <div className="mt-6 border-t border-rule pt-5">
-          <div className="flex items-start gap-2.5 rounded-xl bg-sand-soft p-4">
+          <div className="flex items-start gap-2.5 rounded-md bg-sand-soft p-4">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-sand" />
             <p className="text-[13.5px] leading-relaxed text-ink-soft">
               Publishing puts this in front of young people. Fill these in from the official
@@ -352,7 +465,7 @@ function SubmissionCard({
               </div>
             </div>
 
-            <label className="flex items-start gap-3 rounded-xl border border-crisis/25 bg-crisis-soft p-4">
+            <label className="flex items-start gap-3 rounded-md border border-crisis/25 bg-crisis-soft p-4">
               <input
                 type="checkbox"
                 checked={Boolean(detail.isCrisis)}
@@ -373,12 +486,12 @@ function SubmissionCard({
             <Button
               disabled={!ready || busy}
               onClick={() => act("approved")}
-              className="h-11 rounded-xl bg-brand px-5 font-semibold text-on-brand hover:opacity-90"
+              className="h-11 rounded-md bg-brand px-5 font-semibold text-white hover:bg-brand-deep"
             >
               {busy && <Loader2 className="size-4 animate-spin" />}
               Publish as {reviewer.name}
             </Button>
-            <Button variant="outline" onClick={() => setApproving(false)} className="h-11 rounded-xl border-rule px-5">
+            <Button variant="outline" onClick={() => setApproving(false)} className="h-11 rounded-md border-rule px-5">
               Cancel
             </Button>
             {!ready && (
@@ -414,7 +527,7 @@ function Field({
           aria-describedby={hint ? hintId : undefined}
           value={value}
           onChange={event => onChange(event.target.value)}
-          className="mt-1.5 min-h-20 rounded-xl border-rule text-base"
+          className="mt-1.5 min-h-20 rounded-md border-rule text-base"
         />
       ) : (
         <Input
@@ -422,7 +535,7 @@ function Field({
           aria-describedby={hint ? hintId : undefined}
           value={value}
           onChange={event => onChange(event.target.value)}
-          className="mt-1.5 h-12 rounded-xl border-rule text-base"
+          className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base"
         />
       )}
     </div>

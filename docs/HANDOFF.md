@@ -1,5 +1,25 @@
 # Current handoff
 
+## 2026-09-14 — UI redesign implementation (checkpoint 1 complete)
+
+- Task: implement the approved redesign (design canvas https://claude.ai/code/artifact/835f8b92-7f0d-4325-9ec8-4ac8adaeeafd) across youth and partner interfaces, plus a fuller partner analytics page. User approved the canvas on 2026-09-14 and asked for it to be coded, with "the analytics page can be more robust".
+- Owner: Claude Code (Fable 5.1). Codex's 2026-09-13 research claim (docs only) was still marked unreleased; the user directed implementation. No Codex files were touched.
+- Changed: `frontend/index.html` (Source Serif 4 / Source Sans 3 / IBM Plex Mono), `src/styles/globals.css` (new "Paper & Teal" token values under the old token names; `--ink-body`, `--ink-stamp`, `--hover`; `.text-eyebrow` is now mono; light theme forced in `main.tsx`), `components/layout/AppLayout.tsx` (5-tab nav Home/Find/Ask/My plan/Saved, header utilities, crisis footer; exports `Brand`, `Mark`), `safety/QuickExit.tsx`, `safety/CrisisBar.tsx`, `contexts/MayaContext.tsx` (openMaya navigates to `/ask`), new `chat/MayaConversation.tsx` + `pages/AskPage.tsx` (replaces MayaOverlay/MayaLauncher, both deleted), new `hooks/useAboutYou.ts` + `components/home/AboutYouCard.tsx` (optional age band / county / care status in localStorage only), `pages/HomePage.tsx`, `pages/ResourcesPage.tsx` (desktop filter rail, phone sheet, age-band filter mapped to the API's `age`), `components/resources/ResourceRow.tsx` (ruled rows, tags, side-panel detail on desktop via `BottomSheet` direction=right), new `lib/checked.ts`, `primitives/Chip.tsx`, `primitives/BottomSheet.tsx`, `primitives/StepCard.tsx`, `pages/RoadmapPage.tsx` (plan layout, aside), `roadmap/IntakeConversation.tsx` (styling only), `pages/SavedPage.tsx`, `pages/AddResourcePage.tsx`, `pages/PrivacyPage.tsx` (container only), `layout/PartnerLayout.tsx` (sidebar + phone chip nav), `pages/PartnerPages.tsx`, `pages/InsightsPage.tsx` (Coverage rewritten; SignIn/Queue restyled), `router.tsx` (`/ask`), `lib/api.ts` (`fetchPartnerAnalytics`). Backend: `GET /api/partner/analytics` (partner auth) in `server.ts`; `partner-access.test.ts` extended and its resources fixture widened.
+- Checks run: `npm run type-check --prefix frontend` pass; ESLint on all changed frontend files (2 fast-refresh warnings on exported helpers, 0 errors); `npm run build --prefix frontend` pass; `npm test --prefix backend` 50/50 pass (analytics: 401 unauthenticated, 200 + shape for a contributor). Browser at 1440 and 375: Home, Find (+ detail side panel), Ask, plan intake, partner sign-in, share-a-resource all rendered with no console errors.
+- Not verified: signed-in partner views (overview, submissions, coverage, review queue, staff guide) were not opened in a browser — no partner accounts exist locally and none were created. They are type-checked and the analytics endpoint is API-tested. Plan page with an existing plan and Saved with items were not browser-checked this turn (no session data). Dark theme is disabled (forced light), not restyled.
+- Decisions: youth nav Home / Find / Ask / My plan / Saved; no youth sign-in; "About you" stays on device and only pre-fills Find and shapes Home; no photos; partner side keeps /partners and "For partners"; the old `/api/analytics` public endpoint is unchanged.
+- Next: (1) have a human sign in as a partner and check the five signed-in screens and the coverage page against real data; (2) independent review of `ResourcesPage` age-band mapping (under18→17, 18-20→19, 21-24→22, 25+→26) and of the analytics SQL; (3) consider a per-county breakdown for the cost/re-check columns on Coverage; (4) update `docs/UI-DIRECTION.md` to point at the canvas as the chosen direction.
+- Ownership released: yes.
+
+## 2026-09-13 — comprehensive UI reference scan (active)
+
+- Task: broaden Pinterest and live-site/template research before recommending a design; earlier three-pin shortlist was insufficient and is superseded.
+- Owner: Codex, documentation-only editor; workspace FosterConnect2.0.
+- Intended files: docs/HANDOFF.md, docs/UI-RESEARCH.md, docs/UI-DIRECTION.md.
+- Next checkpoint: record a substantial source inventory, visual observations, navigation checks, shortlist and exclusions; commit and push research.
+- Initial check: clean main synchronized with origin/main at previous checkpoint 544415d. No application changes planned during research.
+- Ownership released: no.
+
 ## 2026-09-13 — project orientation and redesign research
 
 - Task: establish current checkout/GitHub state, reopen local UI, research visual and navigation direction requested by user.

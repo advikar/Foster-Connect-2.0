@@ -1,44 +1,42 @@
 import { useId, useState } from "react";
-import { Bookmark, ExternalLink, Phone, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Bookmark, ExternalLink, Phone, ShieldCheck, X } from "lucide-react";
 import { BottomSheet } from "@/components/primitives/BottomSheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useSavedResources } from "@/hooks/useSavedResources";
 import { reportResource, type ResourceItem } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { describeChecked } from "@/lib/checked";
 import { toast } from "sonner";
 
 /**
- * ResourceRow — replaces the ResourceCard grid.
+ * ResourceRow — one listing in a ruled list.
  *
- * A divided list, not a grid of cards: faster to scan on a phone, and it
- * fits far more results above the fold. The whole row is the tap target;
- * the bookmark is a separately-focusable nested button.
+ * Title and checked-date on the first line, organisation, a plain sentence,
+ * then small tags for who it's for, where, how, and cost. Tap the row for
+ * detail; Save is its own focusable button.
  */
-export function ResourceRow({ resource }: { resource: ResourceItem }) {
+export function ResourceRow({ resource, dense = false }: { resource: ResourceItem; dense?: boolean }) {
   const [open, setOpen] = useState(false);
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
-  const verifiedDate = formatVerifiedDate(resource.verifiedAt);
+  const checked = describeChecked(resource.verifiedAt);
 
   return (
     <>
-      <div className="flex items-stretch gap-2 border-b border-rule-soft last:border-b-0">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="min-w-0 flex-1 py-4 text-left"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="truncate text-base font-semibold leading-snug text-ink">{resource.title}</h3>
+      <div className={cn("row-hover -mx-2 grid grid-cols-[1fr_auto] items-start gap-3 rounded-md px-2 lg:gap-6", dense ? "py-3.5" : "py-4 lg:py-5")}>
+        <button type="button" onClick={() => setOpen(true)} className="min-w-0 text-left">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <h3 className="font-sans text-[16px] font-semibold leading-snug text-ink lg:text-[17px]">{resource.title}</h3>
+            <span className={cn("text-stamp", checked.stale && "text-crisis")}>{checked.label}</span>
           </div>
-          <p className="mt-0.5 text-[13px] text-ink-faint">{resource.organization}</p>
-          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-soft">{resource.description}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-ink-faint">
-            <span>{resource.county}</span>
-            <Dot />
-            <span>{resource.deliveryMode || "Ask directly"}</span>
-            <Dot />
-            <span>Checked {verifiedDate}</span>
+          <p className="mt-0.5 text-[13px] text-ink-faint lg:text-[14px]">{resource.organization}</p>
+          {!dense && <p className="mt-1.5 line-clamp-3 max-w-[68ch] text-[14px] leading-relaxed text-ink-soft lg:text-[15px]">{resource.description}</p>}
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {eligibilityTag(resource) && <Tag tone="teal">{eligibilityTag(resource)}</Tag>}
+            <Tag>{resource.county}</Tag>
+            {!dense && resource.deliveryMode && <Tag>{resource.deliveryMode}</Tag>}
+            <CostTag cost={resource.cost} />
           </div>
         </button>
         <button
@@ -46,46 +44,50 @@ export function ResourceRow({ resource }: { resource: ResourceItem }) {
           onClick={() => toggleSave(resource.id)}
           aria-label={saved ? `Remove ${resource.title} from saved` : `Save ${resource.title}`}
           aria-pressed={saved}
-          className="flex size-11 shrink-0 items-center justify-center self-center rounded-full text-ink-faint hover:bg-brand-soft hover:text-brand"
+          className={cn(
+            "flex min-h-10 items-center gap-1.5 rounded-md border px-2.5 text-[14px] font-semibold text-ink transition-colors lg:px-3",
+            saved ? "border-ink bg-sand-soft" : "border-rule bg-surface hover:border-ink",
+          )}
         >
-          <Bookmark className="size-4.5" fill={saved ? "currentColor" : "none"} />
+          <Bookmark className="size-4" fill={saved ? "currentColor" : "none"} />
+          <span className="hidden sm:inline">{saved ? "Saved" : "Save"}</span>
         </button>
       </div>
-
       <ResourceDetailSheet resource={resource} open={open} onOpenChange={setOpen} />
     </>
   );
 }
 
-function Dot() {
-  return <span aria-hidden className="text-ink-faint">&middot;</span>;
+export function Tag({ children, tone = "plain" }: { children: React.ReactNode; tone?: "plain" | "teal" | "green" | "sand" | "rust" }) {
+  const tones = {
+    plain: "border border-rule bg-ground text-ink-soft",
+    teal: "bg-brand-soft text-ink",
+    green: "bg-green-soft text-green",
+    sand: "bg-sand-soft text-ink-soft",
+    rust: "bg-crisis-soft text-crisis",
+  };
+  return <span className={cn("inline-flex h-6 items-center rounded px-2 text-[12px] font-semibold", tones[tone])}>{children}</span>;
 }
 
-function formatVerifiedDate(verifiedAt: string) {
-  const date = new Date(`${verifiedAt}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return "recently";
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+function CostTag({ cost }: { cost: string }) {
+  const c = (cost || "").trim();
+  if (/^free\b/i.test(c) && !/sliding|consult/i.test(c)) return <Tag tone="green">Free</Tag>;
+  if (!c || /not confirmed|ask/i.test(c)) return <Tag tone="sand">Cost: ask them</Tag>;
+  return <Tag tone="sand">{c.length > 28 ? "Cost: see details" : c}</Tag>;
 }
 
-/**
- * ResourceDetail — a bottom sheet, not a dialog.
- *
- * Content order: Call/Website pinned at the bottom as the two things a
- * person actually needs, then who may qualify, how to start, what to
- * bring, then the practical details. Every field handles empty gracefully.
- */
-function ResourceDetailSheet({
-  resource,
-  open,
-  onOpenChange,
-}: {
-  resource: ResourceItem;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+function eligibilityTag(resource: ResourceItem) {
+  const { ageMin, ageMax } = resource;
+  if (ageMin !== null && ageMax !== null) return `Ages ${ageMin}–${ageMax}`;
+  if (ageMin !== null) return `Ages ${ageMin}+`;
+  if (ageMax !== null) return `Under ${ageMax + 1}`;
+  return null;
+}
+
+function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: ResourceItem; open: boolean; onOpenChange: (open: boolean) => void }) {
   const [reporting, setReporting] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const verifiedDate = formatVerifiedDate(resource.verifiedAt);
+  const checked = describeChecked(resource.verifiedAt);
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
   const phone = resource.phone?.replace(/[^\d+]/g, "");
@@ -103,74 +105,67 @@ function ResourceDetailSheet({
 
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={resource.title}>
-      <div className="flex h-full flex-col">
-        <div className="flex-1 overflow-y-auto px-5 pb-4 pt-2 sm:px-7">
-          <div className="mb-1 flex flex-wrap gap-1.5 text-xs">
-            <span className="rounded-full bg-brand-soft px-2.5 py-1 font-medium text-brand">{resource.category}</span>
-            <span className="rounded-full bg-sunk px-2.5 py-1 font-medium text-ink-soft">{resource.county}</span>
-          </div>
-          <h2 className="mt-2 text-xl font-semibold text-ink">{resource.title}</h2>
-          <p className="text-sm text-ink-faint">{resource.organization}</p>
-          <p className="mt-3 text-sm leading-relaxed text-ink-soft">{resource.description}</p>
+      <div className="flex items-center justify-between border-b border-rule px-5 py-3 lg:px-8">
+        <button type="button" onClick={() => onOpenChange(false)} className="inline-flex min-h-10 items-center gap-1.5 text-[14px] text-brand hover:underline">
+          <ArrowLeft className="size-4" /> Back to results
+        </button>
+        <button type="button" onClick={() => onOpenChange(false)} aria-label="Close" className="-mr-2 flex size-11 items-center justify-center rounded-md text-ink-faint hover:bg-sunk">
+          <X className="size-5" />
+        </button>
+      </div>
 
-          <div className="mt-5 space-y-4 text-sm">
-            <Detail title="Who may qualify" text={resource.eligibility} />
-            <Detail title="How to start" text={resource.applicationSteps} />
-            <Detail title="What to bring" text={resource.whatToBring} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Detail title="Cost" text={resource.cost} />
-              <Detail title="Hours" text={resource.hours} />
-              <Detail title="Languages" text={resource.languages} />
-              <Detail title="Accessibility" text={resource.accessibility} />
-            </div>
+      <div className="flex flex-col gap-6 px-5 pb-28 pt-6 lg:px-8 lg:pb-10">
+        <div>
+          <div className="flex flex-wrap gap-1.5">
+            <Tag tone="teal">{resource.category}</Tag>
+            <Tag>{resource.county}</Tag>
+            <CostTag cost={resource.cost} />
+            {resource.urgencyLevel === "Emergency" && <Tag tone="rust">Emergency</Tag>}
           </div>
+          <h2 className="mt-3 font-display text-[26px] font-bold leading-tight text-ink lg:text-[30px]">{resource.title}</h2>
+          <p className="mt-1 text-[15px] text-ink-faint">{resource.organization}</p>
+        </div>
 
-          <div className="mt-5 rounded-xl bg-green-soft p-3.5 text-xs leading-relaxed text-ink-soft">
-            <span className="mb-1 flex items-center gap-1.5 font-semibold text-green">
-              <ShieldCheck className="size-3.5" />
-              Verified synthetic test resource
+        <div className="hidden flex-wrap gap-2.5 lg:flex">
+          <Actions phone={phone} phoneLabel={resource.phone} website={resource.website} saved={saved} onSave={() => toggleSave(resource.id)} />
+        </div>
+
+        <p className="text-[16px] leading-relaxed text-ink-soft">{resource.description}</p>
+
+        <div className="grid gap-5 border-t border-rule pt-6 sm:grid-cols-2 sm:gap-x-8">
+          <Detail title="Who it helps" text={resource.eligibility} />
+          <Detail title="How to start" text={resource.applicationSteps} />
+          <Detail title="What to bring" text={resource.whatToBring} />
+          <Detail title="Hours" text={resource.hours} />
+          <Detail title="Languages" text={resource.languages} />
+          <Detail title="Accessibility" text={resource.accessibility} />
+          {resource.address && <Detail title="Address" text={resource.address} />}
+          {resource.serviceArea && <Detail title="Area served" text={resource.serviceArea} />}
+        </div>
+
+        <div className="border-t border-rule pt-5 text-[13px] leading-relaxed text-ink-faint">
+          <p className="flex items-start gap-2 text-ink">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0" />
+            <span>
+              <span className="font-semibold">{checked.stale ? "Needs a re-check" : `Checked ${checked.full}`}</span>
+              {" "}by a Foster Connect reviewer{resource.sourceUrl ? " against the program's page" : ""}.
             </span>
-            Checked {verifiedDate}. This 2.0 demo uses fictional organizations, .invalid URLs, and 555 phone
-            numbers so it can be safely tested before real resources replace them. Always confirm availability
-            and eligibility directly.
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setReporting(true)}
-            className="mt-4 text-xs font-medium text-ink-faint underline underline-offset-2"
-          >
-            Report outdated information
+          </p>
+          {resource.sourceUrl && (
+            <p className="mt-1.5">
+              Source:{" "}
+              <a href={resource.sourceUrl} target="_blank" rel="noreferrer" className="break-all text-brand underline underline-offset-2">{hostOf(resource.sourceUrl)}</a>.
+              {" "}Programs change. Always confirm with them before you go.
+            </p>
+          )}
+          <button type="button" onClick={() => setReporting(true)} className="mt-3 text-brand hover:underline">
+            Something here is wrong or out of date? Tell us.
           </button>
         </div>
+      </div>
 
-        <div className="flex shrink-0 gap-2 border-t border-rule bg-surface p-4 pb-safe sm:px-7">
-          {phone && (
-            <Button asChild className="h-12 flex-1 rounded-xl bg-brand text-base hover:bg-brand/90">
-              <a href={`tel:${phone}`}>
-                <Phone className="size-4" />
-                Call
-              </a>
-            </Button>
-          )}
-          {resource.website && (
-            <Button asChild variant="outline" className="h-12 flex-1 rounded-xl border-rule text-base">
-              <a href={resource.website} target="_blank" rel="noreferrer">
-                <ExternalLink className="size-4" />
-                Website
-              </a>
-            </Button>
-          )}
-          <button
-            type="button"
-            onClick={() => toggleSave(resource.id)}
-            aria-pressed={saved}
-            aria-label={saved ? "Remove from saved" : "Save this resource"}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-rule text-ink-soft hover:bg-sunk"
-          >
-            <Bookmark className="size-5" fill={saved ? "currentColor" : "none"} />
-          </button>
-        </div>
+      <div className="fixed inset-x-0 bottom-0 flex gap-2.5 border-t border-rule bg-surface px-5 pb-6 pt-3 lg:hidden">
+        <Actions phone={phone} phoneLabel={resource.phone} website={resource.website} saved={saved} onSave={() => toggleSave(resource.id)} compact />
       </div>
 
       {reporting && <ReportSheet reason={reportReason} setReason={setReportReason} onCancel={() => setReporting(false)} onSubmit={submitReport} />}
@@ -178,51 +173,68 @@ function ResourceDetailSheet({
   );
 }
 
+function Actions({ phone, phoneLabel, website, saved, onSave, compact = false }: {
+  phone?: string; phoneLabel?: string; website?: string; saved: boolean; onSave: () => void; compact?: boolean;
+}) {
+  return (
+    <>
+      {phone ? (
+        <Button asChild className={cn("h-12 rounded-md bg-brand px-5 text-[16px] font-semibold text-white hover:bg-brand-deep", compact && "flex-1")}>
+          <a href={`tel:${phone}`}><Phone className="size-4" />{compact ? "Call" : `Call ${phoneLabel}`}</a>
+        </Button>
+      ) : compact ? (
+        <span className="flex flex-1 items-center text-[13px] text-ink-faint">No phone listed</span>
+      ) : null}
+      {website && (
+        <Button asChild variant="outline" className={cn("h-12 rounded-md border-ink px-4 text-[15px] font-semibold text-ink", compact && "w-12 px-0")}>
+          <a href={website} target="_blank" rel="noreferrer" aria-label="Website"><ExternalLink className="size-4" />{!compact && "Website"}</a>
+        </Button>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onSave}
+        aria-pressed={saved}
+        aria-label={saved ? "Remove from saved" : "Save this resource"}
+        className={cn("h-12 rounded-md border-ink px-4 text-[15px] font-semibold text-ink", saved && "bg-sand-soft", compact && "w-12 px-0")}
+      >
+        <Bookmark className="size-4" fill={saved ? "currentColor" : "none"} />
+        {!compact && (saved ? "Saved" : "Save")}
+      </Button>
+    </>
+  );
+}
+
+function hostOf(url: string) {
+  try { return new URL(url).host.replace(/^www\./, ""); } catch { return url; }
+}
+
 function Detail({ title, text }: { title: string; text?: string }) {
-  if (!text || !text.trim()) {
-    return (
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">{title}</p>
-        <p className="mt-1 text-sm italic text-ink-faint">Ask them directly</p>
-      </div>
-    );
-  }
+  const unknown = !text || !text.trim();
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">{title}</p>
-      <p className="mt-1 text-sm leading-relaxed text-ink-soft">{text}</p>
+      <p className="text-eyebrow text-ink-faint">{title}</p>
+      <p className={cn("mt-1.5 whitespace-pre-line text-[15px] leading-relaxed", unknown ? "italic text-ink-stamp" : "text-ink-soft")}>
+        {unknown ? "Not confirmed yet — ask them" : text}
+      </p>
     </div>
   );
 }
 
-function ReportSheet({
-  reason,
-  setReason,
-  onCancel,
-  onSubmit,
-}: {
-  reason: string;
-  setReason: (value: string) => void;
-  onCancel: () => void;
-  onSubmit: () => void;
+function ReportSheet({ reason, setReason, onCancel, onSubmit }: {
+  reason: string; setReason: (value: string) => void; onCancel: () => void; onSubmit: () => void;
 }) {
   const id = useId();
   return (
-    <div className="absolute inset-0 z-10 flex flex-col justify-end bg-ink/40" role="dialog" aria-modal="true" aria-label="Report a problem">
-      <div className="rounded-t-2xl bg-surface p-5 pb-safe sm:p-7">
-        <h3 className="text-lg font-semibold text-ink">Report a problem</h3>
-        <p className="mt-1 text-sm text-ink-soft">Tell a partner what looks outdated, incorrect, or unsafe. This does not contact the organization.</p>
-        <label htmlFor={id} className="sr-only">What should be checked?</label>
-        <Textarea
-          id={id}
-          value={reason}
-          onChange={event => setReason(event.target.value)}
-          className="mt-3 min-h-28 rounded-xl border-rule"
-          placeholder="What should be checked?"
-        />
-        <div className="mt-3 flex gap-2">
-          <Button type="button" variant="outline" className="flex-1 rounded-xl" onClick={onCancel}>Cancel</Button>
-          <Button type="button" disabled={reason.trim().length < 5} className="flex-1 rounded-xl bg-brand hover:bg-brand/90" onClick={onSubmit}>Send report</Button>
+    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-brand-deep/55 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="Report a problem">
+      <div className="w-full max-w-md rounded-lg bg-ground p-6">
+        <h3 className="font-display text-[22px] font-bold text-ink">Report a problem</h3>
+        <p className="mt-1.5 text-[14px] text-ink-soft">Tell a partner what looks outdated, incorrect, or unsafe. This does not contact the organization.</p>
+        <label htmlFor={id} className="mt-4 block text-[13px] font-semibold text-ink-soft">What should be checked?</label>
+        <Textarea id={id} value={reason} onChange={event => setReason(event.target.value)} placeholder="The number doesn't work, they moved, it's not free any more…" className="mt-1.5 min-h-24 rounded-md border-rule bg-surface text-base" />
+        <div className="mt-4 flex gap-2">
+          <Button type="button" variant="outline" className="h-11 rounded-md border-ink" onClick={onCancel}>Cancel</Button>
+          <Button type="button" disabled={reason.trim().length < 5} className="h-11 rounded-md bg-brand text-white hover:bg-brand-deep" onClick={onSubmit}>Send report</Button>
         </div>
       </div>
     </div>

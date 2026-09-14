@@ -329,6 +329,20 @@ export function reviewSubmission(
   );
 }
 
+export interface PartnerAnalytics {
+  totals: { verified: number; retired: number; crisis: number; checked_last_30: number; publishedLast30: number };
+  byCategory: { category: string; count: number; free: number; cost_unknown: number; stale: number }[];
+  byCounty: { county: string; count: number }[];
+  matrix: { category: string; county: string; count: number }[];
+  freshness: { fresh: number; aging: number; stale: number; unknown: number };
+  completeness: { phone: number; website: number; hours: number; address: number; cost_known: number; age_known: number; languages: number; source: number };
+  staleList: { id: number; title: string; organization: string; category: string; county: string; verified_at: string }[];
+  pipeline: { pending: number; approved: number; rejected: number; pending_over_week: number; submitted_last_30: number };
+  reports: { id: number; resource_id: number; title: string; organization: string; reason: string; created_at: string }[];
+  generatedAt: string;
+}
+export function fetchPartnerAnalytics() { return partnerRequest<PartnerAnalytics>("/api/partner/analytics"); }
+
 export function fetchMySubmissions() {
   return partnerRequest<Submission[]>("/api/partner/my-submissions");
 }

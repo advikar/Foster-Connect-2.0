@@ -10,7 +10,7 @@ import { router } from "./router";
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+  <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <Toaster />

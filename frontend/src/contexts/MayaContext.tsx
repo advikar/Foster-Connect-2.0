@@ -1,27 +1,29 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface MayaContextValue {
-  open: boolean;
-  /** Optional text queued as the next message Maya should be asked, e.g. from a roadmap step's "Ask Maya" button. */
+  /** Text queued as the next message Maya should be asked, e.g. from a plan step's "Ask Maya" button. */
   pendingPrompt: string | null;
+  /** Go to the Ask page, optionally with a message to send on arrival. */
   openMaya: (prompt?: string) => void;
-  closeMaya: () => void;
   clearPendingPrompt: () => void;
 }
 
 const MayaContext = createContext<MayaContextValue | null>(null);
 
+/**
+ * Maya is a page (/ask) in the redesign rather than an overlay, so "open"
+ * means navigate. The pending prompt survives the navigation in context.
+ */
 export function MayaProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const value = useMemo<MayaContextValue>(() => ({
-    open,
     pendingPrompt,
-    openMaya: prompt => { setPendingPrompt(prompt ?? null); setOpen(true); },
-    closeMaya: () => setOpen(false),
+    openMaya: prompt => { setPendingPrompt(prompt ?? null); navigate("/ask"); },
     clearPendingPrompt: () => setPendingPrompt(null),
-  }), [open, pendingPrompt]);
+  }), [pendingPrompt, navigate]);
 
   return <MayaContext.Provider value={value}>{children}</MayaContext.Provider>;
 }

@@ -917,6 +917,70 @@ app.post("/api/partner/login", asyncRoute(async (req, res) => {
   });
 }));
 
+/**
+ * Partner analytics: directory coverage, freshness, completeness, the review
+ * pipeline and youth reports. Partner-only because report text is typed by
+ * young people and can contain a disclosure. Counts describe the directory,
+ * never open beds, eligibility or unmet demand.
+ */
+app.get("/api/partner/analytics", requirePartner, asyncRoute(async (_req, res) => {
+  const [totals, byCategory, byCounty, matrix, freshness, completeness, staleList, pipeline, reports, recentPublished] = await Promise.all([
+    db.execute(`SELECT
+        SUM(CASE WHEN status='verified' THEN 1 ELSE 0 END) AS verified,
+        SUM(CASE WHEN status!='verified' THEN 1 ELSE 0 END) AS retired,
+        SUM(CASE WHEN status='verified' AND is_crisis=1 THEN 1 ELSE 0 END) AS crisis,
+        SUM(CASE WHEN status='verified' AND date(verified_at) >= date('now','-30 days') THEN 1 ELSE 0 END) AS checked_last_30
+      FROM resources`),
+    db.execute(`SELECT category, COUNT(*) AS count,
+        SUM(CASE WHEN lower(cost) LIKE 'free%' AND lower(cost) NOT LIKE '%sliding%' THEN 1 ELSE 0 END) AS free,
+        SUM(CASE WHEN cost='' OR lower(cost) LIKE '%not confirmed%' THEN 1 ELSE 0 END) AS cost_unknown,
+        SUM(CASE WHEN date(verified_at) < date('now','-180 days') THEN 1 ELSE 0 END) AS stale
+      FROM resources WHERE status='verified' GROUP BY category ORDER BY count DESC`),
+    db.execute("SELECT county, COUNT(*) AS count FROM resources WHERE status='verified' GROUP BY county ORDER BY count DESC"),
+    db.execute("SELECT category, county, COUNT(*) AS count FROM resources WHERE status='verified' GROUP BY category, county"),
+    db.execute(`SELECT
+        SUM(CASE WHEN date(verified_at) >= date('now','-90 days') THEN 1 ELSE 0 END) AS fresh,
+        SUM(CASE WHEN date(verified_at) < date('now','-90 days') AND date(verified_at) >= date('now','-180 days') THEN 1 ELSE 0 END) AS aging,
+        SUM(CASE WHEN date(verified_at) < date('now','-180 days') THEN 1 ELSE 0 END) AS stale,
+        SUM(CASE WHEN date(verified_at) IS NULL THEN 1 ELSE 0 END) AS unknown
+      FROM resources WHERE status='verified'`),
+    db.execute(`SELECT
+        SUM(CASE WHEN coalesce(phone,'')!='' THEN 1 ELSE 0 END) AS phone,
+        SUM(CASE WHEN coalesce(website,'')!='' THEN 1 ELSE 0 END) AS website,
+        SUM(CASE WHEN coalesce(hours,'')!='' THEN 1 ELSE 0 END) AS hours,
+        SUM(CASE WHEN coalesce(address,'')!='' THEN 1 ELSE 0 END) AS address,
+        SUM(CASE WHEN cost!='' AND lower(cost) NOT LIKE '%not confirmed%' THEN 1 ELSE 0 END) AS cost_known,
+        SUM(CASE WHEN age_min IS NOT NULL OR age_max IS NOT NULL THEN 1 ELSE 0 END) AS age_known,
+        SUM(CASE WHEN coalesce(languages,'')!='' THEN 1 ELSE 0 END) AS languages,
+        SUM(CASE WHEN coalesce(source_url,'')!='' THEN 1 ELSE 0 END) AS source
+      FROM resources WHERE status='verified'`),
+    db.execute("SELECT id, title, organization, category, county, verified_at FROM resources WHERE status='verified' ORDER BY date(verified_at) ASC, id ASC LIMIT 25"),
+    db.execute(`SELECT
+        SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) AS pending,
+        SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) AS approved,
+        SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END) AS rejected,
+        SUM(CASE WHEN status='pending' AND date(created_at) < date('now','-7 days') THEN 1 ELSE 0 END) AS pending_over_week,
+        SUM(CASE WHEN date(created_at) >= date('now','-30 days') THEN 1 ELSE 0 END) AS submitted_last_30
+      FROM resource_submissions`),
+    db.execute(`SELECT rr.id, rr.resource_id, r.title, r.organization, rr.reason, rr.created_at
+      FROM resource_reports rr JOIN resources r ON r.id = rr.resource_id
+      ORDER BY rr.created_at DESC LIMIT 20`),
+    db.execute(`SELECT COUNT(*) AS count FROM resource_submissions WHERE status='approved' AND date(reviewed_at) >= date('now','-30 days')`),
+  ]);
+  res.json({
+    totals: { ...totals.rows[0], publishedLast30: Number(recentPublished.rows[0]?.count ?? 0) },
+    byCategory: byCategory.rows,
+    byCounty: byCounty.rows,
+    matrix: matrix.rows,
+    freshness: freshness.rows[0],
+    completeness: completeness.rows[0],
+    staleList: staleList.rows,
+    pipeline: pipeline.rows[0],
+    reports: reports.rows,
+    generatedAt: new Date().toISOString(),
+  });
+}));
+
 app.post("/api/partner/logout", requirePartner, asyncRoute(async (req: PartnerRequest, res) => {
   const header = req.header("authorization") || "";
   await db.execute({ sql: "DELETE FROM partner_sessions WHERE token_hash = ?", args: [hashToken(header.slice(7).trim())] });

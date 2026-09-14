@@ -16,11 +16,12 @@ const HomePage = lazy(() => import("./pages/HomePage").then(module => ({ default
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage").then(module => ({ default: module.ResourcesPage })));
 const RoadmapPage = lazy(() => import("./pages/RoadmapPage").then(module => ({ default: module.RoadmapPage })));
 const AddResourcePage = lazy(() => import("./pages/AddResourcePage").then(module => ({ default: module.AddResourcePage })));
+const AskPage = lazy(() => import("./pages/AskPage").then(module => ({ default: module.AskPage })));
 const SavedPage = lazy(() => import("./pages/SavedPage").then(module => ({ default: module.SavedPage })));
 const PrivacyPage = lazy(() => import("./pages/PrivacyPage").then(module => ({ default: module.PrivacyPage })));
 
 function page(content: ReactNode) {
-  return <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="size-6 animate-spin text-emerald-600" /></div>}>{content}</Suspense>;
+  return <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="size-6 animate-spin text-brand" /></div>}>{content}</Suspense>;
 }
 
 export const router = createBrowserRouter([{
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([{
   children: [
   { path: "/", element: page(<HomePage />) },
   { path: "/resources", element: page(<ResourcesPage />) },
+  { path: "/ask", element: page(<AskPage />) },
   { path: "/roadmap", element: page(<RoadmapPage />) },
   { path: "/saved", element: page(<SavedPage />) },
   { path: "/add-resource", element: page(<AddResourcePage />) },
