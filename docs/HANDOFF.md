@@ -7,7 +7,7 @@
 - Open decisions in FIXES.md: U1 default accent; U2 the reference image never arrived (send it); Y5 badges (recommend no); Y6 optional sign-in (recommend a passcode design later); Y8 name ideas listed.
 - Checks: backend 70/70; frontend type-check, ESLint (2 pre-existing fast-refresh warnings), build; browser at 1024/375 for every item (see FIXES.md notes). Groq rate limit: a 429 now waits and retries once.
 - Local throwaway rows (partners 9001/9002, their sessions, changes, audit rows, the test plan, test edits on listings 177/267) deleted after testing.
-- Follow-ups after deploy: run on Turso `UPDATE resources SET kind='information' WHERE title LIKE '%(PDF)%'`; reviewer signs in on the live site and tries Coverage → bar → edit, and Fill the gaps.
+- After deploy (Pages run 34992476176 success; Render migrated — live listing 267 returns `fieldsNa`): Turso `UPDATE resources SET kind='information' WHERE title LIKE '%(PDF)%'` applied to 8 listings; live Find shows them as Guides; live `/partners` landing renders. Not done live: a reviewer editing a listing (needs the user's real account).
 - Ownership released: yes.
 
 ## 2026-09-15 — Live audit: AI memory + UI/usability fixes (checkpoint 1)
