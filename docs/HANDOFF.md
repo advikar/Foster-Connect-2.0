@@ -1,5 +1,13 @@
 # Current handoff
 
+## 2026-09-14 — Render live; AI failing on Render (checkpoint 4)
+
+- User created the Render Blueprint (synced 8e05f9a, service foster-connect-api).
+- Verified: https://foster-connect-api.onrender.com/api/health → ok, aiConfigured true; CORS allows https://advikar.github.io; live site https://advikar.github.io/foster-connect/resources?q=housing shows 94 listings from Turso.
+- Problem: Ask on the live site and a direct POST /api/chat return `degraded: true` (directory fallback). The same Groq key from backend/.env with openai/gpt-oss-120b returns 200 from this machine at the same time, not rate-limited. Likely cause: the LLM_API_KEY value saved in Render (different key, whitespace, or "LLM_API_KEY=" prefix). Render logs not visible to the agent (no Render CLI/API key).
+- Next: user checks Render → foster-connect-api → Logs for "AI provider returned 401/403/404/429" and re-pastes LLM_API_KEY under Environment; then re-test chat, plan, Save and Delete my data on the live site; create reviewer account.
+- Ownership released: yes.
+
 ## 2026-09-14 — Turso database live; backend hosted-DB and AI fixes (checkpoint 3)
 
 - User chose Turso + Groq + Render, with Gemini / Cloud Run as possible later swaps. Turso account `advikar`; CLI at `~/.turso/turso` (not on the agent shell PATH).
