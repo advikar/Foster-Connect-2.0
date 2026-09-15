@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Check, ExternalLink, Loader2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
-  fetchPartnerAnalytics, fetchResourceChanges, fetchSubmissions, partnerLogin, reviewResourceChange, reviewSubmission,
+  fetchPartnerAnalytics, fetchResourceChanges, fetchSubmissions, partnerLogin, partnerRegister, reviewResourceChange, reviewSubmission,
   type ApprovalDetail, type PartnerIdentity, type ResourceChange, type Submission,
 } from "@/lib/api";
 import { ListingDrawer, type DrawerFilter } from "@/components/partners/ListingDrawer";
@@ -138,12 +138,14 @@ export function Coverage() {
       <div className="grid gap-10 lg:grid-cols-2">
         <section id="recheck">
           <h2 className="font-display text-[22px] font-bold text-ink">Oldest checks</h2>
-          <p className="mt-1 text-[14px] text-ink-faint">Start here when re-verifying. {data.staleList.length} shown, oldest first.</p>
+          <p className="mt-1 text-[14px] text-ink-faint">Start here when re-verifying. {data.staleList.length} shown, oldest first. Tap one to check it and save.</p>
           <ul className="mt-3 divide-y divide-rule border-t border-rule">
             {data.staleList.map(item => (
-              <li key={item.id} className="flex items-baseline justify-between gap-3 py-2.5">
-                <div className="min-w-0"><p className="truncate text-[15px] font-semibold text-ink">{item.title}</p><p className="truncate text-[13px] text-ink-faint">{item.organization !== item.title ? `${item.organization} · ` : ""}{item.category} · {item.county}{item.recheck_at ? ` · re-check by ${item.recheck_at}` : ""}</p></div>
-                <span className={`text-stamp shrink-0 ${describeChecked(item.verified_at, "online", item.recheck_at).stale ? "text-crisis" : ""}`}>{item.verified_at}</span>
+              <li key={item.id}>
+                <button type="button" onClick={() => setDrawer({ title: item.title, detail: `Last checked ${item.verified_at}`, resourceId: item.id })} className="row-hover -mx-2 flex w-[calc(100%+16px)] items-baseline justify-between gap-3 rounded-md px-2 py-2.5 text-left">
+                  <div className="min-w-0"><p className="truncate text-[15px] font-semibold text-ink">{item.title}</p><p className="truncate text-[13px] text-ink-faint">{item.organization !== item.title ? `${item.organization} · ` : ""}{item.category} · {item.county}{item.recheck_at ? ` · re-check by ${item.recheck_at}` : ""}</p></div>
+                  <span className={`text-stamp shrink-0 ${describeChecked(item.verified_at, "online", item.recheck_at).stale ? "text-crisis" : ""}`}>{item.verified_at}</span>
+                </button>
               </li>
             ))}
           </ul>
@@ -319,17 +321,24 @@ function Pipe({ label, value }: { label: string; value: number }) {
 export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner: PartnerIdentity) => void; reviewer?: boolean }) {
   const emailId = useId();
   const passwordId = useId();
+  const nameId = useId();
+  const orgId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Partner users create their own account (R11); reviewer accounts are made by Foster Connect.
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [organisation, setOrganisation] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const ready = creating ? Boolean(email && password && name.trim().length >= 2 && organisation.trim().length >= 2) : Boolean(email && password);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError("");
     try {
-      onSignedIn(await partnerLogin(email, password));
+      onSignedIn(creating ? await partnerRegister({ name: name.trim(), email, organisation: organisation.trim(), password }) : await partnerLogin(email, password));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not sign you in");
     } finally {
@@ -339,12 +348,24 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
 
   return (
     <form onSubmit={submit} className="max-w-[420px] rounded-md border border-rule bg-surface p-6 sm:p-8">
-      <h2 className="font-display text-[26px] font-bold text-ink">{reviewer ? "Reviewer sign-in" : "Sign in"}</h2>
+      <h2 className="font-display text-[26px] font-bold text-ink">{reviewer ? "Reviewer sign-in" : creating ? "Create a partner account" : "Sign in"}</h2>
       <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">
-        {reviewer ? "Reviewer accounts approve listings and changes. Contributor accounts work here too." : "Sign in to submit resources, fill gaps, and use the staff guide."}
+        {reviewer ? "Reviewer accounts approve listings and changes. Contributor accounts work here too." : creating ? "Takes a minute. Everything you add or change waits for a reviewer before young people see it." : "Sign in to submit resources, fill gaps, and use the staff guide."}
       </p>
 
       <div className="mt-5 space-y-4">
+        {creating && (
+          <>
+            <div>
+              <label htmlFor={nameId} className="text-[13px] font-semibold text-ink-soft">Your name</label>
+              <Input id={nameId} autoComplete="name" value={name} onChange={event => setName(event.target.value)} className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base" />
+            </div>
+            <div>
+              <label htmlFor={orgId} className="text-[13px] font-semibold text-ink-soft">Organization or program</label>
+              <Input id={orgId} autoComplete="organization" value={organisation} onChange={event => setOrganisation(event.target.value)} placeholder="e.g. Alameda County ILP" className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base" />
+            </div>
+          </>
+        )}
         <div>
           <label htmlFor={emailId} className="text-[13px] font-semibold text-ink-soft">Work email</label>
           <Input
@@ -361,7 +382,7 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
           <Input
             id={passwordId}
             type="password"
-            autoComplete="current-password"
+            autoComplete={creating ? "new-password" : "current-password"}
             value={password}
             onChange={event => setPassword(event.target.value)}
             className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base"
@@ -373,16 +394,22 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
 
       <Button
         type="submit"
-        disabled={busy || !email || !password}
+        disabled={busy || !ready}
         className="mt-5 h-12 w-full rounded-md bg-brand text-base font-semibold text-white hover:bg-brand-deep"
       >
         {busy && <Loader2 className="size-4 animate-spin" />}
-        {busy ? "Signing in" : "Sign in"}
+        {busy ? (creating ? "Creating your account" : "Signing in") : creating ? "Create account" : "Sign in"}
       </Button>
 
-      <p className="mt-4 text-[13px] leading-relaxed text-ink-faint">
-        Accounts are created by Foster Connect — there&rsquo;s no self sign-up. Contact your coordinator to join your organization. You can still share a resource without signing in.
-      </p>
+      {reviewer ? (
+        <p className="mt-4 text-[13px] leading-relaxed text-ink-faint">Reviewer accounts are created by Foster Connect. Contact the team if you should have one.</p>
+      ) : (
+        <p className="mt-4 text-[13px] leading-relaxed text-ink-faint">
+          {creating ? "Already have an account? " : "New here? "}
+          <button type="button" onClick={() => { setCreating(value => !value); setError(""); }} className="font-semibold text-brand hover:underline">{creating ? "Sign in instead" : "Create a partner account"}</button>
+          {creating && <span className="mt-1 block">Passwords need at least 12 characters.</span>}
+        </p>
+      )}
     </form>
   );
 }
@@ -523,7 +550,7 @@ function SubmissionCard({
           <dt className="text-eyebrow text-ink-faint">Check these</dt>
           <dd className="mt-1 flex flex-wrap gap-3 text-[14px]">
             <a href={submission.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-brand underline underline-offset-2">
-              Programme page <ExternalLink className="size-3.5" />
+              Program page <ExternalLink className="size-3.5" />
             </a>
             <a href={submission.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-brand underline underline-offset-2">
               Source <ExternalLink className="size-3.5" />

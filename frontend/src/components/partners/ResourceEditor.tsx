@@ -58,6 +58,7 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
   const [ageMax, setAgeMax] = useState(resource.ageMax?.toString() ?? "");
   const [na, setNa] = useState<Set<MissingField>>(new Set((resource.fieldsNa ?? []) as MissingField[]));
   const [recheckAt, setRecheckAt] = useState(resource.recheckAt ?? "");
+  const [kind, setKind] = useState<"service" | "information">(resource.kind ?? "service");
   const [checkedBy, setCheckedBy] = useState<"online" | "phone">("online");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -84,6 +85,7 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
     const naBefore = [...(resource.fieldsNa ?? [])].sort().join(",");
     if (naNow !== naBefore) out.fieldsNa = [...na];
     if ((recheckAt || null) !== (resource.recheckAt ?? null)) out.recheckAt = recheckAt || null;
+    if (kind !== (resource.kind ?? "service")) out.kind = kind;
     if (reviewer && checkedBy === "phone") out.checkedBy = "phone";
     return out;
   };
@@ -113,6 +115,19 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
         <h2 className="mt-1 font-display text-[24px] font-bold leading-tight text-ink">{resource.title}</h2>
         <p className="text-[13px] text-ink-faint">{resource.organization} · {resource.category} · {resource.county} · <span className={cn(checked.stale && "text-crisis")}>{checked.label}</span></p>
       </div>
+
+      <fieldset className="rounded-md border border-rule p-4">
+        <legend className="px-1 text-[13px] font-semibold text-ink-soft">What kind of listing is this?</legend>
+        <div className="flex flex-wrap gap-4 text-[14px]">
+          {([["service", "A service — somewhere to call, visit or apply"], ["information", "A guide or document — a PDF or page to read"]] as const).map(([value, label]) => (
+            <label key={value} className="inline-flex cursor-pointer items-center gap-2">
+              <input type="radio" name={`${id}-kind`} checked={kind === value} onChange={() => setKind(value)} className="accent-[var(--brand)]" />
+              {label}
+            </label>
+          ))}
+        </div>
+        {kind === "information" && <p className="mt-2 text-[12px] text-ink-faint">Guides don&rsquo;t show hours, address, phone or languages; young people see &ldquo;Open the guide&rdquo; instead.</p>}
+      </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
         {TEXT_FIELDS.map(field => {

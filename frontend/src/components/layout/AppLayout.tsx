@@ -65,22 +65,35 @@ export function AppLayout() {
 }
 
 /**
- * The mark (U2): two hands clasped into a heart, on a brand-coloured circle.
- * Drawn from the user's reference; the circle follows the accent token.
+ * The mark (U2, redrawn in round 2): two hands clasped into a heart, on the
+ * brand circle. Built the way the reference is: a white heart silhouette,
+ * the near hand's thumb outlined over the far arm's seam, three finger gaps
+ * fanning to the lower right, and the far hand's knuckles scalloping the
+ * lower-left edge. Strokes take the accent colour, so it follows the token.
  */
 export function Mark({ className = "size-[30px]" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn("shrink-0", className)} aria-hidden focusable="false">
       <circle cx="16" cy="16" r="16" fill="var(--brand)" />
       <path d={HEART} fill="#FFFFFF" />
-      <path d={CLASP} fill="none" stroke="var(--brand)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      {KNUCKLES.map(([cx, cy]) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="2" fill="#FFFFFF" />)}
+      <g fill="none" stroke="var(--brand)" strokeLinecap="round" strokeLinejoin="round">
+        <path d={THUMB_AND_SEAM} strokeWidth="2.2" />
+        <path d={FINGERS} strokeWidth="1.9" />
+        <path d={NOTCHES} strokeWidth="1.3" />
+      </g>
     </svg>
   );
 }
 /** Heart silhouette, 32×32 box. */
-const HEART = "M16 26.5 C 12.6 23.6, 7.2 19.6, 7.2 14.4 C 7.2 11.2, 9.5 9.2, 12.1 9.2 C 13.8 9.2, 15.2 10.1, 16 11.5 C 16.8 10.1, 18.2 9.2, 19.9 9.2 C 22.5 9.2, 24.8 11.2, 24.8 14.4 C 24.8 19.6, 19.4 23.6, 16 26.5 Z";
-/** The clasp: the right hand's cuff and edge crossing from the top right, the left hand's fingers curling under at the bottom left. */
-const CLASP = "M22.6 11.6 L14.4 19.8 M20.2 10.2 L16.4 14 M10.6 16.6 L13.4 19.4 M11.6 18.9 L14.3 21.6 M12.9 21 L15.4 23.5 M14.4 22.9 L16.4 24.9 M16.2 21.2 L19.8 17.6 M17.9 22.8 L21.2 19.5";
+const HEART = "M16 27 C 12.2 23.8, 6 19.5, 6 13.8 C 6 10.4, 8.5 8.3, 11.3 8.3 C 13.3 8.3, 15 9.4, 16 11 C 17 9.4, 18.7 8.3, 20.7 8.3 C 23.5 8.3, 26 10.4, 26 13.8 C 26 19.5, 19.8 23.8, 16 27 Z";
+/** From the right edge along the far arm's lower seam to the thumb base, up the thumb, round its tip and back down its lower edge. */
+const THUMB_AND_SEAM = "M24.6 11.5 L17.6 16.4 L14.0 12.95 C 12.85 11.85, 11.05 13.7, 12.2 14.8 L15.8 18.3";
+/** Three gaps between the near hand's four fingers, fanning toward the lower right. */
+const FINGERS = "M17.4 16.5 L19.1 22.0 M19.2 15.26 L21.4 19.1 M21.0 14.0 L23.1 16.8";
+/** The far hand's knuckles, scalloping the lower-left edge, with the notches between them. */
+const KNUCKLES: [number, number][] = [[7.6, 17.7], [9.45, 19.9], [11.3, 22.1], [13.1, 24.3]];
+const NOTCHES = "M7.58 19.57 L9.73 17.78 M9.48 21.77 L11.63 19.98 M11.28 23.97 L13.43 22.18 M13.08 26.07 L15.23 24.28";
 export function Brand({ subtitle = "Alameda & Contra Costa County", to = "/" }: { subtitle?: string; to?: string }) {
   return (
     <Link to={to} className="flex items-center gap-2.5" aria-label="Foster Connect home">

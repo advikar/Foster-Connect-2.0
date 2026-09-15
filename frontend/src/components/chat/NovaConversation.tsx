@@ -112,6 +112,8 @@ export function NovaConversation({ className }: { className?: string }) {
   const [applying, setApplying] = useState<string | null>(null);
   const [archive, setArchive] = useState<ArchivedConversation[]>(loadArchive);
   const [pastOpen, setPastOpen] = useState(false);
+  // Clearing is irreversible, so it asks first (R4).
+  const [confirming, setConfirming] = useState<"clear" | "past" | null>(null);
   const { messages, history, historyToken } = conversation;
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -170,6 +172,7 @@ export function NovaConversation({ className }: { className?: string }) {
 
   const clearConversation = () => {
     setConversation(EMPTY);
+    setConfirming(null);
     try { window.localStorage.removeItem(MAYA_CONVERSATION_KEY); } catch { /* fine */ }
     inputRef.current?.focus();
   };
@@ -193,7 +196,7 @@ export function NovaConversation({ className }: { className?: string }) {
     setConversation({ messages: item.messages, history: item.history, historyToken: item.historyToken });
     setPastOpen(false);
   };
-  const forgetPast = () => { setArchive([]); saveArchive([]); setPastOpen(false); };
+  const forgetPast = () => { setArchive([]); saveArchive([]); setPastOpen(false); setConfirming(null); };
 
   /**
    * Apply one of Nova's plan suggestions (Y3). Uses the same endpoints as
@@ -264,7 +267,11 @@ export function NovaConversation({ className }: { className?: string }) {
               </li>
             ))}
           </ul>
-          <button type="button" onClick={forgetPast} className="mt-2 text-[13px] text-ink-faint hover:text-crisis hover:underline">Delete all past chats</button>
+          {confirming === "past" ? (
+            <p className="mt-2 flex flex-wrap items-center gap-3 text-[13px]"><span className="text-ink-soft">Delete all past chats? Nova will forget everything in them.</span><button type="button" onClick={forgetPast} className="font-semibold text-crisis hover:underline">Yes, delete them</button><button type="button" onClick={() => setConfirming(null)} className="text-ink-soft hover:underline">Keep them</button></p>
+          ) : (
+            <button type="button" onClick={() => setConfirming("past")} className="mt-2 text-[13px] text-ink-faint hover:text-crisis hover:underline">Delete all past chats</button>
+          )}
         </div>
       )}
       <div ref={listRef} aria-live="polite" className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-6 lg:px-8">
@@ -397,8 +404,11 @@ export function NovaConversation({ className }: { className?: string }) {
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[12px] text-ink-faint">
           <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" />Numbers and links are checked before you see them.</span>
-          {!fresh && (
-            <button type="button" onClick={clearConversation} className="text-brand hover:underline">Clear this conversation</button>
+          {!fresh && confirming === "clear" && (
+            <span className="flex flex-wrap items-center gap-3"><span className="text-ink-soft">Clear it? Nova will forget everything you said here.</span><button type="button" onClick={clearConversation} className="font-semibold text-crisis hover:underline">Yes, clear it</button><button type="button" onClick={() => setConfirming(null)} className="text-ink-soft hover:underline">Keep it</button></span>
+          )}
+          {!fresh && confirming !== "clear" && (
+            <button type="button" onClick={() => setConfirming("clear")} className="text-brand hover:underline">Clear this conversation</button>
           )}
         </div>
       </form>

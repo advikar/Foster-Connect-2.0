@@ -252,7 +252,7 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
         {current && (
           <section className="flex flex-col gap-3 rounded-md bg-sand-soft p-6">
             <h2 className="font-display text-[22px] font-bold text-ink">Stuck on a step?</h2>
-            <p className="text-[15px] leading-relaxed text-ink-soft">Tell Nova what&rsquo;s in the way. She can swap the step, find another program, or break it smaller. You can also change, move or remove any step yourself from its <span className="whitespace-nowrap">&ldquo;&hellip;&rdquo; menu</span>.</p>
+            <p className="text-[15px] leading-relaxed text-ink-soft">Tell Nova what&rsquo;s in the way. They can swap the step, find another program, or break it smaller. You can also change, move or remove any step yourself from its <span className="whitespace-nowrap">&ldquo;&hellip;&rdquo; menu</span>.</p>
             <button type="button" onClick={() => openNova(`I'm working on this step from my plan: "${current.taskText}". What should I know before I start?`)} className="inline-flex min-h-11 items-center self-start rounded-md border border-ink px-4 text-[15px] font-semibold text-ink hover:bg-surface">
               Ask Nova about step {String((indexOf.get(current.id) ?? 0) + 1).padStart(2, "0")}
             </button>

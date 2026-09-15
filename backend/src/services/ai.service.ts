@@ -295,7 +295,7 @@ export interface RoadmapInput {
 }
 
 const DOCUMENT_LABELS: Record<string, string> = {
-  state_id: "a state ID or driver's licence",
+  state_id: "a state ID or driver's license",
   birth_certificate: "a birth certificate",
   ssn_card: "a Social Security card",
   bank_account: "a bank account",
@@ -442,6 +442,11 @@ export async function generateGroundedRoadmap(input: RoadmapInput, resources: Gr
     documentsTheyHave: (input.documents || []).map(id => DOCUMENT_LABELS[id]),
     documentsTheyAreMissing: missing.map(id => DOCUMENT_LABELS[id]),
     deadlines: input.deadlines?.length ? input.deadlines : "none given",
+    // A 7-year-old is not filling this in. Say who the plan is for so the
+    // model writes to the adult instead of assigning a child phone calls.
+    planningFor: input.age !== undefined && input.age < 14
+      ? `a parent or caregiver planning for a child aged ${input.age}; write every task to the adult`
+      : "the young person themself",
   };
   const userPrompt = `PERSON_INPUT\n${JSON.stringify(personInput, null, 2)}\n\nRESOURCE_CONTEXT\n${resourcesToContext(resources)}`;
   let draft: RoadmapDraft;

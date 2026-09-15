@@ -49,11 +49,12 @@ const AGES = [
   { value: "21-24", label: "21–24", age: 22 },
   { value: "25plus", label: "25+", age: 26 },
 ];
+// Two real levels in the directory: emergency lines (tonight) and everything
+// else. There is no middle tier, so "this week" would only ever be empty.
 const URGENCIES = [
-  { value: "All", label: "Any" },
-  { value: "Emergency", label: "Tonight / emergency" },
-  { value: "Urgent", label: "This week" },
-  { value: "Standard", label: "Whenever" },
+  { value: "All", label: "Everything" },
+  { value: "Emergency", label: "Emergency — tonight" },
+  { value: "Standard", label: "Not an emergency" },
 ];
 
 const SORTS = [
@@ -145,7 +146,7 @@ export function ResourcesPage() {
       <FilterGroup label="Kind of support" values={categories} options={CATEGORIES} onChange={value => toggleIn("category", value)} multi />
       <FilterGroup label="Where" values={counties} options={COUNTIES} onChange={value => toggleIn("county", value)} multi />
       <FilterGroup label="Who it's for" values={[ageBand]} options={AGES} onChange={value => setFilter("age", value)} />
-      <FilterGroup label="How urgent" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
+      <FilterGroup label="Emergency?" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
     </div>
   );
 
@@ -286,7 +287,7 @@ export function ResourcesPage() {
           <ChipGroup label="Kind of support" values={categories} options={CATEGORIES} onChange={value => toggleIn("category", value)} hint="Pick more than one" />
           <ChipGroup label="Where" values={counties} options={COUNTIES} onChange={value => toggleIn("county", value)} hint="Pick more than one" />
           <ChipGroup label="Who it's for" values={[ageBand]} options={AGES} onChange={value => setFilter("age", value)} />
-          <ChipGroup label="How urgent" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
+          <ChipGroup label="Emergency?" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
           <div className="flex gap-2.5 pt-2">
             {activeFilterCount > 0 && <Button type="button" variant="outline" onClick={clearFilters} className="h-13 rounded-md border-ink px-5 text-[15px] font-semibold text-ink">Clear</Button>}
             <Button type="button" onClick={() => setFiltersOpen(false)} className="h-13 flex-1 rounded-md bg-brand text-[16px] font-semibold text-white hover:bg-brand-deep">

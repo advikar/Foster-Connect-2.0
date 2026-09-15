@@ -48,6 +48,25 @@ Status key: `todo` · `doing` · `done <commit>` · `decide`
 | Y12 | "Before you turn 21" is wrong for someone under 18 | done | With "Under 18" saved in About you, the section becomes "Before you turn 18, three things to line up": Extended Foster Care (AB 12) decision before 18, ILP from 16, documents in hand before 18. 18–20 keeps the 21 deadlines. |
 | Y13 | Is a fixed "Housing" list on the home screen needed? | done | No. It is now "Checked recently[, County]": the three most recently checked listings of any kind for their county (crisis lines excluded), linking to Find sorted by check date. Housing is still one tap away in the category bar. |
 
+## Round 2 (2026-09-15, third message)
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| R1 | Nova is they/them | done | Ask page and plan page copy; NAVIGATOR prompt says Nova's pronouns are they/them. |
+| R2 | Logo did not come out right; try again | done | Redrawn from the reference's construction: white heart, thumb outline joined to the far arm's seam, three finger gaps fanning to the lower right, scalloped knuckles on the lower-left edge. Header, tab bar, favicon. Still follows the accent token. |
+| R3 | Do we need a quick exit button? | already there | "Quick exit" sits in the header on every youth page (replaces the history entry and jumps to a weather search). Kept; nothing to add. |
+| R4 | Ask before clearing: "are you sure? It will forget your history" | done | "Clear this conversation" and "Delete all past chats" now ask inline first ("Nova will forget everything you said here"). "Delete my data" on Privacy already confirmed. |
+| R5 | Spelling: "enrol" | done | enroll, license, program, organization in user-facing copy. |
+| R6 | Links routed wrong (ILP on Home went to Mentoring) | done | Every Home deadline links to a search for the thing itself (`?q=ILP`, `?q=THP`, `?q=Chafee`, `?q=extended foster care`, `?q=documents`), never a category. Checked each search returns the right listing first. |
+| R7 | Home deadlines: "add to my plan" / "already did"; once a plan exists show plan tasks instead | done | Each deadline has "Add to my plan" (when a plan exists; adds a concrete step with the right timeframe) and "Already did this" (hidden on this device; "Show them again"). With a plan, the left column leads with "Up next on your plan" (three open steps, This Week first) and the remaining deadlines follow as "Deadlines not on your plan yet". |
+| R8 | Don't assume 18–20 are in Extended Foster Care | done | Uses the care status from About you: in care → re-cert + THP-Plus + Chafee; left care → "Re-enter Extended Foster Care" + THP-Plus + Chafee; unknown → "stay in, or come back" wording. THP-Plus copy says you need not be in care. |
+| R9 | Find "How urgent" doesn't make sense | done | The data has only two real levels (28 emergency/crisis lines, 373 standard, none "urgent"), so "This week" always returned nothing. Filter is now "Emergency?": Everything / Emergency — tonight / Not an emergency. |
+| R10 | Age 7 in the plan intake failed | done | Server accepted 13–30 only; now 0–99 for plans, chat and Find. Under 14 the intake says the steps will be written for the adult helping, and the generator prompt is told a caregiver is planning for a child. Validation errors now name the field. |
+| R11 | Partners can sign up themselves; only reviewers are added by Foster Connect | done | `POST /api/partner/register` creates a contributor account (rate-limited, 12+ char password, audit row) and signs them in. Sign-in page has "Create a partner account". Landing copy updated. Reviewer accounts unchanged. |
+| R12 | "I tried adding a resource and could not" | done | Two causes: the two link fields were `type="url"`, so a link typed without `https://` made the browser block the submit silently; and the button was disabled without saying why. Link fields are plain text now (`https://` is added for you), the form lists what is still needed, and server field errors are shown. |
+| R13 | Change the format of existing resources (PDF listed as a service) | done | Resource editor has "What kind of listing is this?" (service / guide); reviewers apply it directly, contributors propose it. |
+| R14 | Oldest checks: click to verify on the spot | done | Each row opens that listing straight in the editor; saving records today's check under the reviewer's email. |
+
 ## Order of work
 
 Y1 → Y2 → U1 → U2 (interim) → Y7 → Y9 → Y10 → Y11 → Y4 → Y3 → P2 → P1 → P3 → P7 → P4 → P5 → P6.

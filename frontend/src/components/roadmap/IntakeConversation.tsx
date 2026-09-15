@@ -44,7 +44,7 @@ const HOUSING: { id: HousingStatus; label: string }[] = [
 ];
 
 const DOCUMENTS: { id: DocumentId; label: string }[] = [
-  { id: "state_id", label: "State ID or licence" },
+  { id: "state_id", label: "State ID or license" },
   { id: "birth_certificate", label: "Birth certificate" },
   { id: "ssn_card", label: "Social Security card" },
   { id: "bank_account", label: "Bank account" },
@@ -141,7 +141,7 @@ export function IntakeConversation({
     },
     {
       question: "Which of these do you have?",
-      hint: "Almost every programme asks for these. Whatever you're missing, I'll put getting it early in the plan.",
+      hint: "Almost every program asks for these. Whatever you're missing, I'll put getting it early in the plan.",
       valid: true,
       body: (
         <div className="space-y-2">
@@ -243,6 +243,9 @@ export function IntakeConversation({
             <LabelledInput label="What should I call you?" optional value={answers.youthName} onChange={value => set("youthName", value)} />
             <LabelledInput label="Age" optional type="number" value={answers.age} onChange={value => set("age", value)} />
           </div>
+          {answers.age !== "" && Number(answers.age) < 14 && (
+            <p className="text-[14px] text-ink-soft">Planning for a child? That works: the steps will be written for the adult helping them, using programs open at that age.</p>
+          )}
         </div>
       ),
     },

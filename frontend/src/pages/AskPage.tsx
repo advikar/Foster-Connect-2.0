@@ -23,7 +23,7 @@ export function AskPage() {
       <aside className="hidden lg:block">
         <h1 className="font-display text-[26px] font-bold text-ink">Ask Nova</h1>
         <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
-          Nova is an AI guide. She only answers from listings a person has checked, and shows you which. She is not a caseworker and can&rsquo;t decide what you qualify for.
+          Nova is an AI guide (they/them). They only answer from listings a person has checked, and show you which. Nova is not a caseworker and can&rsquo;t decide what you qualify for.
         </p>
         <div className="mt-6 border-t border-rule pt-5 text-[14px] leading-relaxed text-ink-faint">
           <p>Nothing here is tied to your name.</p>

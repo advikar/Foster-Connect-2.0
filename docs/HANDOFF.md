@@ -201,6 +201,15 @@ This temporary backup may expire; it is not durable disaster recovery.
 3. Human launch blockers (no code): verify every crisis number in `backend/src/config/crisis.ts` and set `verifiedOn`; decide resource verification ownership (FC-05).
 4. FC-06 later slices: CI, uptime ping, Turso restore drill. FC-03 after Astra settles the intake interaction.
 
+## Active checkpoint — round 2 fixes (2026-09-15, Claude)
+
+- Task: user's "Round 2 fixes" list (14 items). Tracked as rows R1–R14 in `docs/FIXES.md`.
+- Owner / start: Claude, 2026-09-15 afternoon. Ownership released: yes (after push).
+- Files intended: `frontend/src/pages/{HomePage,AskPage,RoadmapPage,ResourcesPage,AddResourcePage,PartnerPages,InsightsPage,PrivacyPage}.tsx`, `frontend/src/components/{chat/NovaConversation,layout/AppLayout,partners/ResourceEditor,partners/ListingDrawer,roadmap/IntakeConversation}.tsx`, `frontend/src/lib/api.ts`, `frontend/public/favicon.svg`, `backend/src/server.ts`, `backend/src/config/prompts.ts`, `backend/src/services/ai.service.ts`, tests.
+- Checkpoint 1: survey done. Findings: urgency filter is dead data — every verified row is Emergency (28, all crisis lines) or Standard (373), none "Urgent", so "This week" always returned nothing. Plan/Find/chat reject ages under 13 (zod). Home ILP link pointed at a category, not a search. Quick exit already exists in the header on every page.
+- Checkpoint 2 (all 14 edited; see FIXES.md R1–R14). Checks run: backend tests 70/70; frontend + backend `tsc --noEmit` clean; eslint 0 errors (2 pre-existing fast-refresh warnings). Browser (local, throwaway accounts 9001 reviewer / 9003 contributor, deleted afterwards): Home deadlines "Already did this" hides + "1 hidden"; About you 18–20 + Was in care shows the re-enter item; Under 18 ILP link is `/resources?q=ILP` and lands on ILP listings; Find shows "Emergency?" chips; Ask "Clear this conversation" asks first, then clears; partner sign-in has "Create a partner account" (name, organization fields); contributor add-resource lists "Still needed", accepts `example.org/…` and submitted (stored as https://); reviewer Oldest checks row opens the editor directly, kind switched to guide and saved (row 36 restored afterwards). API: register 201 then 409 on duplicate; age 7 accepted by chat and plan schemas; urgency Emergency 28 / Standard 373. Not run: a full plan generation at age 7 (LLM call; validation confirmed only).
+- Frontend build OK. Committed and pushed; see the deploy run noted below in the recap to the user. Optional follow-up: none pending from the user's round-2 list; accent colour choice still open (U1).
+
 ## Active checkpoint template (replace when claiming a task)
 
 - Task / acceptance criteria:

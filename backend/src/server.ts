@@ -285,10 +285,11 @@ function buildResourceFilters(options: {
     filters.push(`r.category IN (${categories.map(() => "?").join(",")})`);
     args.push(...categories);
   }
-  if (options.urgency && options.urgency !== "All") {
-    filters.push("r.urgency_level = ?");
-    args.push(options.urgency);
-  }
+  // The directory only has two real levels: crisis/emergency lines and
+  // everything else (no row is "Urgent"). "Emergency" = tonight; "Standard" =
+  // not an emergency. Anything else is ignored rather than returning nothing.
+  if (options.urgency === "Emergency") filters.push("(r.urgency_level = 'Emergency' OR r.is_crisis = 1)");
+  else if (options.urgency === "Standard") filters.push("(r.urgency_level <> 'Emergency' AND r.is_crisis = 0)");
   if (options.age !== undefined) {
     filters.push("(r.age_min IS NULL OR r.age_min <= ?) AND (r.age_max IS NULL OR r.age_max >= ?)");
     args.push(options.age, options.age);
@@ -453,7 +454,7 @@ export const DOCUMENT_IDS = [
 
 const roadmapInputSchema = z.object({
   youthName: z.string().trim().max(80).optional(),
-  age: z.coerce.number().int().min(13).max(30).optional(),
+  age: z.coerce.number().int().min(0).max(99).optional(),
   county: z.enum(["Contra Costa", "Alameda", "Bay Area", "California", "National"]),
   currentNeeds: z.string().trim().min(5).max(2000),
   futurePlan: z.string().trim().min(3).max(1200),
@@ -650,7 +651,7 @@ app.get("/api/resources", asyncRoute(async (req, res) => {
   const query = z.object({
     q: z.string().max(300).optional(), county: z.string().max(200).optional(),
     category: z.string().max(400).optional(), urgency: z.string().max(40).optional(),
-    age: z.coerce.number().int().min(13).max(99).optional(),
+    age: z.coerce.number().int().min(0).max(99).optional(),
     limit: z.coerce.number().int().min(1).max(100).optional().default(25),
     offset: z.coerce.number().int().min(0).max(5000).optional().default(0),
     sort: z.enum(["relevance", "checked", "name"]).optional(),
@@ -743,7 +744,7 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
   const input = z.object({
     message: z.string().trim().min(1).max(2000),
     county: z.string().max(80).optional(),
-    age: z.number().int().min(13).max(99).optional(),
+    age: z.number().int().min(0).max(99).optional(),
     history: z.array(z.object({
       role: z.enum(["user", "assistant"]),
       content: z.string().max(4000),
@@ -1050,6 +1051,38 @@ app.delete("/api/session", requireSession, asyncRoute(async (req, res) => {
   res.status(204).send();
 }));
 
+/**
+ * Self sign-up for partner users (R11). Contributor accounts only: everything
+ * a contributor does (new listings, proposed changes) waits for a reviewer, so
+ * an unvetted account cannot put anything in front of a young person.
+ * Reviewer accounts are still created by Foster Connect.
+ */
+app.use("/api/partner/register", rateLimit({ windowMs: 60 * 60_000, limit: 5, standardHeaders: "draft-7", legacyHeaders: false }));
+app.post("/api/partner/register", asyncRoute(async (req, res) => {
+  const input = z.object({
+    name: z.string().trim().min(2).max(100),
+    email: z.string().trim().email().max(200),
+    organisation: z.string().trim().min(2).max(140),
+    password: z.string().min(1).max(200),
+  }).parse(req.body);
+  const problem = passwordProblem(input.password);
+  if (problem) { res.status(400).json({ error: problem }); return; }
+  const email = normaliseEmail(input.email);
+  const existing = await db.execute({ sql: "SELECT id FROM partners WHERE email = ?", args: [email] });
+  if (existing.rows[0]) { res.status(409).json({ error: "There is already an account for that email. Sign in instead." }); return; }
+  const inserted = await executeSerialised(db, {
+    sql: "INSERT INTO partners(email, name, organisation, password_hash, active, role) VALUES (?, ?, ?, ?, 1, 'contributor')",
+    args: [email, input.name, input.organisation, await hashPassword(input.password)],
+  });
+  const id = Number(inserted.lastInsertRowid);
+  const partner: Partner = { id, email, name: input.name, organisation: input.organisation, active: true, role: "contributor" };
+  const { token, tokenHash, expiresAt } = newSessionToken();
+  await db.execute({ sql: "INSERT INTO partner_sessions(token_hash, partner_id, expires_at) VALUES (?, ?, ?)", args: [tokenHash, id, expiresAt] });
+  await db.execute({ sql: "UPDATE partners SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", args: [id] });
+  await executeSerialised(db, audit(partner, "partner.register", "partner", id, JSON.stringify({ organisation: input.organisation })));
+  res.status(201).json({ token, expiresAt, partner: { name: partner.name, email, organisation: partner.organisation, role: "contributor" } });
+}));
+
 app.use("/api/partner/login", rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false }));
 
 app.post("/api/partner/login", asyncRoute(async (req, res) => {
@@ -1226,6 +1259,8 @@ const changeSchema = z.object({
     fieldsNa: z.array(z.enum(NA_FIELDS)).optional(),
     /** Check this listing again on or before this date (P7). Null clears it. */
     recheckAt: z.string().date().nullable().optional(),
+    /** Service vs guide/PDF (Y11); reviewers can re-file a listing (R13). */
+    kind: z.enum(["service", "information"]).optional(),
     checkedBy: z.enum(["phone", "online"]).optional(),
   }).refine(value => Object.keys(value).length > 0, { message: "Nothing to change" }),
   note: z.string().trim().max(1000).optional().default(""),
@@ -1247,6 +1282,7 @@ async function applyResourceChanges(resourceId: number, changes: ResourceChanges
   if (changes.ageMax !== undefined) { sets.push("age_max=?"); args.push(changes.ageMax); }
   if (changes.fieldsNa !== undefined) { sets.push("fields_na=?"); args.push(JSON.stringify([...new Set(changes.fieldsNa)])); }
   if (changes.recheckAt !== undefined) { sets.push("recheck_at=?"); args.push(changes.recheckAt); }
+  if (changes.kind !== undefined) { sets.push("kind=?"); args.push(changes.kind); }
   const today = new Date().toISOString().slice(0, 10);
   sets.push("verified_at=?", "verified_by=?", "updated_at=CURRENT_TIMESTAMP");
   args.push(today, changes.checkedBy === "phone" ? `${actor.email} (confirmed by phone)` : actor.email);
@@ -1458,7 +1494,11 @@ app.patch("/api/partner/submissions/:id", requirePartner, requireReviewer, async
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (error instanceof z.ZodError) {
-    res.status(400).json({ error: "Please check the information you entered", details: error.flatten() });
+    // Name the first field that failed so a person can fix it ("age: must be…").
+    const flat = error.flatten();
+    const first = Object.entries(flat.fieldErrors).find(([, messages]) => messages && messages.length);
+    const hint = first ? ` (${first[0]}: ${(first[1] as string[])[0]})` : "";
+    res.status(400).json({ error: `Please check the information you entered${hint}`, details: flat });
     return;
   }
   console.error(error);

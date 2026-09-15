@@ -342,6 +342,18 @@ export async function partnerLogin(email: string, password: string) {
   setPartnerToken(payload.token);
   return payload.partner as PartnerIdentity;
 }
+/** Create a contributor account (R11). Reviewer accounts are created by Foster Connect. */
+export async function partnerRegister(input: { name: string; email: string; organisation: string; password: string }) {
+  const response = await fetch(`${API_BASE_URL}/api/partner/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Could not create the account");
+  setPartnerToken(payload.token);
+  return payload.partner as PartnerIdentity;
+}
 
 export function partnerMe() {
   return partnerRequest<{ partner: PartnerIdentity }>("/api/partner/me");
@@ -389,6 +401,9 @@ export function fetchPartnerAnalytics() { return partnerRequest<PartnerAnalytics
 export type MissingField = "phone" | "website" | "hours" | "address" | "languages" | "cost" | "age";
 export const NA_FIELDS: MissingField[] = ["phone", "website", "hours", "address", "languages", "cost", "age"];
 
+export function fetchPartnerResource(id: number) {
+  return partnerRequest<ResourceItem>(`/api/partner/resources/${id}`);
+}
 export function fetchPartnerResources(filters: { q?: string; county?: string; category?: string; missing?: MissingField; stale?: boolean; limit?: number } = {}) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
@@ -404,6 +419,7 @@ export interface ResourceChanges {
   ageMin?: number | null; ageMax?: number | null;
   fieldsNa?: MissingField[];
   recheckAt?: string | null;
+  kind?: "service" | "information";
   checkedBy?: "phone" | "online";
 }
 export function proposeResourceChange(resourceId: number, changes: ResourceChanges, note = "") {

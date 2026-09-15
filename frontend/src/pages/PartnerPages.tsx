@@ -430,7 +430,7 @@ export function PartnerLanding() {
       <section>
         <h2 className="text-eyebrow text-ink-faint">Who partners are</h2>
         <p className="mt-2 max-w-[64ch] text-[16px] leading-relaxed text-ink-soft">
-          Caseworkers, ILP and THP staff, school liaisons, clinic and shelter teams, and community organisations that serve transition-age youth. Accounts are created by Foster Connect; there is no self sign-up.
+          Caseworkers, ILP and THP staff, school liaisons, clinic and shelter teams, and community organizations that serve transition-age youth. Partners create their own account; reviewer accounts are set up by Foster Connect.
         </p>
       </section>
 

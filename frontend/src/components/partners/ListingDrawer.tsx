@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { BottomSheet } from "@/components/primitives/BottomSheet";
 import { ResourceEditor } from "@/components/partners/ResourceEditor";
-import { fetchPartnerResources, type MissingField, type ResourceItem } from "@/lib/api";
+import { fetchPartnerResource, fetchPartnerResources, type MissingField, type ResourceItem } from "@/lib/api";
 import { describeChecked } from "@/lib/checked";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,8 @@ export interface DrawerFilter {
   category?: string;
   missing?: MissingField;
   stale?: boolean;
+  /** Open this one listing straight in the editor (R14: Oldest checks). */
+  resourceId?: number;
 }
 
 /**
@@ -26,14 +28,21 @@ export function ListingDrawer({ filter, onClose }: { filter: DrawerFilter | null
   const { data, isPending, isError } = useQuery({
     queryKey: ["partner-resources", filter?.county ?? "", filter?.category ?? "", filter?.missing ?? "", filter?.stale ?? false],
     queryFn: () => fetchPartnerResources({ county: filter?.county, category: filter?.category, missing: filter?.missing, stale: filter?.stale }),
-    enabled: open,
+    enabled: open && !filter?.resourceId,
   });
+  const single = useQuery({
+    queryKey: ["partner-resource", filter?.resourceId ?? 0],
+    queryFn: () => fetchPartnerResource(filter!.resourceId!),
+    enabled: open && Boolean(filter?.resourceId),
+  });
+  useEffect(() => { if (single.data && filter?.resourceId) setEditing(single.data); }, [single.data, filter?.resourceId]);
   const close = () => { setEditing(null); onClose(); };
+  const direct = Boolean(filter?.resourceId);
 
   return (
     <BottomSheet open={open} onOpenChange={value => { if (!value) close(); }} title={filter?.title ?? "Listings"} side="auto">
       <div className="flex items-center justify-between border-b border-rule px-5 py-3 lg:px-6">
-        {editing ? (
+        {editing && !direct ? (
           <button type="button" onClick={() => setEditing(null)} className="inline-flex min-h-10 items-center gap-1.5 text-[14px] text-brand hover:underline"><ArrowLeft className="size-4" /> Back to the list</button>
         ) : (
           <div className="min-w-0">
@@ -46,7 +55,11 @@ export function ListingDrawer({ filter, onClose }: { filter: DrawerFilter | null
 
       <div className="px-5 pb-16 pt-4 lg:px-6">
         {editing ? (
-          <ResourceEditor resource={editing} focus={filter?.missing} onSaved={() => setEditing(null)} onCancel={() => setEditing(null)} />
+          <ResourceEditor resource={editing} focus={filter?.missing} onSaved={() => (direct ? close() : setEditing(null))} onCancel={() => (direct ? close() : setEditing(null))} />
+        ) : direct ? (
+          single.isError
+            ? <p role="alert" className="py-8 text-crisis">Could not load that listing.</p>
+            : <p className="flex items-center gap-2 py-8 text-ink-soft"><Loader2 className="size-4 animate-spin" /> Loading the listing…</p>
         ) : isPending ? (
           <p className="flex items-center gap-2 py-8 text-ink-soft"><Loader2 className="size-4 animate-spin" /> Loading listings…</p>
         ) : isError ? (

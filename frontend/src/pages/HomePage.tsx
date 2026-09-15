@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Bus, Check, GraduationCap, HeartHandshake, Home as HomeIcon, Landmark, MessageCircle, Scale, Search, Send, Stethoscope, Utensils, Briefcase } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, Bus, Check, GraduationCap, HeartHandshake, Home as HomeIcon, Landmark, MessageCircle, Plus, Scale, Search, Send, Stethoscope, Utensils, Briefcase } from "lucide-react";
+import { toast } from "sonner";
 import { AboutYouCard } from "@/components/home/AboutYouCard";
 import { ResourceRow } from "@/components/resources/ResourceRow";
 import { useAboutYou } from "@/hooks/useAboutYou";
 import { useNova } from "@/contexts/NovaContext";
-import { fetchResources, fetchRoadmap, fetchRoadmaps } from "@/lib/api";
+import { addTask, fetchResources, fetchRoadmap, fetchRoadmaps, type RoadmapTask } from "@/lib/api";
 
 const KINDS = [
   { label: "Housing", category: "Housing", icon: HomeIcon },
@@ -22,21 +23,66 @@ const KINDS = [
 ];
 
 /**
- * Deadlines that close around 21 in California's Extended Foster Care. General
- * guidance, not a personal calendar: the app never knows a birthday.
+ * A deadline the page can show, dismiss ("Already did this") or turn into a
+ * plan step. `to` is always a search for the thing itself, never a category
+ * (R6): "ILP" must land on ILP listings, not on Mentoring in general.
  */
-const DEADLINES = [
-  { title: "Extended Foster Care re-certification", detail: "Keeps the monthly payment coming. One form to your worker, every six months.", when: "Before each re-cert date", to: "/resources?category=Financial%20Support" },
-  { title: "THP-Plus housing application", detail: "An apartment plus a support team, up to 36 months. Apply before you age out.", when: "Before 21 (some counties 24)", to: "/resources?category=Housing" },
-  { title: "Chafee Grant — money for college or training", detail: "Up to $5,000 a year. FAFSA plus a verification letter; your college's foster youth liaison files both with you.", when: "FAFSA opens Oct 1", to: "/resources?category=Education" },
+interface Deadline {
+  id: string;
+  title: string;
+  detail: string;
+  when: string;
+  to: string;
+  step: string;
+  timeframe: RoadmapTask["timeframe"];
+  category: string;
+}
+
+const THP_PLUS: Deadline = { id: "thp-plus", title: "THP-Plus housing application", detail: "An apartment plus a support team, up to 36 months. You don't have to be in care to apply.", when: "Before 21 (some counties 24)", to: "/resources?q=THP", step: "Apply for THP-Plus housing — ask my worker or the county ILP office which providers have openings", timeframe: "30 Days", category: "Housing" };
+const CHAFEE: Deadline = { id: "chafee", title: "Chafee Grant — money for college or training", detail: "Up to $5,000 a year. FAFSA plus a verification letter; your college's foster youth liaison files both with you.", when: "FAFSA opens Oct 1", to: "/resources?q=Chafee", step: "File the FAFSA and ask the college's foster youth liaison to file the Chafee Grant with me", timeframe: "3-6 Months", category: "Education" };
+
+/** 18–20 and in Extended Foster Care: keep it going, then the two doors that close at 21. */
+const DEADLINES_IN_CARE: Deadline[] = [
+  { id: "recert", title: "Extended Foster Care re-certification", detail: "Keeps the monthly payment coming. One form to your worker, every six months.", when: "Before each re-cert date", to: "/resources?q=extended%20foster%20care", step: "Ask my worker for my next Extended Foster Care re-certification form and turn it in", timeframe: "30 Days", category: "Financial Support" },
+  THP_PLUS,
+  CHAFEE,
+];
+/** 18–20 and no longer in care: re-entry is the door most people don't know is open. */
+const DEADLINES_FORMER: Deadline[] = [
+  { id: "reenter", title: "Re-enter Extended Foster Care", detail: "If you left care after 18, you can come back in until your 21st birthday — housing help and a monthly payment. Ask the county, not a judge.", when: "Before 21", to: "/resources?q=extended%20foster%20care", step: "Call the county's Extended Foster Care line and ask how to re-enter before I turn 21", timeframe: "This Week", category: "Housing" },
+  THP_PLUS,
+  CHAFEE,
+];
+/** 18–20, care status unknown: don't assume either way. */
+const DEADLINES_18_20: Deadline[] = [
+  { id: "efc", title: "Extended Foster Care — stay in, or come back", detail: "In care: a re-certification form to your worker every six months keeps the payment coming. Left care: you can re-enter until 21.", when: "Before 21", to: "/resources?q=extended%20foster%20care", step: "Ask my worker (or the county) where I stand with Extended Foster Care and what the next form is", timeframe: "30 Days", category: "Financial Support" },
+  THP_PLUS,
+  CHAFEE,
+];
+/** For someone under 18 the deadline that matters is 18, not 21. */
+const DEADLINES_UNDER_18: Deadline[] = [
+  { id: "ab12", title: "Extended Foster Care (AB 12) — decide before 18", detail: "You can stay in care with housing and a monthly payment until 21. Tell your worker you want it before your 18th birthday.", when: "Before 18", to: "/resources?q=extended%20foster%20care", step: "Tell my worker I want to stay in Extended Foster Care after I turn 18", timeframe: "30 Days", category: "Housing" },
+  { id: "ilp", title: "Independent Living Program (ILP)", detail: "Classes, a stipend and a mentor, from age 16. Ask your worker to enroll you if nobody has.", when: "From 16", to: "/resources?q=ILP", step: "Ask my worker to enroll me in ILP", timeframe: "This Week", category: "Life Skills and Mentoring" },
+  { id: "documents", title: "Your documents, in your hands", detail: "State ID, birth certificate and Social Security card. Your worker has to help you get them before you leave care.", when: "Before 18", to: "/resources?q=documents", step: "Ask my worker for my state ID, birth certificate and Social Security card", timeframe: "30 Days", category: "General" },
 ];
 
-/** For someone under 18 the deadline that matters is 18, not 21. */
-const DEADLINES_UNDER_18 = [
-  { title: "Extended Foster Care (AB 12) — decide before 18", detail: "You can stay in care with housing and a monthly payment until 21. Tell your worker you want it before your 18th birthday.", when: "Before 18", to: "/resources?q=extended%20foster%20care" },
-  { title: "Independent Living Program (ILP)", detail: "Classes, a stipend and a mentor, from age 16. Ask your worker to enrol you if nobody has.", when: "From 16", to: "/resources?category=Life%20Skills%20and%20Mentoring" },
-  { title: "Your documents, in your hands", detail: "State ID, birth certificate and Social Security card. Your worker has to help you get them before you leave care.", when: "Before 18", to: "/resources?q=birth%20certificate" },
-];
+/** Which deadlines a person has dismissed or added to a plan, on this device only. */
+const DONE_KEY = "fc-deadlines-done";
+type DoneMap = Record<string, "did" | "added">;
+function useDeadlineState() {
+  const [done, setDone] = useState<DoneMap>(() => {
+    try { return JSON.parse(window.localStorage.getItem(DONE_KEY) || "{}") as DoneMap; } catch { return {}; }
+  });
+  const mark = useCallback((id: string, how: "did" | "added" | null) => {
+    setDone(previous => {
+      const next = { ...previous };
+      if (how) next[id] = how; else delete next[id];
+      try { window.localStorage.setItem(DONE_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+      return next;
+    });
+  }, []);
+  return { done, mark };
+}
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -48,7 +94,8 @@ export function HomePage() {
   const { data: roadmaps = [] } = useQuery({ queryKey: ["roadmaps"], queryFn: fetchRoadmaps, retry: 1 });
   const activeId = roadmaps[0]?.id;
   const { data: roadmap } = useQuery({ queryKey: ["roadmap", activeId], queryFn: () => fetchRoadmap(activeId!), enabled: Boolean(activeId), retry: 1 });
-  const nextTask = roadmap?.tasks.find(task => task.status !== "completed" && task.status !== "blocked");
+  const openTasks = roadmap?.tasks.filter(task => task.status !== "completed") ?? [];
+  const nextTask = openTasks.find(task => task.status !== "blocked");
   const doneCount = roadmap?.tasks.filter(task => task.status === "completed").length ?? 0;
 
   const county = about?.county && about.county !== "elsewhere" ? about.county : undefined;
@@ -65,11 +112,17 @@ export function HomePage() {
 
   const under18 = about?.age === "under18";
   const showDeadlines = !about || under18 || about.age === "18-20" || about.age === "unsaid";
-  const deadlines = under18 ? DEADLINES_UNDER_18 : DEADLINES;
-  const deadlineHeading = under18 ? "Before you turn 18, three things to line up." : about?.age === "18-20" ? "Before you turn 21, three things close." : "Turning 21 soon? Three things close before then.";
+  const deadlines = under18 ? DEADLINES_UNDER_18 : about?.age === "18-20" && about.care === "in_care" ? DEADLINES_IN_CARE : about?.age === "18-20" && about.care === "former" ? DEADLINES_FORMER : DEADLINES_18_20;
+  const deadlineHeading = under18
+    ? "Before you turn 18, three things to line up."
+    : about?.age === "18-20" ? "Before you turn 21, three things close." : "Turning 21 soon? Three things close before then.";
   const deadlineIntro = under18
     ? "Turning 18 in care comes with choices nobody explains well. These three keep your options open."
-    : `Extended Foster Care ends at 21 in California. These are the deadlines most people miss.${!about ? " Tell us your age below and we'll show yours." : ""}`;
+    : about?.age === "18-20" && about.care === "in_care"
+      ? "Extended Foster Care ends at 21 in California. These are the deadlines most people miss."
+      : about?.age === "18-20" && about.care === "former"
+        ? "You left care, but three doors are still open until 21 — including going back in."
+        : `Whether you're in Extended Foster Care or left it, these three have deadlines around 21.${!about ? " Tell us your age below and we'll show yours." : ""}`;
 
   return (
     <div>
@@ -121,26 +174,11 @@ export function HomePage() {
             </form>
           </section>
 
-          {showDeadlines && (
-            <section aria-labelledby="deadlines-heading">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="deadlines-heading" className="font-display text-[24px] font-bold text-ink lg:text-[26px]">{deadlineHeading}</h2>
-                <Link to="/resources?q=extended%20foster%20care" className="text-[14px] text-brand hover:underline">{under18 ? "Why 18 matters →" : "Why 21 matters →"}</Link>
-              </div>
-              <p className="mt-2 max-w-[620px] text-[15px] text-ink-soft">{deadlineIntro}</p>
-              <ul className="mt-4 divide-y divide-rule border-y border-rule">
-                {deadlines.map(item => (
-                  <li key={item.title} className="row-hover grid gap-1 py-4 sm:grid-cols-[1fr_230px] sm:gap-6">
-                    <div>
-                      <Link to={item.to} className="text-[17px] font-semibold text-ink hover:underline">{item.title}</Link>
-                      <p className="mt-0.5 text-[14px] text-ink-soft">{item.detail}</p>
-                    </div>
-                    <p className="text-stamp text-crisis sm:pt-1 sm:text-right">{item.when}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {roadmap ? (
+            <UpNext tasks={openTasks} total={roadmap.tasks.length} deadlines={showDeadlines ? deadlines : []} roadmapId={roadmap.id} />
+          ) : showDeadlines ? (
+            <DeadlineList heading={deadlineHeading} intro={deadlineIntro} whyTo="/resources?q=extended%20foster%20care" whyLabel={under18 ? "Why 18 matters →" : "Why 21 matters →"} deadlines={deadlines} roadmapId={null} />
+          ) : null}
 
           <section aria-labelledby="nearby-heading">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -214,3 +252,92 @@ export function HomePage() {
     </div>
   );
 }
+
+/** The "Before you turn…" list, with "Already did this" and, once a plan exists, "Add to my plan" (R7). */
+function DeadlineList({ heading, intro, whyTo, whyLabel, deadlines, roadmapId, compact = false }: {
+  heading: string; intro?: string; whyTo?: string; whyLabel?: string; deadlines: Deadline[]; roadmapId: number | null; compact?: boolean;
+}) {
+  const { done, mark } = useDeadlineState();
+  const queryClient = useQueryClient();
+  const add = useMutation({
+    mutationFn: (item: Deadline) => addTask(roadmapId!, { taskText: item.step, timeframe: item.timeframe, whyItMatters: `${item.title}: ${item.when}.`, taskCategory: item.category }),
+    onSuccess: (_task, item) => {
+      mark(item.id, "added");
+      void queryClient.invalidateQueries({ queryKey: ["roadmap", roadmapId] });
+      toast.success("Added to your plan.");
+    },
+    onError: error => toast.error(error instanceof Error ? error.message : "Could not add that to your plan"),
+  });
+  const open = deadlines.filter(item => !done[item.id]);
+  const hidden = deadlines.length - open.length;
+  if (deadlines.length === 0) return null;
+
+  return (
+    <section aria-labelledby="deadlines-heading" className={compact ? "border-t border-rule pt-6" : undefined}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="deadlines-heading" className={compact ? "font-display text-[19px] font-bold text-ink" : "font-display text-[24px] font-bold text-ink lg:text-[26px]"}>{heading}</h2>
+        {whyTo && <Link to={whyTo} className="text-[14px] text-brand hover:underline">{whyLabel}</Link>}
+      </div>
+      {intro && <p className="mt-2 max-w-[620px] text-[15px] text-ink-soft">{intro}</p>}
+      {open.length === 0 ? (
+        <p className="mt-3 text-[15px] text-ink-soft">
+          You&rsquo;ve handled these.{" "}
+          <button type="button" onClick={() => deadlines.forEach(item => mark(item.id, null))} className="text-brand hover:underline">Show them again</button>
+        </p>
+      ) : (
+        <ul className="mt-4 divide-y divide-rule border-y border-rule">
+          {open.map(item => (
+            <li key={item.id} className="row-hover grid gap-2 py-4 sm:grid-cols-[1fr_230px] sm:gap-6">
+              <div>
+                <Link to={item.to} className="text-[17px] font-semibold text-ink hover:underline">{item.title}</Link>
+                <p className="mt-0.5 text-[14px] text-ink-soft">{item.detail}</p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+                  {roadmapId !== null && (
+                    <button type="button" disabled={add.isPending} onClick={() => add.mutate(item)} className="inline-flex min-h-8 items-center gap-1 font-semibold text-brand hover:underline disabled:opacity-50"><Plus className="size-3.5" /> Add to my plan</button>
+                  )}
+                  <button type="button" onClick={() => mark(item.id, "did")} className="inline-flex min-h-8 items-center gap-1 text-ink-soft hover:text-ink hover:underline"><Check className="size-3.5" /> Already did this</button>
+                </div>
+              </div>
+              <p className="text-stamp text-crisis sm:pt-1 sm:text-right">{item.when}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+      {open.length > 0 && hidden > 0 && (
+        <p className="mt-2 text-[13px] text-ink-faint">{hidden} hidden as done or on your plan. <button type="button" onClick={() => deadlines.forEach(item => mark(item.id, null))} className="hover:underline">Show all</button></p>
+      )}
+    </section>
+  );
+}
+
+/** Once a plan exists, the left column leads with it: the next open steps, then any deadline not on the plan yet (R7). */
+function UpNext({ tasks, total, deadlines, roadmapId }: { tasks: RoadmapTask[]; total: number; deadlines: Deadline[]; roadmapId: number }) {
+  const ordered = [...tasks].sort((a, b) => TIMEFRAME_ORDER.indexOf(a.timeframe) - TIMEFRAME_ORDER.indexOf(b.timeframe));
+  const shown = ordered.slice(0, 3);
+  return (
+    <div className="flex flex-col gap-6">
+      <section aria-labelledby="upnext-heading">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="upnext-heading" className="font-display text-[24px] font-bold text-ink lg:text-[26px]">Up next on your plan</h2>
+          <Link to="/roadmap" className="text-[14px] text-brand hover:underline">Open my plan →</Link>
+        </div>
+        <p className="mt-2 text-[15px] text-ink-soft">{tasks.length === 0 ? `All ${total} steps are done.` : `${tasks.length} of ${total} steps still open. Small ones first.`}</p>
+        {shown.length > 0 && (
+          <ul className="mt-4 divide-y divide-rule border-y border-rule">
+            {shown.map(task => (
+              <li key={task.id} className="row-hover grid gap-1 py-4 sm:grid-cols-[1fr_150px] sm:gap-6">
+                <div>
+                  <Link to="/roadmap" className="text-[17px] font-semibold text-ink hover:underline">{task.taskText}</Link>
+                  {task.whyItMatters && <p className="mt-0.5 text-[14px] text-ink-soft">{task.whyItMatters}</p>}
+                </div>
+                <p className={`text-stamp sm:pt-1 sm:text-right ${task.timeframe === "This Week" ? "text-crisis" : "text-ink-faint"}`}>{task.status === "blocked" ? "Stuck — ask Nova" : task.timeframe}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <DeadlineList heading="Deadlines not on your plan yet" deadlines={deadlines} roadmapId={roadmapId} compact />
+    </div>
+  );
+}
+const TIMEFRAME_ORDER: RoadmapTask["timeframe"][] = ["This Week", "30 Days", "3-6 Months", "6-12 Months"];
