@@ -149,7 +149,8 @@ export function HomePage() {
 
         {/* Right column */}
         <div className="flex flex-col gap-8">
-          <AboutYouCard />
+          {/* On phones the plan and Ask cards come first; tuning the page can wait. */}
+          <div className="order-last lg:order-first"><AboutYouCard /></div>
 
           {roadmap ? (
             <section className="flex flex-col gap-4 rounded-md border border-rule bg-surface p-6 shadow-[0_18px_44px_rgba(20,20,19,0.08),0_3px_10px_rgba(20,20,19,0.04)]">

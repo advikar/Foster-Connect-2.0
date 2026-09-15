@@ -205,7 +205,7 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
               {programs.map(resource => (
                 <li key={resource.id} className="flex items-baseline justify-between gap-3 py-2.5">
                   <div className="min-w-0"><p className="truncate text-[15px] font-semibold text-ink">{resource.title}</p><p className="text-[13px] text-ink-faint">{resource.county}</p></div>
-                  <span className="text-stamp shrink-0">{describeChecked(resource.verifiedAt).label}</span>
+                  <span className="text-stamp shrink-0">{describeChecked(resource.verifiedAt, resource.checkedHow).label}</span>
                 </li>
               ))}
             </ul>

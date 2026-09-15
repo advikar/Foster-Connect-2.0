@@ -297,6 +297,7 @@ export function IntakeConversation({
           {building && <Loader2 className="size-4 animate-spin" />}
           {building ? "Putting it together" : isLast ? "Build my plan" : "Next"}
         </Button>
+        {!current.valid && !building && <p className="mt-2 text-[13px] text-ink-faint">Pick one or more to continue.</p>}
       </div>
     </div></div>
   );

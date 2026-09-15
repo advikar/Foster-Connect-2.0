@@ -28,6 +28,7 @@ export interface GroundedResource {
   isCrisis: boolean;
   sourceUrl: string;
   verifiedAt: string;
+  checkedHow?: "phone" | "online";
   tags: string;
 }
 
@@ -112,7 +113,7 @@ async function callLLM(messages: { role: string; content: string }[], schema: z.
     });
     if (!response.ok) {
       const providerMessage = (await response.text()).slice(0, 500);
-      throw new Error(`AI provider returned ${response.status}: ${providerMessage}`);
+      throw Object.assign(new Error(`AI provider returned ${response.status}: ${providerMessage}`), { status: response.status, providerMessage });
     }
     const data = await response.json() as { choices?: { message?: { content?: string } }[] };
     const content = data.choices?.[0]?.message?.content;
@@ -120,12 +121,32 @@ async function callLLM(messages: { role: string; content: string }[], schema: z.
     return JSON.parse(content);
   };
 
+  /**
+   * Groq's free tier allows 8,000 tokens a minute, and one plan is about 5.5k,
+   * so two AI calls in the same minute produce a 429 with "try again in Ns".
+   * One wait-and-retry (capped so the request still finishes well inside the
+   * browser's patience) turns most of those into a slow answer instead of a
+   * fallback.
+   */
+  const runWithRateLimitRetry = async (repairInstruction?: string) => {
+    try {
+      return await run(repairInstruction);
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      if (status !== 429) throw error;
+      const hinted = Number(/try again in ([\d.]+)s/i.exec((error as { providerMessage?: string }).providerMessage ?? "")?.[1]);
+      const waitMs = Math.min(Math.ceil((Number.isFinite(hinted) && hinted > 0 ? hinted : 8) * 1000) + 500, 20_000);
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+      return run(repairInstruction);
+    }
+  };
+
   try {
     try {
-      return schema.parse(await run());
+      return schema.parse(await runWithRateLimitRetry());
     } catch (error) {
       if (error instanceof SyntaxError || error instanceof z.ZodError) {
-        return schema.parse(await run("Your previous response did not match the required JSON schema. Return corrected JSON only."));
+        return schema.parse(await runWithRateLimitRetry("Your previous response did not match the required JSON schema. Return corrected JSON only."));
       }
       throw error;
     }

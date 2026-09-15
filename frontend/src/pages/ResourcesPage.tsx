@@ -56,6 +56,11 @@ const URGENCIES = [
   { value: "Standard", label: "Whenever" },
 ];
 
+const SORTS = [
+  { value: "relevance", label: "Best match" },
+  { value: "checked", label: "Recently checked" },
+  { value: "name", label: "A to Z" },
+];
 const PAGE_SIZE = 25;
 const QUICK = ["Housing", "Financial Support", "Education", "Employment", "Food Assistance", "Mental Health"];
 
@@ -70,6 +75,7 @@ export function ResourcesPage() {
   const county = params.get("county") || "All";
   const urgency = params.get("urgency") || "All";
   const ageBand = params.get("age") || "All";
+  const sort = params.get("sort") || "relevance";
   const activeFilterCount = [category, county, urgency, ageBand].filter(value => value !== "All").length;
 
   // First visit with an "About you" saved: pre-fill age and county, once.
@@ -108,9 +114,9 @@ export function ResourcesPage() {
   const age = AGES.find(option => option.value === ageBand)?.age;
   const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isFetching } =
     useInfiniteQuery<ResourcePage>({
-      queryKey: ["resources", search, category, county, urgency, age],
+      queryKey: ["resources", search, category, county, urgency, age, sort],
       queryFn: ({ pageParam = 0 }) =>
-        fetchResources({ q: search || undefined, category, county, urgency, age, limit: PAGE_SIZE, offset: pageParam as number }),
+        fetchResources({ q: search || undefined, category, county, urgency, age, sort: sort === "relevance" ? undefined : sort, limit: PAGE_SIZE, offset: pageParam as number }),
       initialPageParam: 0,
       getNextPageParam: last => (last.hasMore ? last.offset + last.items.length : undefined),
       placeholderData: keepPreviousData,
@@ -178,6 +184,18 @@ export function ResourcesPage() {
         <section aria-live="polite">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h1 className="font-display text-[24px] font-bold text-ink lg:text-[28px]">{isPending ? "Looking…" : isError ? "Find support" : heading}</h1>
+            {!isError && (
+              <label className="flex items-center gap-2 text-[13px] text-ink-faint">
+                Sort
+                <select
+                  value={sort}
+                  onChange={event => setFilter("sort", event.target.value === "relevance" ? "All" : event.target.value)}
+                  className="h-9 rounded-md border border-rule bg-surface px-2 text-[14px] font-medium text-ink"
+                >
+                  {SORTS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+            )}
             {activeFilterCount > 0 && (
               <div className="flex flex-wrap gap-1.5 lg:hidden">
                 {[["category", category, CATEGORIES], ["county", county, COUNTIES], ["age", ageBand, AGES], ["urgency", urgency, URGENCIES]]
@@ -203,11 +221,27 @@ export function ResourcesPage() {
               retrying={isFetching}
             />
           ) : resources.length === 0 ? (
-            <Empty
-              title="Nothing matched that"
-              detail="Try fewer words, or widen the location. If we don't have something, we'd rather say so than guess."
-              onClear={activeFilterCount > 0 ? clearFilters : undefined}
-            />
+            <div>
+              <Empty
+                title="Nothing matched that"
+                detail="Try fewer words, or widen the location. If we don't have something, we'd rather say so than guess."
+                onClear={activeFilterCount > 0 ? clearFilters : undefined}
+              />
+              <div className="mt-6">
+                <p className="text-eyebrow text-ink-faint">Or browse by kind</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {QUICK.map(value => (
+                    <Chip key={value} onClick={() => { setSearch(""); setFilter("category", value); }}>{labelOf(CATEGORIES, value)}</Chip>
+                  ))}
+                </div>
+                {search && (
+                  <p className="mt-4 text-[15px] text-ink-soft">
+                    Not sure what to call it?{" "}
+                    <Link to={`/ask?q=${encodeURIComponent(search)}`} className="font-semibold text-brand hover:underline">Ask Maya about &ldquo;{search}&rdquo;</Link>
+                  </p>
+                )}
+              </div>
+            </div>
           ) : (
             <>
               <ul className="mt-4 divide-y divide-rule border-t border-rule">

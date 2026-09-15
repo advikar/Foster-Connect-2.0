@@ -185,6 +185,8 @@ function mapResource(row: Row): GroundedResource {
     isCrisis: Boolean(row.is_crisis),
     sourceUrl: rowString(row, "source_url"),
     verifiedAt: rowString(row, "verified_at"),
+    /** How the listing was checked: "phone" when a reviewer confirmed it by calling, otherwise "online". */
+    checkedHow: /phone|line confirmed|called/i.test(rowString(row, "verified_by")) ? "phone" : "online",
     tags: rowString(row, "tags"),
   };
 }
@@ -282,10 +284,13 @@ async function listVerifiedResources(options: {
   age?: number;
   limit?: number;
   offset?: number;
+  /** "relevance" (default with a query), "checked" (most recently checked first) or "name". */
+  sort?: "relevance" | "checked" | "name";
 }) {
   const { filters, args } = buildResourceFilters(options);
 
   const terms = options.query ? searchTerms(options.query) : [];
+  const explicitOrder = options.sort === "checked" ? "r.verified_at DESC, r.title ASC" : options.sort === "name" ? "r.title ASC" : null;
   let sql: string;
   if (terms.length) {
     // Column weights: a word in the title or category says far more about a
@@ -299,11 +304,11 @@ async function listVerifiedResources(options: {
     sql = `SELECT r.*, bm25(resources_fts, 12.0, 4.0, 1.0, 10.0, 1.0, 1.0, 2.0, 1.0, 6.0) + (r.is_crisis * 4.0) AS relevance
            FROM resources_fts JOIN resources r ON r.id = resources_fts.rowid
            WHERE resources_fts MATCH ? AND ${filters.join(" AND ")}
-           ORDER BY relevance ASC, r.verified_at DESC LIMIT ?`;
+           ORDER BY ${explicitOrder ?? "relevance ASC, r.verified_at DESC"} LIMIT ?`;
     args.unshift(terms.map(term => `"${term}"`).join(" OR "));
   } else {
     sql = `SELECT r.* FROM resources r WHERE ${filters.join(" AND ")}
-           ORDER BY r.is_crisis DESC, r.verified_at DESC, r.title ASC LIMIT ?`;
+           ORDER BY ${explicitOrder ?? "r.is_crisis DESC, r.verified_at DESC, r.title ASC"} LIMIT ?`;
   }
   const limit = Math.min(Math.max(options.limit || 60, 1), 200);
   const offset = Math.max(options.offset || 0, 0);
@@ -603,6 +608,7 @@ app.get("/api/resources", asyncRoute(async (req, res) => {
     age: z.coerce.number().int().min(13).max(99).optional(),
     limit: z.coerce.number().int().min(1).max(100).optional().default(25),
     offset: z.coerce.number().int().min(0).max(5000).optional().default(0),
+    sort: z.enum(["relevance", "checked", "name"]).optional(),
   }).parse(req.query);
 
   const filters = {
@@ -610,7 +616,7 @@ app.get("/api/resources", asyncRoute(async (req, res) => {
     urgency: query.urgency, age: query.age,
   };
   const [items, total] = await Promise.all([
-    listVerifiedResources({ ...filters, limit: query.limit, offset: query.offset }),
+    listVerifiedResources({ ...filters, sort: query.sort, limit: query.limit, offset: query.offset }),
     countVerifiedResources(filters),
   ]);
   res.json({ items, total, offset: query.offset, hasMore: query.offset + items.length < total });

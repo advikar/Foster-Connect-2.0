@@ -20,7 +20,7 @@ export function ResourceRow({ resource, dense = false }: { resource: ResourceIte
   const [open, setOpen] = useState(false);
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
-  const checked = describeChecked(resource.verifiedAt);
+  const checked = describeChecked(resource.verifiedAt, resource.checkedHow);
 
   return (
     <>
@@ -87,7 +87,7 @@ function eligibilityTag(resource: ResourceItem) {
 function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: ResourceItem; open: boolean; onOpenChange: (open: boolean) => void }) {
   const [reporting, setReporting] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const checked = describeChecked(resource.verifiedAt);
+  const checked = describeChecked(resource.verifiedAt, resource.checkedHow);
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
   const phone = resource.phone?.replace(/[^\d+]/g, "");
@@ -147,8 +147,8 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
           <p className="flex items-start gap-2 text-ink">
             <ShieldCheck className="mt-0.5 size-4 shrink-0" />
             <span>
-              <span className="font-semibold">{checked.stale ? "Needs a re-check" : `Checked ${checked.full}`}</span>
-              {" "}by a Foster Connect reviewer{resource.sourceUrl ? " against the program's page" : ""}.
+              <span className="font-semibold">{checked.stale ? "Needs a re-check" : `Checked ${checked.how} ${checked.full}`}</span>
+              {" "}by a Foster Connect reviewer{checked.how === "online" ? " against the program's own page, not by calling" : ""}.
             </span>
           </p>
           {resource.sourceUrl && (

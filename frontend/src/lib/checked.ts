@@ -1,9 +1,15 @@
-/** "Checked Aug 2026", or "Needs re-check" past 180 days. */
-export function describeChecked(verifiedAt: string): { label: string; stale: boolean; full: string } {
+/**
+ * "Checked online Aug 2026" / "Checked by phone Aug 2026", or "Needs re-check"
+ * past 180 days. Saying *how* it was checked matters: most listings were
+ * checked against the program's own page, not by calling, and a young person
+ * deciding whether to show up should know that.
+ */
+export function describeChecked(verifiedAt: string, how: "phone" | "online" = "online"): { label: string; stale: boolean; full: string; how: string } {
+  const howText = how === "phone" ? "by phone" : "online";
   const date = new Date(`${verifiedAt}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return { label: "Check date unknown", stale: true, full: "unknown" };
+  if (Number.isNaN(date.getTime())) return { label: "Check date unknown", stale: true, full: "unknown", how: howText };
   const days = (Date.now() - date.getTime()) / 86_400_000;
   const full = date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-  if (days > 180) return { label: "Needs re-check", stale: true, full };
-  return { label: `Checked ${date.toLocaleDateString(undefined, { month: "short", year: "numeric" })}`, stale: false, full };
+  if (days > 180) return { label: "Needs re-check", stale: true, full, how: howText };
+  return { label: `Checked ${howText} ${date.toLocaleDateString(undefined, { month: "short", year: "numeric" })}`, stale: false, full, how: howText };
 }

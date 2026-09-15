@@ -1,4 +1,7 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MayaConversation } from "@/components/chat/MayaConversation";
+import { useMaya } from "@/contexts/MayaContext";
 
 /**
  * Ask — Maya as a page, not a bubble.
@@ -7,6 +10,14 @@ import { MayaConversation } from "@/components/chat/MayaConversation";
  * conversation takes the middle. Phone: the conversation is the page.
  */
 export function AskPage() {
+  // Find's empty state links here with ?q=…; send it as the first message once.
+  const [params, setParams] = useSearchParams();
+  const { openMaya } = useMaya();
+  useEffect(() => {
+    const q = params.get("q");
+    if (q) { setParams({}, { replace: true }); openMaya(q); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className="container-wide lg:grid lg:grid-cols-[320px_minmax(0,760px)] lg:gap-14 lg:pt-12">
       <aside className="hidden lg:block">

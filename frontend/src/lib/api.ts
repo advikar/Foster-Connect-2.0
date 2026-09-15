@@ -49,6 +49,8 @@ export interface ResourceItem {
   isCrisis: boolean;
   sourceUrl: string;
   verifiedAt: string;
+  /** "phone" when a reviewer confirmed the listing by calling; "online" when checked against the program's page. */
+  checkedHow?: "phone" | "online";
   tags: string;
 }
 
