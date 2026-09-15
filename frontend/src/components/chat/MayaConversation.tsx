@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Loader2, MessageSquarePlus, Send, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { Check, ChevronDown, ListPlus, Loader2, MessageSquarePlus, Send, ShieldCheck } from "lucide-react";
 import { ResourceRow } from "@/components/resources/ResourceRow";
 import { useMaya } from "@/contexts/MayaContext";
-import { MAYA_ARCHIVE_KEY, MAYA_CONVERSATION_KEY, sendChat, type ChatMessageInput, type CrisisContact, type ResourceItem } from "@/lib/api";
+import { addTask, deleteTask, MAYA_ARCHIVE_KEY, MAYA_CONVERSATION_KEY, sendChat, type ChatMessageInput, type CrisisContact, type PlanSuggestion, type ResourceItem } from "@/lib/api";
+import { toast } from "sonner";
 import { dialString } from "@/lib/crisis";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +17,9 @@ interface DisplayMessage {
   degraded?: boolean;
   /** A network/app failure, not something Maya said. Never sent back as history. */
   error?: boolean;
+  planSuggestions?: PlanSuggestion[];
+  /** Indexes into planSuggestions that the person has applied. */
+  applied?: number[];
 }
 
 /**
@@ -66,6 +72,19 @@ const STARTERS = [
 
 const EMPTY: StoredConversation = { messages: [GREETING], history: [] };
 
+const SUGGESTION_LABEL: Record<PlanSuggestion["action"], string> = {
+  add: "Add to your plan?",
+  replace: "Swap a step?",
+  split: "Break it into smaller steps?",
+  remove: "Take this step off your plan?",
+};
+const SUGGESTION_BUTTON: Record<PlanSuggestion["action"], string> = {
+  add: "Add to my plan",
+  replace: "Swap it",
+  split: "Use these steps",
+  remove: "Remove it",
+};
+
 function loadConversation(): StoredConversation {
   try {
     const raw = window.localStorage.getItem(MAYA_CONVERSATION_KEY);
@@ -88,7 +107,9 @@ function loadConversation(): StoredConversation {
  */
 export function MayaConversation({ className }: { className?: string }) {
   const { pendingPrompt, clearPendingPrompt } = useMaya();
+  const queryClient = useQueryClient();
   const [conversation, setConversation] = useState<StoredConversation>(loadConversation);
+  const [applying, setApplying] = useState<string | null>(null);
   const [archive, setArchive] = useState<ArchivedConversation[]>(loadArchive);
   const [pastOpen, setPastOpen] = useState(false);
   const { messages, history, historyToken } = conversation;
@@ -120,7 +141,7 @@ export function MayaConversation({ className }: { className?: string }) {
       setConversation(previous => ({
         messages: [
           ...previous.messages,
-          { role: "assistant", content: response.reply, resources: response.resources, crisisContacts: response.crisisContacts, degraded: response.degraded },
+          { role: "assistant", content: response.reply, resources: response.resources, crisisContacts: response.crisisContacts, degraded: response.degraded, planSuggestions: response.planSuggestions },
         ],
         history: response.history ?? previous.history,
         historyToken: response.historyToken ?? previous.historyToken,
@@ -173,6 +194,46 @@ export function MayaConversation({ className }: { className?: string }) {
     setPastOpen(false);
   };
   const forgetPast = () => { setArchive([]); saveArchive([]); setPastOpen(false); };
+
+  /**
+   * Apply one of Maya's plan suggestions (Y3). Uses the same endpoints as
+   * editing by hand, so nothing the model said is trusted beyond the text.
+   */
+  const applySuggestion = async (messageIndex: number, suggestionIndex: number, suggestion: PlanSuggestion) => {
+    if (!suggestion.roadmapId) return;
+    const key = `${messageIndex}-${suggestionIndex}`;
+    setApplying(key);
+    try {
+      const planId = suggestion.roadmapId;
+      const target = suggestion.targetTaskId ?? undefined;
+      if (suggestion.action === "add") {
+        await addTask(planId, { taskText: suggestion.taskText, timeframe: suggestion.timeframe, whyItMatters: suggestion.why, resourceId: suggestion.resourceId });
+      } else if (suggestion.action === "replace" && target) {
+        await addTask(planId, { taskText: suggestion.taskText, timeframe: suggestion.timeframe, whyItMatters: suggestion.why, resourceId: suggestion.resourceId, afterTaskId: target });
+        await deleteTask(target);
+      } else if (suggestion.action === "split" && target) {
+        let after = target;
+        for (const step of suggestion.steps) {
+          const created = await addTask(planId, { taskText: step, timeframe: suggestion.timeframe, resourceId: suggestion.resourceId, afterTaskId: after });
+          after = created.id;
+        }
+        await deleteTask(target);
+      } else if (suggestion.action === "remove" && target) {
+        await deleteTask(target);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["roadmap"] });
+      await queryClient.invalidateQueries({ queryKey: ["roadmaps"] });
+      setConversation(previous => ({
+        ...previous,
+        messages: previous.messages.map((message, index) => index === messageIndex ? { ...message, applied: [...(message.applied ?? []), suggestionIndex] } : message),
+      }));
+      toast.success(suggestion.action === "remove" ? "Removed from your plan." : "Your plan is updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't change the plan just now.");
+    } finally {
+      setApplying(null);
+    }
+  };
 
   return (
     <div className={cn("flex min-h-[60vh] flex-col", className)}>
@@ -236,6 +297,44 @@ export function MayaConversation({ className }: { className?: string }) {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            {message.planSuggestions && message.planSuggestions.length > 0 && (
+              <div className="mt-2 flex w-full max-w-[88%] flex-col gap-2 lg:max-w-[76%]">
+                {message.planSuggestions.map((suggestion, suggestionIndex) => {
+                  const done = message.applied?.includes(suggestionIndex);
+                  const key = `${index}-${suggestionIndex}`;
+                  return (
+                    <div key={key} className="rounded-md border border-brand/40 bg-brand-soft/40 px-4 py-3">
+                      <p className="text-eyebrow text-brand">{SUGGESTION_LABEL[suggestion.action]}</p>
+                      {suggestion.action === "split" ? (
+                        <ol className="mt-1.5 list-decimal space-y-0.5 pl-5 text-[15px] text-ink">
+                          {suggestion.steps.map(step => <li key={step}>{step}</li>)}
+                        </ol>
+                      ) : suggestion.action !== "remove" && (
+                        <p className="mt-1 text-[15px] font-semibold text-ink">{suggestion.taskText}</p>
+                      )}
+                      {suggestion.why && <p className="mt-1 text-[13px] text-ink-soft">{suggestion.why}</p>}
+                      <div className="mt-2.5">
+                        {done ? (
+                          <span className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-green"><Check className="size-4" /> Done · <Link to="/roadmap" className="underline">see my plan</Link></span>
+                        ) : suggestion.roadmapId ? (
+                          <button
+                            type="button"
+                            disabled={applying !== null}
+                            onClick={() => void applySuggestion(index, suggestionIndex, suggestion)}
+                            className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-brand px-3.5 text-[14px] font-semibold text-white hover:bg-brand-deep disabled:opacity-50"
+                          >
+                            {applying === key ? <Loader2 className="size-4 animate-spin" /> : <ListPlus className="size-4" />}
+                            {SUGGESTION_BUTTON[suggestion.action]}
+                          </button>
+                        ) : (
+                          <Link to="/roadmap" className="inline-flex min-h-10 items-center gap-1.5 text-[14px] font-semibold text-brand hover:underline"><ListPlus className="size-4" /> Start a plan to add this</Link>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
             {message.resources && message.resources.length > 0 && (

@@ -138,8 +138,22 @@ export interface CrisisContact {
   hours: string;
 }
 
+/** A change Maya proposes to the plan (Y3). Nothing happens until the person taps it. */
+export interface PlanSuggestion {
+  action: "add" | "replace" | "split" | "remove";
+  targetTaskId: number | null;
+  taskText: string;
+  steps: string[];
+  timeframe: RoadmapTask["timeframe"];
+  resourceId: number | null;
+  why: string;
+  /** The plan the suggestion was made against; null when the person has no plan yet. */
+  roadmapId: number | null;
+}
+
 export interface ChatResponse {
   reply: string;
+  planSuggestions?: PlanSuggestion[];
   /**
    * The canonical conversation as the server recorded it, plus a token proving
    * the server produced it. Send both back on the next turn — without the token

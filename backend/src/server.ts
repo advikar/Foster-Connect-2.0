@@ -14,6 +14,7 @@ import {
   ProviderError,
   type GroundedResource,
   type HistoryMessage,
+  type PlanContext,
 } from "./services/ai.service";
 import { assessSafety, assessFields, type SafetyAssessment } from "./services/safety";
 import { buildAllowList, sanitiseReply, signHistory, verifyHistory, type SignedMessage } from "./services/grounding";
@@ -699,6 +700,15 @@ async function groundedForConversation(
   return [...searched, ...extra].slice(0, limit);
 }
 
+/** The session's most recent plan, for Maya to suggest changes to (Y3). */
+async function currentPlanFor(sessionId: string): Promise<PlanContext | null> {
+  const plan = await db.execute({ sql: "SELECT id FROM roadmaps WHERE session_id=? ORDER BY updated_at DESC LIMIT 1", args: [sessionId] });
+  if (!plan.rows[0]) return null;
+  const id = Number(plan.rows[0].id);
+  const tasks = await db.execute({ sql: "SELECT id, task_text, timeframe, status FROM roadmap_tasks WHERE roadmap_id=? AND session_id=? ORDER BY task_order", args: [id, sessionId] });
+  return { id, tasks: tasks.rows.map(row => ({ id: Number(row.id), taskText: rowString(row, "task_text"), timeframe: rowString(row, "timeframe"), status: rowString(row, "status") })) };
+}
+
 app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
   const input = z.object({
     message: z.string().trim().min(1).max(2000),
@@ -744,7 +754,8 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
   // Everything below may fail. A young person must still get something useful.
   try {
     const grounded = await groundedForConversation(input.message, history, { county: input.county, age: input.age });
-    const result = await getNavigatorResponse(input.message, history.map(({ role, content }) => ({ role, content })) as HistoryMessage[], grounded);
+    const plan = await currentPlanFor(req.sessionId!);
+    const result = await getNavigatorResponse(input.message, history.map(({ role, content }) => ({ role, content })) as HistoryMessage[], grounded, plan);
 
     // Resource IDs were already filtered. This checks the prose itself: any
     // phone number or link the model invented is removed before it is shown.
@@ -755,6 +766,14 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
     }
 
     const reply = assessment.level === "concern" ? `${cleanReply}\n\n${CONCERN_NOTE}` : cleanReply;
+    // Suggestion text gets the same contact check as the reply.
+    const planSuggestions = result.planSuggestions.map(suggestion => ({
+      ...suggestion,
+      taskText: sanitiseReply(suggestion.taskText, allowed).reply,
+      steps: suggestion.steps.map(step => sanitiseReply(step, allowed).reply),
+      why: sanitiseReply(suggestion.why, allowed).reply,
+      roadmapId: plan?.id ?? null,
+    }));
     const nextHistory: SignedMessage[] = [
       ...history,
       { role: "user" as const, content: input.message },
@@ -764,6 +783,7 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
     res.json({
       ...result,
       reply,
+      planSuggestions,
       resources: await resourcesByIds(result.resourceIds),
       safetyMode: false,
       crisisContacts: assessment.level === "concern" ? contactsFor(["general"]) : [],

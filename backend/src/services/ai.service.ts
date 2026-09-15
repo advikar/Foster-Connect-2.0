@@ -46,12 +46,66 @@ const suggestedTaskSchema = z.object({
   motivationNote: z.string().max(240).default(""),
 });
 
+/** A change Maya proposes to the plan (Y3). Applied only when the person taps it. */
+const planSuggestionSchema = z.object({
+  action: z.enum(["add", "replace", "split", "remove"]),
+  targetTaskId: z.number().int().positive().nullable().default(null),
+  taskText: z.string().max(280).default(""),
+  steps: z.array(z.string().min(2).max(280)).max(6).default([]),
+  timeframe: z.enum(["This Week", "30 Days", "3-6 Months", "6-12 Months"]).default("This Week"),
+  resourceId: z.number().int().positive().nullable().default(null),
+  why: z.string().max(240).default(""),
+});
+export type PlanSuggestion = z.infer<typeof planSuggestionSchema>;
+
+/** What the navigator is told about the person's current plan. */
+export interface PlanContext {
+  id: number;
+  tasks: { id: number; taskText: string; timeframe: string; status: string }[];
+}
+
 const navigatorResponseSchema = z.object({
   reply: z.string().min(1).max(4000),
   resourceIds: z.array(z.number().int().positive()).max(6).default([]),
   needsClarification: z.boolean().default(false),
   suggestedTasks: z.array(suggestedTaskSchema).max(5).default([]),
+  planSuggestions: z.array(planSuggestionSchema).max(4).default([]),
 });
+
+function planToContext(plan?: PlanContext | null) {
+  if (!plan) return "no plan yet — the person can start one from My plan; you may still suggest \"add\" steps.";
+  if (!plan.tasks.length) return "a plan with no steps yet.";
+  return JSON.stringify(plan.tasks.map(task => ({ taskId: task.id, text: task.taskText, timeframe: task.timeframe, status: task.status })));
+}
+
+/**
+ * Keep only suggestions the app can act on safely: listed resources, real
+ * task ids, and the fields each action needs. Text goes through the same
+ * ID-stripping as the reply.
+ */
+function groundPlanSuggestions(suggestions: PlanSuggestion[], allowed: Set<number>, plan: PlanContext | null | undefined, clean: (text: string) => string): PlanSuggestion[] {
+  const taskIds = new Set((plan?.tasks ?? []).map(task => task.id));
+  const existing = new Set((plan?.tasks ?? []).map(task => task.taskText.trim().toLowerCase()));
+  return suggestions.flatMap(suggestion => {
+    const resourceId = suggestion.resourceId && allowed.has(suggestion.resourceId) ? suggestion.resourceId : null;
+    const taskText = clean(suggestion.taskText).trim();
+    const steps = suggestion.steps.map(step => clean(step).trim()).filter(step => step.length >= 2);
+    const target = suggestion.targetTaskId && taskIds.has(suggestion.targetTaskId) ? suggestion.targetTaskId : null;
+    const base = { ...suggestion, resourceId, taskText, steps, targetTaskId: target, why: clean(suggestion.why).trim() };
+    switch (suggestion.action) {
+      case "add":
+        return taskText.length >= 3 && !existing.has(taskText.toLowerCase()) ? [base] : [];
+      case "replace":
+        return target && taskText.length >= 3 ? [base] : [];
+      case "split":
+        return target && steps.length >= 2 ? [base] : [];
+      case "remove":
+        return target ? [base] : [];
+      default:
+        return [];
+    }
+  }).slice(0, 3);
+}
 
 const roadmapTaskSchema = z.object({
   taskText: z.string().min(2).max(280),
@@ -198,10 +252,13 @@ export async function getNavigatorResponse(
   message: string,
   history: HistoryMessage[],
   resources: GroundedResource[],
+  plan?: PlanContext | null,
 ) {
   if (!hasValidApiKey()) throw new Error("AI service is not configured");
   const allowed = new Set(resources.map(resource => resource.id));
-  const systemPrompt = SYSTEM_PROMPTS.NAVIGATOR.replace("{{contextText}}", resourcesToContext(resources));
+  const systemPrompt = SYSTEM_PROMPTS.NAVIGATOR
+    .replace("{{contextText}}", resourcesToContext(resources))
+    .replace("{{planText}}", planToContext(plan));
   const result = await callLLM(
     [
       { role: "system", content: systemPrompt },
@@ -218,6 +275,7 @@ export async function getNavigatorResponse(
     resourceIds: [...new Set(result.resourceIds.filter(id => allowed.has(id)))],
     suggestedTasks: dropUnknownResourceTasks(result.suggestedTasks, allowed)
       .map(task => ({ ...task, taskText: withoutIds(task.taskText), motivationNote: withoutIds(task.motivationNote) })),
+    planSuggestions: groundPlanSuggestions(result.planSuggestions, allowed, plan, withoutIds),
   };
 }
 

@@ -310,3 +310,37 @@ test("partner guide sends the earlier turns of the conversation to the model", a
   assert.deepEqual(sent.slice(1, 3), history);
   assert.deepEqual(sent.at(-1), { role: "user", content: "what did you say to start with?" });
 });
+
+// ─── Plan suggestions (Y3) ───────────────────────────────────────────────────
+
+test("plan suggestions keep only actionable ones: listed resources, real task ids, required fields", withProvider(
+  async () => jsonReply({
+    reply: "You could add that.", resourceIds: [1], needsClarification: false, suggestedTasks: [],
+    planSuggestions: [
+      { action: "add", taskText: "Call Org 1 and ask about intake (1)", resourceId: 1, timeframe: "This Week", why: "It is listed." },
+      { action: "add", taskText: "Get a state ID", resourceId: 777, timeframe: "This Week" },
+      { action: "remove", targetTaskId: 999 },
+      { action: "split", targetTaskId: 43, steps: ["Gather your ID", "Call them", "Visit on Monday"] },
+    ],
+  }),
+  async () => {
+    const plan = { id: 7, tasks: [
+      { id: 42, taskText: "Get a state ID", timeframe: "This Week", status: "not_started" },
+      { id: 43, taskText: "Apply for housing", timeframe: "30 Days", status: "not_started" },
+    ] };
+    const result = await getNavigatorResponse("can you add that?", [], RESOURCES, plan);
+    const actions = result.planSuggestions.map(item => `${item.action}:${item.targetTaskId ?? item.taskText}`);
+    // The duplicate of an existing step and the unknown task id are dropped; the resource id is stripped from the text.
+    assert.deepEqual(actions, ["add:Call Org 1 and ask about intake", "split:43"]);
+    assert.equal(result.planSuggestions[0].resourceId, 1, "listed resource kept");
+    assert.deepEqual(result.planSuggestions[1].steps, ["Gather your ID", "Call them", "Visit on Monday"]);
+  },
+));
+
+test("plan suggestions are empty when the model returns none", withProvider(
+  async () => jsonReply({ reply: "ok", resourceIds: [], needsClarification: false, suggestedTasks: [] }),
+  async () => {
+    const result = await getNavigatorResponse("hi", [], RESOURCES, null);
+    assert.deepEqual(result.planSuggestions, []);
+  },
+));
