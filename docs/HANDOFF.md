@@ -1,5 +1,15 @@
 # Current handoff
 
+## 2026-09-15 — Fixes backlog worked through (checkpoint 3)
+
+- Task: user's list of UI, youth and partner fixes ("make doc and work one by one"). Doc: `docs/FIXES.md` (every item, status, decisions still open). Owner: Claude Code (Fable 5.1).
+- Done, one commit each: Y1 crisis dialog scrolls from the top; Y2 Start a new plan; U1 accent toggle (teal/deep blue, `?accent=blue`, footer switch in preview) + design board https://claude.ai/artifact/F94E8b5RUzk9arMmDN515V; U2 interim FC monogram mark + favicon; Y7 "something else" free text on every intake question and "not sure yet"; Y9 New chat + past chats (localStorage, max 5); Y10 multi-select county/category on API and Find; Y11 `kind` = service|information (guides show "Open the guide", no empty headings; add-resource switch); Y4 plan steps add/reword/move/re-time/remove with undo (`POST /api/roadmaps/:id/tasks`, `DELETE /api/tasks/:id`, wider PATCH); Y3 Maya plan suggestions (CURRENT_PLAN in the prompt, `planSuggestions` grounded and capped, one-tap cards); P1–P3 public `/partners` landing, single sign-in gate with `?next=` and `?as=reviewer`, workspace shell only when signed in, youth links say "About & partners"; P4–P7 `resource_changes` table, `fields_na` + `recheck_at` columns, `GET /api/partner/resources` (missing-field/stale/county/category filters), propose/apply/review routes, Coverage bars open a drawer, multi-select regions, `/partners/gaps` tab, `ResourceEditor`, proposals with proposer email in the Review queue, youth "No phone line — confirmed" wording, re-check date drives "Needs re-check".
+- Open decisions in FIXES.md: U1 default accent; U2 the reference image never arrived (send it); Y5 badges (recommend no); Y6 optional sign-in (recommend a passcode design later); Y8 name ideas listed.
+- Checks: backend 70/70; frontend type-check, ESLint (2 pre-existing fast-refresh warnings), build; browser at 1024/375 for every item (see FIXES.md notes). Groq rate limit: a 429 now waits and retries once.
+- Local throwaway rows (partners 9001/9002, their sessions, changes, audit rows, the test plan, test edits on listings 177/267) deleted after testing.
+- Follow-ups after deploy: run on Turso `UPDATE resources SET kind='information' WHERE title LIKE '%(PDF)%'`; reviewer signs in on the live site and tries Coverage → bar → edit, and Fill the gaps.
+- Ownership released: yes.
+
 ## 2026-09-15 — Live audit: AI memory + UI/usability fixes (checkpoint 1)
 
 - Task: user asked for a full audit of https://advikar.github.io/foster-connect/ and /partners/guide and improvements, starting with "AI should remember the conversation until it is cleared". Owner: Claude Code (Fable 5.1).
