@@ -21,6 +21,7 @@ import { buildAllowList, sanitiseReply, signHistory, verifyHistory, type SignedM
 import { canReview, hashPassword, hashToken, newSessionToken, normaliseEmail, passwordProblem, verifyPassword, type Partner } from "./services/partners";
 import { contactsFor, CRISIS_CONTACTS, CRISIS_REPLIES, CONCERN_NOTE, type CrisisCategory } from "./config/crisis";
 import { audit, executeSerialised, persistRoadmap, publishSubmission } from "./services/persistence";
+import { openSession, passcodeLookup, passcodeProblem, sealSession } from "./services/passcode";
 
 dotenv.config();
 
@@ -501,6 +502,13 @@ async function initDb() {
   // Existing databases predate intake_json. SQLite has no ADD COLUMN IF NOT
   // EXISTS, and re-adding throws, so the failure is expected and ignored.
   for (const statement of [
+    `CREATE TABLE IF NOT EXISTS session_passcodes (
+      lookup TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL UNIQUE,
+      salt TEXT NOT NULL, iv TEXT NOT NULL, cipher TEXT NOT NULL, tag TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_used_at TEXT
+    )`,
     "ALTER TABLE roadmaps ADD COLUMN intake_json TEXT",
     "ALTER TABLE resource_submissions ADD COLUMN reviewed_by TEXT",
     "ALTER TABLE resource_submissions ADD COLUMN resource_id INTEGER",
@@ -1047,8 +1055,57 @@ app.delete("/api/session", requireSession, asyncRoute(async (req, res) => {
     { sql: "DELETE FROM roadmaps WHERE session_id=?", args: [req.sessionId!] },
     { sql: "DELETE FROM saved_resources WHERE session_id=?", args: [req.sessionId!] },
     { sql: "DELETE FROM resource_reports WHERE session_id=?", args: [req.sessionId!] },
+    { sql: "DELETE FROM session_passcodes WHERE session_id=?", args: [req.sessionId!] },
   ], "write");
   res.status(204).send();
+}));
+
+/**
+ * "Save this with a passcode" (Y6). See services/passcode.ts for the model.
+ * PASSCODE_SECRET (or CHAT_SIGNING_SECRET) keys the lookup; without either,
+ * a per-process key means passcodes stop working after a restart, which is
+ * why production refuses to start without CHAT_SIGNING_SECRET already.
+ */
+const PASSCODE_SECRET = process.env.PASSCODE_SECRET || process.env.CHAT_SIGNING_SECRET || crypto.randomBytes(32).toString("hex");
+
+app.get("/api/session/passcode", requireSession, asyncRoute(async (req, res) => {
+  const row = (await db.execute({ sql: "SELECT created_at, last_used_at FROM session_passcodes WHERE session_id=?", args: [req.sessionId!] })).rows[0];
+  res.json(row ? { enabled: true, createdAt: String(row.created_at), lastUsedAt: row.last_used_at ? String(row.last_used_at) : null } : { enabled: false });
+}));
+
+app.post("/api/session/passcode", requireSession, asyncRoute(async (req, res) => {
+  const { passcode } = z.object({ passcode: z.string().max(200) }).parse(req.body);
+  const problem = passcodeProblem(passcode);
+  if (problem) { res.status(400).json({ error: problem }); return; }
+  const lookup = passcodeLookup(PASSCODE_SECRET, passcode);
+  const taken = (await db.execute({ sql: "SELECT session_id FROM session_passcodes WHERE lookup=?", args: [lookup] })).rows[0];
+  if (taken && String(taken.session_id) !== req.sessionId) {
+    res.status(409).json({ error: "Someone already uses that passcode. Add a word or a number to make it yours." });
+    return;
+  }
+  const sealed = await sealSession(passcode, req.sessionId!);
+  await db.batch([
+    { sql: "DELETE FROM session_passcodes WHERE session_id=?", args: [req.sessionId!] },
+    { sql: "INSERT INTO session_passcodes(lookup, session_id, salt, iv, cipher, tag) VALUES (?, ?, ?, ?, ?, ?)", args: [lookup, req.sessionId!, sealed.salt, sealed.iv, sealed.cipher, sealed.tag] },
+  ], "write");
+  res.status(201).json({ enabled: true });
+}));
+
+app.delete("/api/session/passcode", requireSession, asyncRoute(async (req, res) => {
+  await db.execute({ sql: "DELETE FROM session_passcodes WHERE session_id=?", args: [req.sessionId!] });
+  res.status(204).send();
+}));
+
+// Guessing is the whole risk here, so restores are tightly limited per address.
+app.use("/api/session/restore", rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: "draft-7", legacyHeaders: false }));
+app.post("/api/session/restore", asyncRoute(async (req, res) => {
+  const { passcode } = z.object({ passcode: z.string().min(1).max(200) }).parse(req.body);
+  const row = (await db.execute({ sql: "SELECT * FROM session_passcodes WHERE lookup=?", args: [passcodeLookup(PASSCODE_SECRET, passcode)] })).rows[0];
+  const sessionId = row ? await openSession(passcode, { salt: rowString(row, "salt"), iv: rowString(row, "iv"), cipher: rowString(row, "cipher"), tag: rowString(row, "tag") }) : null;
+  if (!sessionId) { res.status(404).json({ error: "No plan matches that passcode. Check the spelling, or it may never have been saved." }); return; }
+  await db.execute({ sql: "UPDATE session_passcodes SET last_used_at=CURRENT_TIMESTAMP WHERE session_id=?", args: [sessionId] });
+  const plans = (await db.execute({ sql: "SELECT COUNT(*) AS n FROM roadmaps WHERE session_id=?", args: [sessionId] })).rows[0];
+  res.json({ sessionId, plans: Number(plans?.n ?? 0) });
 }));
 
 /**

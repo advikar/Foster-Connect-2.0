@@ -139,3 +139,8 @@ Nothing in the code is tied to Groq, Render or Turso's dashboard.
 - No uptime monitoring. Point any free pinger at `/api/health`.
 - No password reset for partner accounts. Reset by re-running the partner
   script for that email, which sets a new password and revokes sessions.
+
+
+## Passcodes (Y6)
+
+`PASSCODE_SECRET` keys the passcode lookup (see `docs/PASSCODE.md`). If unset, `CHAT_SIGNING_SECRET` is used, so nothing extra is required; changing either secret invalidates every saved passcode.

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PasscodeCard } from "@/components/safety/PasscodeCard";
 import { deleteSessionData, exportSessionData } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -65,7 +66,9 @@ export function PrivacyPage() {
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
             <span>
               All of it is attached to a random ID kept in this browser — not to you. We can&apos;t
-              tell who you are, and we can&apos;t get your plan back if you clear your browser.
+              tell who you are, and we can&apos;t get your plan back if you clear your browser — unless you
+              saved it with a passcode (below), which opens the same plan on another device. The passcode is
+              never stored where anyone could read it, so it can&apos;t be reset either.
             </span>
           </li>
           <li className="flex gap-3">
@@ -79,6 +82,8 @@ export function PrivacyPage() {
           </li>
         </ul>
       </section>
+
+      <div className="mt-9"><PasscodeCard /></div>
 
       <section className="mt-9 rounded-md bg-sand-soft p-6">
         <h2 className="font-display text-[22px] font-bold text-ink">

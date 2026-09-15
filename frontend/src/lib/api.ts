@@ -254,6 +254,25 @@ export function submitResource(input: Record<string, string>) {
 export async function exportSessionData() {
   return request<Record<string, unknown>>("/api/session/export", {}, true);
 }
+/** "Save this with a passcode" (Y6): open the same anonymous session on another device. */
+export function fetchPasscodeStatus() {
+  return request<{ enabled: boolean; createdAt?: string; lastUsedAt?: string | null }>("/api/session/passcode", {}, true);
+}
+export function setPasscode(passcode: string) {
+  return request<{ enabled: true }>("/api/session/passcode", { method: "POST", body: JSON.stringify({ passcode }) }, true);
+}
+export function forgetPasscode() {
+  return request<void>("/api/session/passcode", { method: "DELETE" }, true);
+}
+export function restoreWithPasscode(passcode: string) {
+  return request<{ sessionId: string; plans: number }>("/api/session/restore", { method: "POST", body: JSON.stringify({ passcode }) });
+}
+/** Switch this browser to a restored session. The old anonymous id is simply dropped; nothing is deleted. */
+export function adoptSession(sessionId: string) {
+  localStorage.setItem(SESSION_KEY, sessionId);
+  localStorage.removeItem(MAYA_CONVERSATION_KEY);
+  localStorage.removeItem(MAYA_ARCHIVE_KEY);
+}
 export async function deleteSessionData() {
   await request<void>("/api/session", { method: "DELETE" }, true);
   localStorage.removeItem(SESSION_KEY);

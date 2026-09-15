@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ChevronDown, Loader2, PencilLine, Phone, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepCard } from "@/components/primitives/StepCard";
+import { PasscodeCard } from "@/components/safety/PasscodeCard";
 import { describeChecked } from "@/lib/checked";
 import { IntakeConversation } from "@/components/roadmap/IntakeConversation";
 import { useNova } from "@/contexts/NovaContext";
@@ -72,11 +73,15 @@ export function RoadmapPage() {
   }
   if (startingNew || !activeId || !roadmap) {
     return (
-      <IntakeConversation
-        onSubmit={create}
-        building={building}
-        onCancel={startingNew && roadmaps[0] ? () => { setStartingNew(false); setActiveId(roadmaps[0].id); } : undefined}
-      />
+      <>
+        <IntakeConversation
+          onSubmit={create}
+          building={building}
+          onCancel={startingNew && roadmaps[0] ? () => { setStartingNew(false); setActiveId(roadmaps[0].id); } : undefined}
+        />
+        {/* Someone on a new device with a passcode has no plan here yet; this is where they look for it. */}
+        {!roadmaps[0] && <div className="container-wide pb-10"><div className="max-w-[760px] border-t border-rule pt-5"><PasscodeCard compact /></div></div>}
+      </>
     );
   }
   return <JourneyPlan roadmap={roadmap} onNew={() => { setStartingNew(true); setActiveId(null); }} />;
@@ -271,8 +276,9 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
             </ul>
           </section>
         )}
+        <PasscodeCard compact />
         <div className="text-[14px] leading-relaxed text-ink-faint">
-          <p>This plan is kept for this browser only. Clearing your browser data removes it.</p>
+          <p>This plan is kept for this browser only unless you save it with a passcode. Clearing your browser data removes it here.</p>
           <div className="mt-1 flex flex-wrap gap-4">
             <button type="button" onClick={onNew} className="inline-flex min-h-9 items-center gap-1 text-brand hover:underline"><PencilLine className="size-3.5" /> Start a new plan</button>
             <Link to="/privacy" className="inline-flex min-h-9 items-center text-brand hover:underline">Download or delete my data</Link>
