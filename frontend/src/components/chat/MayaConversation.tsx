@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send, ShieldCheck } from "lucide-react";
+import { ChevronDown, Loader2, MessageSquarePlus, Send, ShieldCheck } from "lucide-react";
 import { ResourceRow } from "@/components/resources/ResourceRow";
 import { useMaya } from "@/contexts/MayaContext";
-import { MAYA_CONVERSATION_KEY, sendChat, type ChatMessageInput, type CrisisContact, type ResourceItem } from "@/lib/api";
+import { MAYA_ARCHIVE_KEY, MAYA_CONVERSATION_KEY, sendChat, type ChatMessageInput, type CrisisContact, type ResourceItem } from "@/lib/api";
 import { dialString } from "@/lib/crisis";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,31 @@ interface StoredConversation {
   messages: DisplayMessage[];
   history: ChatMessageInput[];
   historyToken?: string;
+}
+
+/** A past chat, kept on this device until cleared (Y9). Costs nothing: Maya is only called when a message is sent. */
+interface ArchivedConversation extends StoredConversation {
+  id: string;
+  title: string;
+  savedAt: string;
+}
+const MAX_ARCHIVED = 5;
+
+function loadArchive(): ArchivedConversation[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(MAYA_ARCHIVE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter(item => item && Array.isArray(item.messages)) : [];
+  } catch { return []; }
+}
+function saveArchive(items: ArchivedConversation[]) {
+  try {
+    if (items.length) window.localStorage.setItem(MAYA_ARCHIVE_KEY, JSON.stringify(items));
+    else window.localStorage.removeItem(MAYA_ARCHIVE_KEY);
+  } catch { /* fine */ }
+}
+function titleOf(conversation: StoredConversation) {
+  const first = conversation.messages.find(message => message.role === "user")?.content ?? "Chat";
+  return first.length > 60 ? `${first.slice(0, 57)}…` : first;
 }
 
 const GREETING: DisplayMessage = {
@@ -64,6 +89,8 @@ function loadConversation(): StoredConversation {
 export function MayaConversation({ className }: { className?: string }) {
   const { pendingPrompt, clearPendingPrompt } = useMaya();
   const [conversation, setConversation] = useState<StoredConversation>(loadConversation);
+  const [archive, setArchive] = useState<ArchivedConversation[]>(loadArchive);
+  const [pastOpen, setPastOpen] = useState(false);
   const { messages, history, historyToken } = conversation;
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -128,8 +155,57 @@ export function MayaConversation({ className }: { className?: string }) {
 
   const fresh = messages.length === 1;
 
+  /** Put the current thread away (keeping its signed history) and start clean. */
+  const archiveCurrent = (): ArchivedConversation[] => {
+    if (fresh) return archive;
+    const entry: ArchivedConversation = { ...conversation, id: `${Date.now()}`, title: titleOf(conversation), savedAt: new Date().toISOString() };
+    return [entry, ...archive].slice(0, MAX_ARCHIVED);
+  };
+  const newChat = () => {
+    const next = archiveCurrent();
+    setArchive(next); saveArchive(next);
+    clearConversation();
+  };
+  const reopen = (item: ArchivedConversation) => {
+    const kept = archiveCurrent().filter(entry => entry.id !== item.id);
+    setArchive(kept); saveArchive(kept);
+    setConversation({ messages: item.messages, history: item.history, historyToken: item.historyToken });
+    setPastOpen(false);
+  };
+  const forgetPast = () => { setArchive([]); saveArchive([]); setPastOpen(false); };
+
   return (
     <div className={cn("flex min-h-[60vh] flex-col", className)}>
+      {(archive.length > 0 || !fresh) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule px-4 py-2 text-[13px] lg:px-8">
+          {archive.length > 0 ? (
+            <button type="button" onClick={() => setPastOpen(value => !value)} aria-expanded={pastOpen} className="inline-flex min-h-9 items-center gap-1 text-ink-soft hover:text-ink">
+              Past chats · {archive.length} <ChevronDown className={cn("size-4 transition-transform", pastOpen && "rotate-180")} />
+            </button>
+          ) : <span />}
+          {!fresh && (
+            <button type="button" onClick={newChat} className="inline-flex min-h-9 items-center gap-1.5 font-semibold text-brand hover:underline">
+              <MessageSquarePlus className="size-4" /> New chat
+            </button>
+          )}
+        </div>
+      )}
+      {pastOpen && archive.length > 0 && (
+        <div className="border-b border-rule bg-sunk px-4 py-3 lg:px-8">
+          <ul className="divide-y divide-rule">
+            {archive.map(item => (
+              <li key={item.id} className="flex items-center justify-between gap-3 py-2">
+                <button type="button" onClick={() => reopen(item)} className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-[15px] font-medium text-ink">{item.title}</p>
+                  <p className="text-[12px] text-ink-faint">{new Date(item.savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {Math.max(item.messages.length - 1, 0)} messages · Maya remembers it</p>
+                </button>
+                <span className="text-[13px] text-brand">Open</span>
+              </li>
+            ))}
+          </ul>
+          <button type="button" onClick={forgetPast} className="mt-2 text-[13px] text-ink-faint hover:text-crisis hover:underline">Delete all past chats</button>
+        </div>
+      )}
       <div ref={listRef} aria-live="polite" className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-6 lg:px-8">
         {messages.map((message, index) => (
           <div key={index} className={cn("flex flex-col", message.role === "user" ? "items-end" : "items-start")}>

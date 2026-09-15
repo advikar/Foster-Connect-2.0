@@ -123,6 +123,7 @@ export interface ChatMessageInput { role: "user" | "assistant"; content: string;
 
 /** Where each AI conversation is kept in this browser, so "Delete my data" and sign-out can clear it. */
 export const MAYA_CONVERSATION_KEY = "fc-maya-conversation";
+export const MAYA_ARCHIVE_KEY = "fc-maya-archive";
 export const GUIDE_CONVERSATION_KEY = "fc-partner-guide-conversation";
 
 export interface CrisisContact {
@@ -229,6 +230,7 @@ export async function deleteSessionData() {
   await request<void>("/api/session", { method: "DELETE" }, true);
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(MAYA_CONVERSATION_KEY);
+  localStorage.removeItem(MAYA_ARCHIVE_KEY);
   try { sessionStorage.removeItem("fc-maya-messages"); } catch { /* older key */ }
 }
 
