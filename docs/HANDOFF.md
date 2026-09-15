@@ -1,5 +1,13 @@
 # Current handoff
 
+## 2026-09-15 — Live audit: AI memory + UI/usability fixes (active)
+
+- Task: user asked for a full audit of https://advikar.github.io/foster-connect/ and /partners/guide and improvements, starting with "AI should remember the conversation until it is cleared". Owner: Claude Code (Fable 5.1).
+- Found live (desktop + 375px): Maya has no memory — two-turn test ("My name is Jordan… bus pass" then "What was my name?") → "I don't have your name". Cause: the browser sends its own display list (starting with the local greeting) as `history`, but the server only signed the history it returned, so `verifyHistory` fails every turn and drops context; the token also lived in a ref that reset on navigation. Staff guide is single-shot by design. Other findings: organisation line duplicates the title on most rows; "Housing near you" with no county shows crisis text lines; degraded reply text shown twice; desktop Ask panel scrolls the page instead of the thread.
+- Intended files: backend `services/grounding.ts` (SignedMessage.resourceIds), `server.ts` (/api/chat, /api/partner/guide), `services/ai.service.ts`, `config/prompts.ts`, tests; frontend `components/chat/MayaConversation.tsx`, `pages/AskPage.tsx`, `pages/PartnerPages.tsx`, `lib/api.ts`, `components/resources/ResourceRow.tsx`, `pages/HomePage.tsx`, `pages/PrivacyPage.tsx`.
+- Next checkpoint: backend tests green, frontend type-check/build, browser check locally, push, verify live.
+- Ownership released: no.
+
 ## 2026-09-15 — Partner pages checked live; Markdown in AI replies (checkpoint 2)
 
 - Owner: Claude Code (Opus 5). User signed in as reviewer in a Chrome tab (partner token is per-tab sessionStorage, so an agent tab needs its own sign-in); pages checked read-only there, nothing approved/rejected/submitted.
