@@ -882,6 +882,53 @@ app.get("/api/roadmaps/:id", requireSession, asyncRoute(async (req, res) => {
   res.json({ ...mapRoadmap(roadmapRows.rows[0]), tasks, recommendedResources: resources });
 }));
 
+const TIMEFRAMES = ["This Week", "30 Days", "3-6 Months", "6-12 Months"] as const;
+
+/**
+ * Add a step by hand (Y4). Also used when Maya suggests a step and the person
+ * accepts it. A resourceId must be a published listing; nothing else is trusted.
+ */
+app.post("/api/roadmaps/:id/tasks", requireSession, asyncRoute(async (req, res) => {
+  const roadmapId = z.coerce.number().int().positive().parse(req.params.id);
+  const input = z.object({
+    taskText: z.string().trim().min(3).max(300),
+    timeframe: z.enum(TIMEFRAMES).default("This Week"),
+    whyItMatters: z.string().trim().max(500).optional().default(""),
+    taskCategory: z.string().trim().max(60).optional().default("General"),
+    resourceId: z.number().int().positive().nullable().optional().default(null),
+    /** Put it right after this task (same timeframe) instead of at the end. */
+    afterTaskId: z.number().int().positive().optional(),
+  }).parse(req.body);
+
+  const owner = await db.execute({ sql: "SELECT id FROM roadmaps WHERE id=? AND session_id=?", args: [roadmapId, req.sessionId!] });
+  if (!owner.rows[0]) { res.status(404).json({ error: "Roadmap not found" }); return; }
+  let resourceId: number | null = null;
+  if (input.resourceId) {
+    const listing = await resourcesByIds([input.resourceId]);
+    resourceId = listing[0] ? input.resourceId : null;
+  }
+  const ordered = await db.execute({ sql: "SELECT id, task_order FROM roadmap_tasks WHERE roadmap_id=? AND session_id=? ORDER BY task_order", args: [roadmapId, req.sessionId!] });
+  const ids = ordered.rows.map(row => Number(row.id));
+  const at = input.afterTaskId && ids.includes(input.afterTaskId) ? ids.indexOf(input.afterTaskId) + 1 : ids.length;
+  // Open a gap at `at` so the new step lands exactly where asked.
+  await db.execute({ sql: "UPDATE roadmap_tasks SET task_order = task_order + 1 WHERE roadmap_id=? AND session_id=? AND task_order >= ?", args: [roadmapId, req.sessionId!, at] });
+  const inserted = await db.execute({
+    sql: `INSERT INTO roadmap_tasks (roadmap_id, session_id, task_text, task_category, timeframe, why_it_matters, motivation_note, resource_id, task_order)
+          VALUES (?, ?, ?, ?, ?, ?, '', ?, ?)`,
+    args: [roadmapId, req.sessionId!, input.taskText, input.taskCategory, input.timeframe, input.whyItMatters, resourceId, at],
+  });
+  await db.execute({ sql: "UPDATE roadmaps SET updated_at=CURRENT_TIMESTAMP WHERE id=?", args: [roadmapId] });
+  const row = await db.execute({ sql: "SELECT * FROM roadmap_tasks WHERE id=?", args: [Number(inserted.lastInsertRowid)] });
+  res.status(201).json(mapTask(row.rows[0]));
+}));
+
+app.delete("/api/tasks/:id", requireSession, asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const result = await db.execute({ sql: "DELETE FROM roadmap_tasks WHERE id=? AND session_id=?", args: [id, req.sessionId!] });
+  if (!result.rowsAffected) { res.status(404).json({ error: "Task not found" }); return; }
+  res.status(204).end();
+}));
+
 app.patch("/api/tasks/:id", requireSession, asyncRoute(async (req, res) => {
   const id = z.coerce.number().int().positive().parse(req.params.id);
   const update = z.object({
@@ -889,14 +936,23 @@ app.patch("/api/tasks/:id", requireSession, asyncRoute(async (req, res) => {
     dueDate: z.string().date().nullable().optional(),
     blockerReason: z.string().trim().max(500).nullable().optional(),
     privateNote: z.string().trim().max(1000).nullable().optional(),
+    // Editing by hand (Y4).
+    taskText: z.string().trim().min(3).max(300).optional(),
+    timeframe: z.enum(TIMEFRAMES).optional(),
+    taskOrder: z.number().int().min(0).max(500).optional(),
+    whyItMatters: z.string().trim().max(500).optional(),
   }).refine(value => Object.keys(value).length > 0).parse(req.body);
 
   const fields: string[] = [];
-  const args: (string | null)[] = [];
+  const args: (string | number | null)[] = [];
   if (update.status !== undefined) { fields.push("status=?"); args.push(update.status); fields.push("completed_at=?"); args.push(update.status === "completed" ? new Date().toISOString() : null); }
   if (update.dueDate !== undefined) { fields.push("due_date=?"); args.push(update.dueDate); }
   if (update.blockerReason !== undefined) { fields.push("blocker_reason=?"); args.push(update.blockerReason); }
   if (update.privateNote !== undefined) { fields.push("private_note=?"); args.push(update.privateNote); }
+  if (update.taskText !== undefined) { fields.push("task_text=?"); args.push(update.taskText); }
+  if (update.timeframe !== undefined) { fields.push("timeframe=?"); args.push(update.timeframe); }
+  if (update.taskOrder !== undefined) { fields.push("task_order=?"); args.push(update.taskOrder); }
+  if (update.whyItMatters !== undefined) { fields.push("why_it_matters=?"); args.push(update.whyItMatters); }
   fields.push("updated_at=CURRENT_TIMESTAMP");
   await db.execute({ sql: `UPDATE roadmap_tasks SET ${fields.join(",")} WHERE id=? AND session_id=?`, args: [...args, id, req.sessionId!] });
   const result = await db.execute({ sql: "SELECT * FROM roadmap_tasks WHERE id=? AND session_id=?", args: [id, req.sessionId!] });

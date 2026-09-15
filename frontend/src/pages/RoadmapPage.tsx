@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ChevronDown, Loader2, PencilLine, Phone } from "lucide-react";
+import { ChevronDown, Loader2, PencilLine, Phone, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepCard } from "@/components/primitives/StepCard";
 import { describeChecked } from "@/lib/checked";
@@ -9,9 +9,9 @@ import { IntakeConversation } from "@/components/roadmap/IntakeConversation";
 import { useMaya } from "@/contexts/MayaContext";
 import { dialString } from "@/lib/crisis";
 import {
-  fetchRoadmap, fetchRoadmaps, generateRoadmap, updateTask,
-  type CrisisContact, type Roadmap, type RoadmapDeferredResponse,
-  type RoadmapIntake, type RoadmapTask,
+  addTask, deleteTask, fetchRoadmap, fetchRoadmaps, generateRoadmap, updateTask,
+  type CrisisContact, type NewTask, type Roadmap, type RoadmapDeferredResponse,
+  type RoadmapIntake, type RoadmapTask, type TaskUpdate,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -140,31 +140,79 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
   };
   const programs = roadmap.recommendedResources.filter(resource => ordered.some(task => task.resourceId === resource.id));
 
+  const setTasks = (updater: (tasks: RoadmapTask[]) => RoadmapTask[]) =>
+    queryClient.setQueryData<Roadmap>(["roadmap", roadmap.id], previous => previous ? { ...previous, tasks: updater(previous.tasks) } : previous);
+  const refetchPlan = () => queryClient.invalidateQueries({ queryKey: ["roadmap", roadmap.id] });
+
   const mutation = useMutation({
-    mutationFn: ({ id, update }: { id: number; update: Parameters<typeof updateTask>[1] }) => updateTask(id, update),
+    mutationFn: ({ id, update }: { id: number; update: TaskUpdate }) => updateTask(id, update),
     onSuccess: task => {
-      queryClient.setQueryData<Roadmap>(["roadmap", roadmap.id], previous => previous ? { ...previous, tasks: previous.tasks.map(item => item.id === task.id ? task : item) } : previous);
+      setTasks(tasks => tasks.map(item => item.id === task.id ? task : item));
       if (task.status === "completed") toast.success("That step counts. Nice work.");
     },
     onError: error => toast.error(error instanceof Error ? error.message : "Could not update the step"),
   });
 
-  const renderTask = (task: RoadmapTask) => (
-    <StepCard
-      key={task.id}
-      task={task}
-      index={indexOf.get(task.id) ?? 0}
-      current={current?.id === task.id}
-      resource={task.resourceId ? resourceMap.get(task.resourceId) : undefined}
-      onUpdate={update => mutation.mutate({ id: task.id, update: update as Partial<Pick<RoadmapTask, "status" | "blockerReason">> })}
-      onAskMaya={context => openMaya(context)}
-    />
-  );
+  /* ── Editing by hand (Y4) ─────────────────────────────────────────────── */
+  const add = useMutation({
+    mutationFn: (input: NewTask) => addTask(roadmap.id, input),
+    onSuccess: () => { void refetchPlan(); toast.success("Added to your plan."); },
+    onError: error => toast.error(error instanceof Error ? error.message : "Could not add that step"),
+  });
+  const remove = useMutation({
+    mutationFn: (task: RoadmapTask) => deleteTask(task.id),
+    onSuccess: (_, task) => {
+      setTasks(tasks => tasks.filter(item => item.id !== task.id));
+      toast("Step removed", {
+        action: { label: "Undo", onClick: () => add.mutate({ taskText: task.taskText, timeframe: task.timeframe, whyItMatters: task.whyItMatters, taskCategory: task.taskCategory, resourceId: task.resourceId }) },
+      });
+    },
+    onError: error => toast.error(error instanceof Error ? error.message : "Could not remove that step"),
+  });
+  /** Swap task_order with the neighbour in the same section, then refresh from the server. */
+  const move = async (task: RoadmapTask, direction: "up" | "down") => {
+    const section = ordered.filter(item => item.status !== "completed" && sameGroup(item.timeframe, task.timeframe));
+    const position = section.findIndex(item => item.id === task.id);
+    const neighbour = section[direction === "up" ? position - 1 : position + 1];
+    if (!neighbour) return;
+    try {
+      await Promise.all([
+        updateTask(task.id, { taskOrder: neighbour.taskOrder }),
+        updateTask(neighbour.id, { taskOrder: task.taskOrder }),
+      ]);
+      await refetchPlan();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not move that step");
+    }
+  };
+
+  const renderTask = (task: RoadmapTask) => {
+    const section = ordered.filter(item => item.status !== "completed" && sameGroup(item.timeframe, task.timeframe));
+    const position = section.findIndex(item => item.id === task.id);
+    return (
+      <StepCard
+        key={task.id}
+        task={task}
+        index={indexOf.get(task.id) ?? 0}
+        current={current?.id === task.id}
+        resource={task.resourceId ? resourceMap.get(task.resourceId) : undefined}
+        onUpdate={update => mutation.mutate({ id: task.id, update: update as TaskUpdate })}
+        onAskMaya={context => openMaya(context)}
+        editing={{
+          onEdit: update => mutation.mutate({ id: task.id, update }),
+          onMove: direction => { void move(task, direction); },
+          onRemove: () => remove.mutate(task),
+          canMoveUp: position > 0,
+          canMoveDown: position >= 0 && position < section.length - 1,
+        }}
+      />
+    );
+  };
 
   const made = new Date(roadmap.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
   return (
-    <div className="container-wide grid gap-10 pt-8 lg:grid-cols-[7fr_4fr] lg:gap-16 lg:pt-12">
+    <div className="container-wide grid gap-10 pt-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16 lg:pt-12">
       <div className="flex flex-col gap-9">
         <div>
           <p className="text-eyebrow text-brand">Your plan · made {made} · {done.length} of {ordered.length} done</p>
@@ -180,11 +228,11 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
           )}
         </div>
 
-        <PlanSection eyebrow="Now · this week" tone="crisis" tasks={grouped.now} renderTask={renderTask} />
-        <PlanSection eyebrow="Soon · next 30 days" tasks={grouped.soon} renderTask={renderTask} />
-        <PlanSection eyebrow="When you're ready" tasks={grouped.later} renderTask={renderTask} />
+        <PlanSection eyebrow="Now · this week" tone="crisis" tasks={grouped.now} renderTask={renderTask} onAdd={text => add.mutate({ taskText: text, timeframe: "This Week" })} adding={add.isPending} />
+        <PlanSection eyebrow="Soon · next 30 days" tasks={grouped.soon} renderTask={renderTask} onAdd={text => add.mutate({ taskText: text, timeframe: "30 Days" })} adding={add.isPending} />
+        <PlanSection eyebrow="When you're ready" tasks={grouped.later} renderTask={renderTask} onAdd={text => add.mutate({ taskText: text, timeframe: "3-6 Months" })} adding={add.isPending} />
         {active.length === 0 && (
-          <p className="rounded-md bg-green-soft p-5 text-[15px] font-semibold text-green">Everything on this plan is done. Start another whenever you want.</p>
+          <p className="rounded-md bg-green-soft p-5 text-[15px] font-semibold text-green">Everything on this plan is done. Add a step above, or start another plan whenever you want.</p>
         )}
 
         {done.length > 0 && (
@@ -204,7 +252,7 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
         {current && (
           <section className="flex flex-col gap-3 rounded-md bg-sand-soft p-6">
             <h2 className="font-display text-[22px] font-bold text-ink">Stuck on a step?</h2>
-            <p className="text-[15px] leading-relaxed text-ink-soft">Tell Maya what&rsquo;s in the way. She can swap the step, find another program, or break it smaller.</p>
+            <p className="text-[15px] leading-relaxed text-ink-soft">Tell Maya what&rsquo;s in the way. She can swap the step, find another program, or break it smaller. You can also change, move or remove any step yourself from its <span className="whitespace-nowrap">&ldquo;&hellip;&rdquo; menu</span>.</p>
             <button type="button" onClick={() => openMaya(`I'm working on this step from my plan: "${current.taskText}". What should I know before I start?`)} className="inline-flex min-h-11 items-center self-start rounded-md border border-ink px-4 text-[15px] font-semibold text-ink hover:bg-surface">
               Ask Maya about step {String((indexOf.get(current.id) ?? 0) + 1).padStart(2, "0")}
             </button>
@@ -235,14 +283,54 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
   );
 }
 
-function PlanSection({ eyebrow, tone = "muted", tasks, renderTask }: {
+function sameGroup(a: RoadmapTask["timeframe"], b: RoadmapTask["timeframe"]) {
+  const groupOf = (frame: RoadmapTask["timeframe"]) => (Object.keys(GROUP_TIMEFRAMES) as (keyof typeof GROUP_TIMEFRAMES)[]).find(key => GROUP_TIMEFRAMES[key].includes(frame));
+  return groupOf(a) === groupOf(b);
+}
+
+/** A section of the plan. Always rendered when it can take a new step, so "Add a step" is available even when empty. */
+function PlanSection({ eyebrow, tone = "muted", tasks, renderTask, onAdd, adding = false }: {
   eyebrow: string; tone?: "crisis" | "muted"; tasks: RoadmapTask[]; renderTask: (task: RoadmapTask) => ReactNode;
+  onAdd?: (text: string) => void; adding?: boolean;
 }) {
-  if (!tasks.length) return null;
+  if (!tasks.length && !onAdd) return null;
   return (
     <section>
       <h2 className={cn("text-eyebrow", tone === "crisis" ? "text-crisis" : "text-ink-faint")}>{eyebrow}</h2>
-      <div className="mt-3 flex flex-col gap-2.5">{tasks.map(renderTask)}</div>
+      <div className="mt-3 flex flex-col gap-2.5">
+        {tasks.map(renderTask)}
+        {onAdd && <AddStep onAdd={onAdd} adding={adding} quiet={tasks.length === 0} />}
+      </div>
     </section>
+  );
+}
+
+/** "Add a step" — a quiet link that opens a one-line form (Y4). */
+function AddStep({ onAdd, adding, quiet }: { onAdd: (text: string) => void; adding: boolean; quiet: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
+  const submit = () => {
+    const value = text.trim();
+    if (value.length < 3) return;
+    onAdd(value); setText(""); setOpen(false);
+  };
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={cn("inline-flex min-h-10 items-center gap-1.5 self-start text-[14px] font-semibold text-brand hover:underline", quiet && "text-ink-faint hover:text-brand")}>
+        <Plus className="size-4" /> Add a step
+      </button>
+    );
+  }
+  return (
+    <form onSubmit={event => { event.preventDefault(); submit(); }} className="flex flex-col gap-2 rounded-md border border-ink bg-surface p-3">
+      <label htmlFor="add-step" className="text-[13px] font-medium text-ink-soft">What&rsquo;s the step, in your words?</label>
+      <input id="add-step" ref={inputRef} value={text} onChange={event => setText(event.target.value)} maxLength={300} placeholder="e.g. Ask my worker for a copy of my court letter" className="h-11 rounded-md border border-rule bg-surface px-3 text-[16px] text-ink outline-none focus:border-ink" />
+      <div className="flex gap-2">
+        <Button type="submit" disabled={adding || text.trim().length < 3} className="h-10 rounded-md bg-brand px-4 text-[14px] font-semibold text-white hover:bg-brand-deep">{adding ? <Loader2 className="size-4 animate-spin" /> : null} Add</Button>
+        <button type="button" onClick={() => { setOpen(false); setText(""); }} className="px-2 text-[14px] text-ink-soft hover:text-ink">Cancel</button>
+      </div>
+    </form>
   );
 }

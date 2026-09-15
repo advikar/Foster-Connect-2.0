@@ -201,8 +201,16 @@ export function fetchRoadmap(id: number) { return request<Roadmap>(`/api/roadmap
 export function generateRoadmap(input: RoadmapIntake) {
   return request<Roadmap | RoadmapDeferredResponse>("/api/roadmaps", { method: "POST", body: JSON.stringify(input) }, true);
 }
-export function updateTask(id: number, update: Partial<Pick<RoadmapTask, "status" | "dueDate" | "blockerReason" | "privateNote">>) {
+export type TaskUpdate = Partial<Pick<RoadmapTask, "status" | "dueDate" | "blockerReason" | "privateNote" | "taskText" | "timeframe" | "taskOrder" | "whyItMatters">>;
+export function updateTask(id: number, update: TaskUpdate) {
   return request<RoadmapTask>(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(update) }, true);
+}
+export interface NewTask { taskText: string; timeframe?: RoadmapTask["timeframe"]; whyItMatters?: string; taskCategory?: string; resourceId?: number | null; afterTaskId?: number }
+export function addTask(roadmapId: number, input: NewTask) {
+  return request<RoadmapTask>(`/api/roadmaps/${roadmapId}/tasks`, { method: "POST", body: JSON.stringify(input) }, true);
+}
+export function deleteTask(id: number) {
+  return request<void>(`/api/tasks/${id}`, { method: "DELETE" }, true);
 }
 export function sendChat(
   message: string,
