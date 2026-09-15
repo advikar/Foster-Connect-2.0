@@ -265,3 +265,11 @@ test("navigator reply and suggested tasks have resource IDs removed", withProvid
     assert.equal(result.suggestedTasks[0].motivationNote, "One call.");
   },
 ));
+
+test("navigator reply markdown is flattened to plain text", withProvider(
+  async () => jsonReply({ reply: "Try **Resource 3**. It is `free`.", resourceIds: [3], needsClarification: false, suggestedTasks: [] }),
+  async () => {
+    const result = await getNavigatorResponse("housing?", [], RESOURCES);
+    assert.equal(result.reply, "Try Resource 3. It is free.");
+  },
+));

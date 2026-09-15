@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildAllowList, sanitiseReply, signHistory, stripResourceIds, verifyHistory,
+  buildAllowList, sanitiseReply, signHistory, stripResourceIds, toPlainText, verifyHistory,
   type SignedMessage,
 } from "./grounding";
 
@@ -251,4 +251,22 @@ test("an area code that happens to equal an ID is not stripped from a phone numb
 
 test("line breaks survive ID removal", () => {
   assert.equal(stripResourceIds("First (150).\nThen (147).", IDS).reply, "First.\nThen.");
+});
+
+// ─── Markdown in replies ────────────────────────────────────────────────────
+// Replies render as plain text, so "**Unity Council**" showed its asterisks
+// (seen live 2026-09-15 with gpt-oss-120b in Ask and the staff guide).
+
+test("markdown emphasis, code and headings become plain text", () => {
+  const input = "## Key steps\n**Eligibility Criteria**\n- Call __Unity Council__ – check the `verifiedAt` date.\n* Ask about *cost*.\n```\ncode\n```";
+  assert.equal(toPlainText(input), "Key steps\nEligibility Criteria\n- Call Unity Council – check the verifiedAt date.\n- Ask about cost.\ncode");
+});
+
+test("a markdown link keeps its address visible so grounding can check it", () => {
+  assert.equal(toPlainText("Apply at [their page](https://unitycouncil.org/program/step/)."), "Apply at their page (https://unitycouncil.org/program/step/).");
+});
+
+test("ordinary text with asterisks or underscores in words is left alone", () => {
+  const text = "Rates: 5 * 3 = 15. File name my_form_v2.pdf. Ages 18-24.";
+  assert.equal(toPlainText(text), text);
 });

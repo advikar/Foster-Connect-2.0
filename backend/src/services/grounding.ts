@@ -251,3 +251,22 @@ export function stripResourceIds(reply: string, ids: Iterable<number>): Sanitise
   }
   return { reply: output, removed };
 }
+
+/**
+ * Flatten Markdown the model wrote into the plain text the UI renders.
+ *
+ * Replies are shown as text with preserved line breaks, so "**Unity Council**"
+ * appeared with its asterisks. Run BEFORE sanitiseReply: a link's address is
+ * kept visible as "text (url)" so the contact check still sees it.
+ */
+export function toPlainText(text: string): string {
+  return text
+    .replace(/^[ \t]*```[^\n]*\n?/gm, "")
+    .replace(/\[([^\]\n]+)\]\((\S+?)\)/g, "$1 ($2)")
+    .replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, "")
+    .replace(/^([ \t]*)[*+][ \t]+/gm, "$1- ")
+    .replace(/(\*\*|__)(?=\S)([^\n]*?\S)\1/g, "$2")
+    .replace(/(^|[^\w*])\*(?=\S)([^*\n]*?\S)\*(?![\w*])/g, "$1$2")
+    .replace(/`([^`\n]+)`/g, "$1")
+    .trimEnd();
+}

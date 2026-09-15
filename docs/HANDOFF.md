@@ -1,5 +1,14 @@
 # Current handoff
 
+## 2026-09-15 — Partner pages checked live; Markdown in AI replies (checkpoint 1)
+
+- Owner: Claude Code (Opus 5). User signed in as reviewer in a Chrome tab (partner token is per-tab sessionStorage, so an agent tab needs its own sign-in); pages checked read-only there, nothing approved/rejected/submitted.
+- Live partner pages: Overview (reviewer badge, 0/0/0 stats, empty "Needs attention"), My submissions (empty state), Add a resource (form + reviewer checklist renders; not submitted), Coverage (401 published / 24 retired; by kind; by region sums to 401; freshness; field completeness: phone 65%, website 100%, cost 42%, age 19%, hours 8%, address 0%, languages 0%; oldest checks; no youth reports; pipeline 0), Review queue (empty), Staff guide (AI answer returned). No console errors.
+- Found: AI replies contain Markdown shown literally (Ask for youth and Staff guide; e.g. "**Key Verification Steps**", "`verifiedAt`"). Cause: gpt-oss-120b formats in Markdown; UI renders plain text. Fix: `toPlainText()` in `grounding.ts` (headings, **/__, *em*, `code`, fences, "* " bullets → "- ", [text](url) → "text (url)" so the URL still reaches the contact check) applied before ID stripping/sanitising in roadmap text, navigator reply and suggested tasks, and the partner guide reply; prompts (NAVIGATOR voice, partner guide) ask for plain text. Tests first (3 failed on a no-op stub), 65/65 pass.
+- Observation, not changed: every published listing has verified_by "Foster Connect research" dated 2026-09-06/07 (web research; DIRECTORY-REVIEW says not phone-verified), so Coverage shows "Checked in last 30 days 401" and youth listings say "Checked Sep 2026". Product decision whether "Checked" should say how it was checked.
+- Next: push; after Render redeploys re-run Staff guide in the user's tab and a live Ask; independent review of grounding.ts changes (IDs, phones, emails, Markdown).
+- Ownership released: no.
+
 ## 2026-09-15 — Resource-ID leak fix + two grounding gaps (checkpoint 2)
 
 - Task: (1) internal resource IDs in youth-facing AI text; (2) reviewer account for the user on the hosted DB. Owner: Claude Code (Opus 5).
