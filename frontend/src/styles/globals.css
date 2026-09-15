@@ -42,6 +42,7 @@
   --brand: #1B6B68;
   --brand-deep: #14322F;
   --brand-soft: #E4EFEE;
+  /* Accent alternative (U1): set data-accent="blue" on <html>. Teal stays the default until decided. */
   --sand: #DFA22B;
   --sand-soft: #F5EADB;
   --green: #3E7A3A;
@@ -271,4 +272,16 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Deep-blue accent (U1). Everything that uses --brand follows: buttons, links, nav underline, the mark. */
+:root[data-accent="blue"] {
+  --brand: #1F4E8C;
+  --brand-deep: #17335C;
+  --brand-soft: #DDE7F4;
+}
+:root[data-accent="blue"].dark {
+  --brand: #7FA9E0;
+  --brand-deep: #17335C;
+  --brand-soft: #24395A;
 }

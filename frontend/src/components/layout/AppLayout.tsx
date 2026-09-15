@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { applyAccent, currentAccent } from "@/lib/accent";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Bookmark, Home, ListChecks, MessageCircle, Search } from "lucide-react";
 import { MayaProvider } from "@/contexts/MayaContext";
@@ -63,12 +64,15 @@ export function AppLayout() {
   );
 }
 
-/** Two overlapping circles: a person, and the support beside them. */
+/**
+ * The mark (U2, interim): a serif "FC" monogram on a brand-coloured circle.
+ * Follows the accent token. To be redrawn once the reference image arrives.
+ */
 export function Mark({ className = "size-[30px]" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 30 30" className={cn("shrink-0", className)} aria-hidden focusable="false">
-      <circle cx="12" cy="13" r="10" fill="var(--brand)" />
-      <circle cx="20" cy="19" r="7.5" fill="var(--sand)" stroke="var(--ground)" strokeWidth="2" />
+    <svg viewBox="0 0 32 32" className={cn("shrink-0", className)} aria-hidden focusable="false">
+      <circle cx="16" cy="16" r="16" fill="var(--brand)" />
+      <text x="16" y="21.5" textAnchor="middle" fontFamily="'Source Serif 4', Georgia, serif" fontWeight="700" fontSize="15" letterSpacing="-0.5" fill="#FFFFFF">FC</text>
     </svg>
   );
 }
@@ -159,12 +163,29 @@ function SiteFooter() {
           No account. Nothing you type is tied to your name.{" "}
           <Link to="/privacy" className="text-brand hover:underline">How your information is handled</Link>
         </p>
-        <div className="flex flex-wrap gap-x-5 gap-y-1">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link to="/add-resource" className="text-brand hover:underline">Tell us about a program we&rsquo;re missing</Link>
           <Link to="/partners" className="text-brand hover:underline">For partners</Link>
+          {(import.meta.env.DEV || import.meta.env.VITE_PREVIEW) && <AccentToggle />}
         </div>
       </div>
     </footer>
+  );
+}
+
+/** Preview-only: try the two accent palettes (U1). */
+function AccentToggle() {
+  const [accent, setAccent] = useState<string>(currentAccent);
+  const choose = (next: string) => { applyAccent(next); setAccent(next); };
+  return (
+    <span className="inline-flex items-center gap-1 text-[12px] text-ink-faint">
+      Accent
+      {["teal", "blue"].map(option => (
+        <button key={option} type="button" aria-pressed={accent === option} onClick={() => choose(option)} className={cn("rounded px-1.5 py-0.5 capitalize", accent === option ? "bg-brand-soft font-semibold text-ink" : "hover:text-ink")}>
+          {option}
+        </button>
+      ))}
+    </span>
   );
 }
 

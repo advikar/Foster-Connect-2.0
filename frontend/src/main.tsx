@@ -5,9 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { router } from "./router";
+import { bootAccent } from "@/lib/accent";
 
 // Create a client
 const queryClient = new QueryClient();
+
+bootAccent();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
