@@ -20,7 +20,7 @@ export function ResourceRow({ resource, dense = false }: { resource: ResourceIte
   const [open, setOpen] = useState(false);
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
-  const checked = describeChecked(resource.verifiedAt, resource.checkedHow);
+  const checked = describeChecked(resource.verifiedAt, resource.checkedHow, resource.recheckAt);
 
   return (
     <>
@@ -87,11 +87,12 @@ function eligibilityTag(resource: ResourceItem) {
 function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: ResourceItem; open: boolean; onOpenChange: (open: boolean) => void }) {
   const [reporting, setReporting] = useState(false);
   const [reportReason, setReportReason] = useState("");
-  const checked = describeChecked(resource.verifiedAt, resource.checkedHow);
+  const checked = describeChecked(resource.verifiedAt, resource.checkedHow, resource.recheckAt);
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
   const phone = resource.phone?.replace(/[^\d+]/g, "");
   const guide = resource.kind === "information";
+  const na = new Set(resource.fieldsNa ?? []);
 
   const submitReport = async () => {
     try {
@@ -128,7 +129,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
         </div>
 
         <div className="hidden flex-wrap gap-2.5 lg:flex">
-          <Actions phone={guide ? undefined : phone} phoneLabel={resource.phone} website={resource.website} guide={guide} saved={saved} onSave={() => toggleSave(resource.id)} />
+          <Actions phone={guide ? undefined : phone} phoneLabel={resource.phone} website={resource.website} guide={guide} phoneNone={na.has("phone")} saved={saved} onSave={() => toggleSave(resource.id)} />
         </div>
 
         <p className="text-[16px] leading-relaxed text-ink-soft">{resource.description}</p>
@@ -145,10 +146,10 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
             <Detail title="Who it helps" text={resource.eligibility} />
             <Detail title="How to start" text={resource.applicationSteps} />
             <Detail title="What to bring" text={resource.whatToBring} />
-            <Detail title="Hours" text={resource.hours} />
-            <Detail title="Languages" text={resource.languages} />
+            <Detail title="Hours" text={resource.hours} none={na.has("hours") ? "No set hours — confirmed with the program" : undefined} />
+            <Detail title="Languages" text={resource.languages} none={na.has("languages") ? "English only — confirmed" : undefined} />
             <Detail title="Accessibility" text={resource.accessibility} />
-            {resource.address && <Detail title="Address" text={resource.address} />}
+            {(resource.address || na.has("address")) && <Detail title="Address" text={resource.address} none={na.has("address") ? "No walk-in address — confirmed" : undefined} />}
             {resource.serviceArea && <Detail title="Area served" text={resource.serviceArea} />}
           </div>
         )}
@@ -175,7 +176,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
       </div>
 
       <div className="fixed inset-x-0 bottom-0 flex gap-2.5 border-t border-rule bg-surface px-5 pb-6 pt-3 lg:hidden">
-        <Actions phone={guide ? undefined : phone} phoneLabel={resource.phone} website={resource.website} guide={guide} saved={saved} onSave={() => toggleSave(resource.id)} compact />
+        <Actions phone={guide ? undefined : phone} phoneLabel={resource.phone} website={resource.website} guide={guide} phoneNone={na.has("phone")} saved={saved} onSave={() => toggleSave(resource.id)} compact />
       </div>
 
       {reporting && <ReportSheet reason={reportReason} setReason={setReportReason} onCancel={() => setReporting(false)} onSubmit={submitReport} />}
@@ -183,8 +184,8 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
   );
 }
 
-function Actions({ phone, phoneLabel, website, guide = false, saved, onSave, compact = false }: {
-  phone?: string; phoneLabel?: string; website?: string; guide?: boolean; saved: boolean; onSave: () => void; compact?: boolean;
+function Actions({ phone, phoneLabel, website, guide = false, phoneNone = false, saved, onSave, compact = false }: {
+  phone?: string; phoneLabel?: string; website?: string; guide?: boolean; phoneNone?: boolean; saved: boolean; onSave: () => void; compact?: boolean;
 }) {
   return (
     <>
@@ -197,7 +198,7 @@ function Actions({ phone, phoneLabel, website, guide = false, saved, onSave, com
           <a href={`tel:${phone}`}><Phone className="size-4" />{compact ? "Call" : `Call ${phoneLabel}`}</a>
         </Button>
       ) : compact && !guide ? (
-        <span className="flex flex-1 items-center text-[13px] text-ink-faint">No phone listed</span>
+        <span className="flex flex-1 items-center text-[13px] text-ink-faint">{phoneNone ? "No phone line — confirmed" : "No phone listed"}</span>
       ) : null}
       {website && !guide && (
         <Button asChild variant="outline" className={cn("h-12 rounded-md border-ink px-4 text-[15px] font-semibold text-ink", compact && "w-12 px-0")}>
@@ -230,13 +231,14 @@ function hostOf(url: string) {
   try { return new URL(url).host.replace(/^www\./, ""); } catch { return url; }
 }
 
-function Detail({ title, text }: { title: string; text?: string }) {
+/** `none` says a reviewer confirmed the listing has no such thing, which is different from "we don't know yet" (P7). */
+function Detail({ title, text, none }: { title: string; text?: string; none?: string }) {
   const unknown = !text || !text.trim();
   return (
     <div>
       <p className="text-eyebrow text-ink-faint">{title}</p>
-      <p className={cn("mt-1.5 whitespace-pre-line text-[15px] leading-relaxed", unknown ? "italic text-ink-stamp" : "text-ink-soft")}>
-        {unknown ? "Not confirmed yet — ask them" : text}
+      <p className={cn("mt-1.5 whitespace-pre-line text-[15px] leading-relaxed", unknown && !none ? "italic text-ink-stamp" : "text-ink-soft")}>
+        {unknown ? (none ?? "Not confirmed yet — ask them") : text}
       </p>
     </div>
   );

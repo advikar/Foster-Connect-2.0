@@ -1,10 +1,12 @@
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Check, ExternalLink, Loader2, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
-  fetchPartnerAnalytics, fetchSubmissions, partnerLogin, reviewSubmission,
-  type ApprovalDetail, type PartnerIdentity, type Submission,
+  fetchPartnerAnalytics, fetchResourceChanges, fetchSubmissions, partnerLogin, reviewResourceChange, reviewSubmission,
+  type ApprovalDetail, type PartnerIdentity, type ResourceChange, type Submission,
 } from "@/lib/api";
+import { ListingDrawer, type DrawerFilter } from "@/components/partners/ListingDrawer";
 import { describeChecked } from "@/lib/checked";
 import { Stat, ago } from "./PartnerPages";
 import { Button } from "@/components/ui/button";
@@ -20,7 +22,10 @@ import { toast } from "sonner";
  */
 export function Coverage() {
   const { data, isPending, isError, refetch } = useQuery({ queryKey: ["partner-analytics"], queryFn: fetchPartnerAnalytics, retry: 1 });
-  const [county, setCounty] = useState("All");
+  // Multi-select regions (P4): empty = all.
+  const [selected, setSelected] = useState<string[]>([]);
+  const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
+  const toggleCounty = (name: string) => setSelected(previous => previous.includes(name) ? previous.filter(item => item !== name) : [...previous, name]);
   if (isPending) return <div role="status" className="rounded-md border border-rule bg-surface p-6 text-ink-soft">Loading directory coverage…</div>;
   if (isError || !data) {
     return (
@@ -35,28 +40,22 @@ export function Coverage() {
   const n = (value: unknown) => Number(value ?? 0);
   const verified = n(data.totals.verified);
   const counties = data.byCounty.map(row => row.county);
-  const matrixFor = (category: string) => county === "All"
+  const countyParam = selected.length ? selected.join(",") : undefined;
+  const countyLabel = selected.length ? selected.join(" + ") : "all regions";
+  const matrixFor = (category: string) => selected.length === 0
     ? n(data.byCategory.find(row => row.category === category)?.count)
-    : n(data.matrix.find(row => row.category === category && row.county === county)?.count);
+    : data.matrix.filter(row => row.category === category && selected.includes(row.county)).reduce((sum, row) => sum + n(row.count), 0);
   const rows = data.byCategory.map(row => ({ ...row, shown: matrixFor(row.category) })).sort((a, b) => b.shown - a.shown);
   const max = Math.max(1, ...rows.map(row => row.shown));
   const fresh = n(data.freshness.fresh), aging = n(data.freshness.aging), stale = n(data.freshness.stale);
-  const completeness: [string, number][] = [
-    ["Has a phone number", n(data.completeness.phone)],
-    ["Has a website", n(data.completeness.website)],
-    ["Cost is stated", n(data.completeness.cost_known)],
-    ["Age range is known", n(data.completeness.age_known)],
-    ["Hours listed", n(data.completeness.hours)],
-    ["Address listed", n(data.completeness.address)],
-    ["Languages listed", n(data.completeness.languages)],
-  ];
+  const gaps = 7 * verified - [data.completeness.phone, data.completeness.website, data.completeness.cost_known, data.completeness.age_known, data.completeness.hours, data.completeness.address, data.completeness.languages].reduce((sum, value) => sum + n(value), 0);
 
   return (
     <div className="flex flex-col gap-10">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Published listings" value={verified} detail={`${n(data.totals.retired)} retired`} />
         <Stat label="Checked in last 30 days" value={n(data.totals.checked_last_30)} detail={`${n(data.totals.publishedLast30)} newly published`} tone="green" />
-        <Stat label="Need a re-check" value={stale} detail="Older than 180 days" tone={stale ? "rust" : "ink"} />
+        <Stat label="Need a re-check" value={stale} detail="Older than 180 days, or past their re-check date" tone={stale ? "rust" : "ink"} />
         <Stat label="Awaiting review" value={n(data.pipeline.pending)} detail={n(data.pipeline.pending_over_week) ? `${n(data.pipeline.pending_over_week)} waiting over a week` : "None over a week"} tone={n(data.pipeline.pending_over_week) ? "rust" : "ink"} />
       </div>
 
@@ -67,26 +66,34 @@ export function Coverage() {
             <p className="mt-1 text-[14px] text-ink-faint">Listings, how many are free, how many still have no cost, and how many need a re-check.</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            <Chip selected={county === "All"} onClick={() => setCounty("All")} className="min-h-9 text-[13px]">All regions</Chip>
-            {counties.map(item => <Chip key={item} selected={county === item} onClick={() => setCounty(item)} className="min-h-9 text-[13px]">{item}</Chip>)}
+            <Chip selected={selected.length === 0} onClick={() => setSelected([])} className="min-h-9 text-[13px]">All regions</Chip>
+            {counties.map(item => <Chip key={item} selected={selected.includes(item)} onClick={() => toggleCounty(item)} className="min-h-9 text-[13px]">{item}</Chip>)}
           </div>
         </div>
+        <p className="mt-2 text-[13px] text-ink-faint">Pick more than one region to add them up. Tap a bar to see the listings behind it and fix any of them.</p>
         <div className="mt-4 hidden grid-cols-[200px_1fr_56px_56px_56px_72px] gap-3 pb-2 text-eyebrow text-ink-faint md:grid">
           <span>Kind</span><span /><span className="text-right">Total</span><span className="text-right">Free</span><span className="text-right">Cost ?</span><span className="text-right">Re-check</span>
         </div>
         <ul className="divide-y divide-rule border-t border-rule">
           {rows.map(row => (
-            <li key={row.category} className="grid grid-cols-[1fr_auto] items-center gap-3 py-2.5 text-[14px] md:grid-cols-[200px_1fr_56px_56px_56px_72px]">
-              <span className="text-ink-soft">{row.category}</span>
-              <div className="col-span-2 h-2.5 rounded-sm bg-brand-soft md:col-span-1"><div className="h-2.5 rounded-sm bg-brand" style={{ width: `${(row.shown / max) * 100}%` }} /></div>
-              <span className="tabular text-right font-semibold text-ink">{row.shown}</span>
-              <span className="tabular hidden text-right text-green md:block">{n(row.free)}</span>
-              <span className="tabular hidden text-right text-ink-faint md:block">{n(row.cost_unknown)}</span>
-              <span className={`tabular hidden text-right md:block ${n(row.stale) ? "text-crisis" : "text-ink-faint"}`}>{n(row.stale)}</span>
+            <li key={row.category}>
+              <button
+                type="button"
+                onClick={() => setDrawer({ title: row.category, detail: `Published listings · ${countyLabel}`, category: row.category, county: countyParam })}
+                className="row-hover -mx-2 grid w-[calc(100%+16px)] grid-cols-[1fr_auto] items-center gap-3 rounded-md px-2 py-2.5 text-left text-[14px] md:grid-cols-[200px_1fr_56px_56px_56px_72px]"
+                aria-label={`${row.category}: ${row.shown} listings. Open the list.`}
+              >
+                <span className="text-ink-soft">{row.category}</span>
+                <div className="col-span-2 h-2.5 rounded-sm bg-brand-soft md:col-span-1"><div className="h-2.5 rounded-sm bg-brand" style={{ width: `${(row.shown / max) * 100}%` }} /></div>
+                <span className="tabular text-right font-semibold text-ink">{row.shown}</span>
+                <span className="tabular hidden text-right text-green md:block">{n(row.free)}</span>
+                <span className="tabular hidden text-right text-ink-faint md:block">{n(row.cost_unknown)}</span>
+                <span className={`tabular hidden text-right md:block ${n(row.stale) ? "text-crisis" : "text-ink-faint"}`}>{n(row.stale)}</span>
+              </button>
             </li>
           ))}
         </ul>
-        {county !== "All" && <p className="mt-2 text-[13px] text-ink-faint">Free / cost / re-check columns are directory-wide; the bar and total are for {county}.</p>}
+        {selected.length > 0 && <p className="mt-2 text-[13px] text-ink-faint">Free / cost / re-check columns are directory-wide; the bar and total are for {countyLabel}.</p>}
       </section>
 
       <div className="grid gap-10 lg:grid-cols-2">
@@ -94,10 +101,12 @@ export function Coverage() {
           <h2 className="font-display text-[22px] font-bold text-ink">By region</h2>
           <ul className="mt-3 divide-y divide-rule border-t border-rule">
             {data.byCounty.map(row => (
-              <li key={row.county} className="grid grid-cols-[140px_1fr_48px] items-center gap-3 py-2.5 text-[14px]">
-                <span className="text-ink-soft">{row.county}</span>
-                <div className="h-2.5 rounded-sm bg-brand-soft"><div className="h-2.5 rounded-sm bg-brand" style={{ width: `${(n(row.count) / Math.max(1, ...data.byCounty.map(r => n(r.count)))) * 100}%` }} /></div>
-                <span className="tabular text-right font-semibold text-ink">{n(row.count)}</span>
+              <li key={row.county}>
+                <button type="button" onClick={() => setDrawer({ title: row.county, detail: "Published listings filed under this region", county: row.county })} className="row-hover -mx-2 grid w-[calc(100%+16px)] grid-cols-[140px_1fr_48px] items-center gap-3 rounded-md px-2 py-2.5 text-left text-[14px]" aria-label={`${row.county}: ${n(row.count)} listings. Open the list.`}>
+                  <span className="text-ink-soft">{row.county}</span>
+                  <div className="h-2.5 rounded-sm bg-brand-soft"><div className="h-2.5 rounded-sm bg-brand" style={{ width: `${(n(row.count) / Math.max(1, ...data.byCounty.map(r => n(r.count)))) * 100}%` }} /></div>
+                  <span className="tabular text-right font-semibold text-ink">{n(row.count)}</span>
+                </button>
               </li>
             ))}
           </ul>
@@ -116,25 +125,14 @@ export function Coverage() {
               <li key={label} className="flex items-center justify-between py-2.5"><span className="flex items-center gap-2 text-ink-soft"><span className={`size-2.5 rounded-full ${dot}`} />{label}</span><span className="tabular font-semibold text-ink">{count}</span></li>
             ))}
           </ul>
-          <a href="#recheck" className="mt-2 inline-block text-[14px] text-brand hover:underline">See the oldest listings ↓</a>
+          <button type="button" onClick={() => setDrawer({ title: "Needs a re-check", detail: "Older than 180 days or past their re-check date", stale: true })} className="mt-2 inline-block text-[14px] text-brand hover:underline">See every listing that needs a re-check →</button>
         </section>
       </div>
 
-      <section>
-        <h2 className="font-display text-[22px] font-bold text-ink">What listings are missing</h2>
-        <p className="mt-1 text-[14px] text-ink-faint">Share of published listings with each field filled in. Gaps here are the fastest way to make the directory more useful.</p>
-        <ul className="mt-3 divide-y divide-rule border-t border-rule">
-          {completeness.map(([label, count]) => {
-            const pct = Math.round((count / Math.max(1, verified)) * 100);
-            return (
-              <li key={label} className="grid grid-cols-[1fr_auto] items-center gap-3 py-2.5 text-[14px] sm:grid-cols-[220px_1fr_64px]">
-                <span className="text-ink-soft">{label}</span>
-                <div className="col-span-2 h-2.5 rounded-sm bg-sunk sm:col-span-1"><div className={`h-2.5 rounded-sm ${pct < 50 ? "bg-crisis" : pct < 80 ? "bg-sand" : "bg-brand"}`} style={{ width: `${pct}%` }} /></div>
-                <span className="tabular text-right font-semibold text-ink">{pct}%</span>
-              </li>
-            );
-          })}
-        </ul>
+      <section className="rounded-md bg-sand-soft p-5">
+        <h2 className="font-display text-[20px] font-bold text-ink">{gaps} fields still blank across the directory</h2>
+        <p className="mt-1 text-[14px] text-ink-soft">Phone numbers, costs, hours and more. Filling one takes a minute and makes a listing usable.</p>
+        <Link to="/partners/gaps" className="mt-2 inline-flex min-h-10 items-center text-[14px] font-semibold text-brand hover:underline">Fill the gaps →</Link>
       </section>
 
       <div className="grid gap-10 lg:grid-cols-2">
@@ -144,8 +142,8 @@ export function Coverage() {
           <ul className="mt-3 divide-y divide-rule border-t border-rule">
             {data.staleList.map(item => (
               <li key={item.id} className="flex items-baseline justify-between gap-3 py-2.5">
-                <div className="min-w-0"><p className="truncate text-[15px] font-semibold text-ink">{item.title}</p><p className="truncate text-[13px] text-ink-faint">{item.organization} · {item.category} · {item.county}</p></div>
-                <span className={`text-stamp shrink-0 ${describeChecked(item.verified_at).stale ? "text-crisis" : ""}`}>{item.verified_at}</span>
+                <div className="min-w-0"><p className="truncate text-[15px] font-semibold text-ink">{item.title}</p><p className="truncate text-[13px] text-ink-faint">{item.organization !== item.title ? `${item.organization} · ` : ""}{item.category} · {item.county}{item.recheck_at ? ` · re-check by ${item.recheck_at}` : ""}</p></div>
+                <span className={`text-stamp shrink-0 ${describeChecked(item.verified_at, "online", item.recheck_at).stale ? "text-crisis" : ""}`}>{item.verified_at}</span>
               </li>
             ))}
           </ul>
@@ -178,9 +176,141 @@ export function Coverage() {
       </section>
 
       <p className="text-[12px] text-ink-faint">Counts computed {new Date(data.generatedAt).toLocaleString()}. They describe the directory, not services on the ground.</p>
+      <ListingDrawer filter={drawer} onClose={() => setDrawer(null)} />
     </div>
   );
 }
+
+/**
+ * Fill the gaps (P5): every field that is blank on a published listing, as a
+ * bar you can open. Contributors send fixes for review; reviewers apply them.
+ */
+export function Gaps({ reviewer }: { reviewer: boolean }) {
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["partner-analytics"], queryFn: fetchPartnerAnalytics, retry: 1 });
+  const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
+  if (isPending) return <div role="status" className="rounded-md border border-rule bg-surface p-6 text-ink-soft">Counting what&rsquo;s missing…</div>;
+  if (isError || !data) {
+    return (
+      <div role="status" className="rounded-md border border-rule bg-surface p-6">
+        <p className="text-sm text-ink-soft">We couldn&rsquo;t load the directory totals.</p>
+        <Button variant="outline" className="mt-4 h-11 rounded-md border-ink" onClick={() => { void refetch(); }}>Try again</Button>
+      </div>
+    );
+  }
+  const n = (value: unknown) => Number(value ?? 0);
+  const verified = n(data.totals.verified);
+  const fields: { key: DrawerFilter["missing"] & string; label: string; known: number }[] = [
+    { key: "phone", label: "Phone number", known: n(data.completeness.phone) },
+    { key: "cost", label: "Cost", known: n(data.completeness.cost_known) },
+    { key: "age", label: "Age range", known: n(data.completeness.age_known) },
+    { key: "hours", label: "Hours", known: n(data.completeness.hours) },
+    { key: "address", label: "Address", known: n(data.completeness.address) },
+    { key: "languages", label: "Languages", known: n(data.completeness.languages) },
+    { key: "website", label: "Website", known: n(data.completeness.website) },
+  ];
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="max-w-[64ch] rounded-md bg-sand-soft p-5 text-[15px] leading-relaxed text-ink-soft">
+        {reviewer ? (
+          <p>Each bar is a field that some published listings are missing. Open one, pick a listing, and fill it in — your edits publish immediately and record today as the check date. Proposals from partners wait for you in the <Link to="/partners/review" className="font-semibold text-brand hover:underline">review queue</Link>.</p>
+        ) : (
+          <p>Thank you for helping. Each bar is a field that some published listings are missing. If you know the answer — a phone number, whether it&rsquo;s free, the hours — open the bar, pick the listing and fill it in. A reviewer checks every change before young people see it. If the program genuinely has no phone line or no set hours, say so; that is useful too.</p>
+        )}
+      </div>
+      <section>
+        <h2 className="font-display text-[22px] font-bold text-ink">What&rsquo;s missing, by field</h2>
+        <p className="mt-1 text-[14px] text-ink-faint">Share of {verified} published listings where the field is filled in or confirmed not to apply. Tap a bar to see the listings still missing it.</p>
+        <ul className="mt-3 divide-y divide-rule border-t border-rule">
+          {fields.map(field => {
+            const pct = Math.round((field.known / Math.max(1, verified)) * 100);
+            const missing = verified - field.known;
+            return (
+              <li key={field.key}>
+                <button
+                  type="button"
+                  onClick={() => setDrawer({ title: `Missing: ${field.label.toLowerCase()}`, detail: `${missing} listings without a ${field.label.toLowerCase()} on record`, missing: field.key })}
+                  className="row-hover -mx-2 grid w-[calc(100%+16px)] grid-cols-[1fr_auto] items-center gap-3 rounded-md px-2 py-3 text-left text-[14px] sm:grid-cols-[180px_1fr_120px]"
+                  aria-label={`${field.label}: ${missing} listings missing it. Open the list.`}
+                >
+                  <span className="font-medium text-ink">{field.label}</span>
+                  <div className="col-span-2 h-2.5 rounded-sm bg-sunk sm:col-span-1"><div className={`h-2.5 rounded-sm ${pct < 50 ? "bg-crisis" : pct < 80 ? "bg-sand" : "bg-brand"}`} style={{ width: `${pct}%` }} /></div>
+                  <span className="tabular text-right text-ink-soft"><span className="font-semibold text-ink">{missing}</span> missing · {pct}% known</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+      <ListingDrawer filter={drawer} onClose={() => setDrawer(null)} />
+    </div>
+  );
+}
+
+/** Proposed edits from partners, for reviewers (P5). Shows who proposed it, with their email. */
+export function ChangeQueue() {
+  const { data: changes = [], isPending, isError, refetch } = useQuery({ queryKey: ["partner-changes", "pending"], queryFn: () => fetchResourceChanges("pending"), retry: 1 });
+  const [busy, setBusy] = useState<number | null>(null);
+  const decide = async (change: ResourceChange, status: "approved" | "rejected") => {
+    setBusy(change.id);
+    try {
+      await reviewResourceChange(change.id, status);
+      toast.success(status === "approved" ? "Applied. Young people see it now." : "Declined.");
+      await refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not review that change");
+    } finally { setBusy(null); }
+  };
+  if (isPending) return <p className="mt-4 text-ink-soft">Loading proposed changes…</p>;
+  if (isError) return <p className="mt-4 text-crisis">Could not load proposed changes.</p>;
+  return (
+    <section className="mt-10">
+      <h2 className="font-display text-[22px] font-bold text-ink">{changes.length} proposed {changes.length === 1 ? "change" : "changes"} to published listings</h2>
+      {changes.length === 0 ? (
+        <p className="mt-4 rounded-md border border-dashed border-rule bg-surface p-8 text-center text-[14.5px] text-ink-soft">No proposals waiting. Partners can fill gaps from the &ldquo;Fill the gaps&rdquo; tab; they land here.</p>
+      ) : (
+        <ul className="mt-5 space-y-4">
+          {changes.map(change => (
+            <li key={change.id} className="rounded-md border border-rule bg-surface p-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="font-display text-[20px] font-bold text-ink">{change.resourceTitle}</h3>
+                <span className="text-stamp">{ago(change.createdAt)}</span>
+              </div>
+              <p className="text-[13px] text-ink-faint">{change.resourceOrganization} · {change.resourceCounty}</p>
+              <p className="mt-2 text-[14px] text-ink-soft">
+                Proposed by <span className="font-semibold text-ink">{change.partnerName}</span> · <a href={`mailto:${change.partnerEmail}`} className="text-brand underline underline-offset-2">{change.partnerEmail}</a>
+              </p>
+              <dl className="mt-3 divide-y divide-rule border-y border-rule text-[14px]">
+                {Object.entries(change.changes).map(([field, value]) => {
+                  const before = change.current ? (change.current as unknown as Record<string, unknown>)[field] : undefined;
+                  const show = (item: unknown) => item === null || item === undefined || item === "" ? "—" : Array.isArray(item) ? item.join(", ") : String(item);
+                  return (
+                    <div key={field} className="grid gap-1 py-2 sm:grid-cols-[140px_1fr_1fr]">
+                      <dt className="font-semibold text-ink-soft">{FIELD_LABEL[field] ?? field}</dt>
+                      <dd className="text-ink-faint line-through decoration-ink-faint/60">{show(before)}</dd>
+                      <dd className="text-ink">{show(value)}</dd>
+                    </div>
+                  );
+                })}
+              </dl>
+              {change.note && <p className="mt-3 text-[14px] text-ink-soft">Note: &ldquo;{change.note}&rdquo;</p>}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button disabled={busy === change.id} onClick={() => void decide(change, "approved")} className="h-11 rounded-md bg-brand px-4 font-semibold text-white hover:bg-brand-deep"><Check className="size-4" /> Approve and publish</Button>
+                <Button variant="outline" disabled={busy === change.id} onClick={() => void decide(change, "rejected")} className="h-11 rounded-md border-ink px-4 font-semibold text-ink"><X className="size-4" /> Decline</Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+const FIELD_LABEL: Record<string, string> = {
+  title: "Name", organization: "Organization", description: "Description", eligibility: "Who it helps", cost: "Cost",
+  applicationSteps: "How to start", whatToBring: "What to bring", website: "Website", phone: "Phone", address: "Address",
+  hours: "Hours", languages: "Languages", accessibility: "Accessibility", serviceArea: "Area served", ageMin: "Minimum age",
+  ageMax: "Maximum age", fieldsNa: "Confirmed none of", recheckAt: "Re-check by", checkedBy: "Checked by",
+};
 
 function Pipe({ label, value }: { label: string; value: number }) {
   return <div><p className="text-eyebrow text-ink-faint">{label}</p><p className="tabular mt-1 font-display text-[28px] font-bold leading-none text-ink">{value}</p></div>;
@@ -296,6 +426,8 @@ export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
           ))}
         </div>
       )}
+
+      <ChangeQueue />
 
       {reviewed.length > 0 && (
         <section className="mt-12">

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, ChartNoAxesCombined, FilePlus2, Inbox, LayoutGrid, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, BookOpen, ChartNoAxesCombined, FilePlus2, Inbox, LayoutGrid, ListChecks, ShieldCheck, UserRound } from "lucide-react";
 import { PartnerProvider, usePartner } from "@/contexts/PartnerContext";
 import { Brand } from "./AppLayout";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ const links = [
   { to: "/partners/submissions", label: "My submissions", icon: Inbox },
   { to: "/partners/add-resource", label: "Add a resource", icon: FilePlus2 },
   { to: "/partners/coverage", label: "Coverage", icon: ChartNoAxesCombined },
+  { to: "/partners/gaps", label: "Fill the gaps", icon: ListChecks },
   { to: "/partners/guide", label: "Staff guide", icon: BookOpen },
 ];
 

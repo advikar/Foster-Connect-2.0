@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, ChartNoAxesCombined, FilePlus2, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { usePartner } from "@/contexts/PartnerContext";
 import { askPartnerGuide, fetchMySubmissions, fetchPartnerAnalytics, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type Submission } from "@/lib/api";
-import { Coverage, Queue, SignIn } from "./InsightsPage";
+import { Coverage, Gaps, Queue, SignIn } from "./InsightsPage";
 import { AddResourcePage } from "./AddResourcePage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -223,12 +223,24 @@ export function PartnerCoverage() {
   );
 }
 
+export function PartnerGaps() {
+  const { partner } = usePartner();
+  return (
+    <div className="flex flex-col gap-8">
+      <Heading eyebrow="Fill the gaps" title="A minute here makes a listing usable.">
+        Blank fields are where young people get stuck: no number to call, no idea what it costs. Fill in what you know.
+      </Heading>
+      <Access><Gaps reviewer={partner?.role === "reviewer"} /></Access>
+    </div>
+  );
+}
+
 export function PartnerReview() {
   const { partner } = usePartner();
   return (
     <div className="flex flex-col gap-8">
       <Heading eyebrow="Verification" title="Review queue">
-        Check the official source and the required details before a listing becomes visible to young people. Approving puts your name on the audit record.
+        New listings and proposed changes wait here. Check the official source before approving; approving puts your name on the audit record and shows who proposed the change.
       </Heading>
       <Access reviewer>{partner && <Queue reviewer={partner} />}</Access>
     </div>

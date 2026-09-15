@@ -49,6 +49,10 @@ export interface ResourceItem {
   isCrisis: boolean;
   /** "information": a guide or PDF, not a place you call or visit (Y11). */
   kind?: "service" | "information";
+  /** Fields a reviewer confirmed this listing genuinely has none of (P7). */
+  fieldsNa?: string[];
+  /** Check again on or before this date (P7). */
+  recheckAt?: string | null;
   sourceUrl: string;
   verifiedAt: string;
   /** "phone" when a reviewer confirmed the listing by calling; "online" when checked against the program's page. */
@@ -372,12 +376,50 @@ export interface PartnerAnalytics {
   matrix: { category: string; county: string; count: number }[];
   freshness: { fresh: number; aging: number; stale: number; unknown: number };
   completeness: { phone: number; website: number; hours: number; address: number; cost_known: number; age_known: number; languages: number; source: number };
-  staleList: { id: number; title: string; organization: string; category: string; county: string; verified_at: string }[];
+  staleList: { id: number; title: string; organization: string; category: string; county: string; verified_at: string; recheck_at?: string | null }[];
   pipeline: { pending: number; approved: number; rejected: number; pending_over_week: number; submitted_last_30: number };
+  changes: { pending: number };
   reports: { id: number; resource_id: number; title: string; organization: string; reason: string; created_at: string }[];
   generatedAt: string;
 }
 export function fetchPartnerAnalytics() { return partnerRequest<PartnerAnalytics>("/api/partner/analytics"); }
+
+/* ── Listings behind a Coverage bar, and edits to them (P4–P7) ─────────── */
+
+export type MissingField = "phone" | "website" | "hours" | "address" | "languages" | "cost" | "age";
+export const NA_FIELDS: MissingField[] = ["phone", "website", "hours", "address", "languages", "cost", "age"];
+
+export function fetchPartnerResources(filters: { q?: string; county?: string; category?: string; missing?: MissingField; stale?: boolean; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== "" && value !== false) params.set(key, String(value));
+  }
+  return partnerRequest<ResourceItem[]>(`/api/partner/resources?${params}`);
+}
+
+export interface ResourceChanges {
+  title?: string; organization?: string; description?: string; eligibility?: string; cost?: string;
+  applicationSteps?: string; whatToBring?: string; website?: string; phone?: string; address?: string;
+  hours?: string; languages?: string; accessibility?: string; serviceArea?: string;
+  ageMin?: number | null; ageMax?: number | null;
+  fieldsNa?: MissingField[];
+  recheckAt?: string | null;
+  checkedBy?: "phone" | "online";
+}
+export function proposeResourceChange(resourceId: number, changes: ResourceChanges, note = "") {
+  return partnerRequest<{ id: number; status: "pending" | "approved"; resource?: ResourceItem }>(`/api/partner/resources/${resourceId}/changes`, { method: "POST", body: JSON.stringify({ changes, note }) });
+}
+export interface ResourceChange {
+  id: number; resourceId: number; resourceTitle: string; resourceOrganization: string; resourceCounty: string;
+  partnerName: string; partnerEmail: string; note: string; status: "pending" | "approved" | "rejected";
+  changes: ResourceChanges; current: ResourceItem | null; createdAt: string; reviewedAt: string | null; moderatorNote: string | null;
+}
+export function fetchResourceChanges(status: "pending" | "approved" | "rejected" = "pending") {
+  return partnerRequest<ResourceChange[]>(`/api/partner/changes?status=${status}`);
+}
+export function reviewResourceChange(id: number, status: "approved" | "rejected", moderatorNote = "") {
+  return partnerRequest<{ id: number; status: string }>(`/api/partner/changes/${id}`, { method: "PATCH", body: JSON.stringify({ status, moderatorNote }) });
+}
 
 export function fetchMySubmissions() {
   return partnerRequest<Submission[]>("/api/partner/my-submissions");

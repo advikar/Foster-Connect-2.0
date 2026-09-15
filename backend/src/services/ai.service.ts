@@ -30,6 +30,8 @@ export interface GroundedResource {
   verifiedAt: string;
   checkedHow?: "phone" | "online";
   kind?: "service" | "information";
+  fieldsNa?: string[];
+  recheckAt?: string | null;
   tags: string;
 }
 

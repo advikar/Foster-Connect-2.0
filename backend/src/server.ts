@@ -185,12 +185,21 @@ function mapResource(row: Row): GroundedResource {
     urgencyLevel: rowString(row, "urgency_level"),
     isCrisis: Boolean(row.is_crisis),
     kind: row.kind === "information" ? "information" : "service",
+    fieldsNa: parseFieldsNa(row.fields_na),
+    recheckAt: row.recheck_at ? String(row.recheck_at) : null,
     sourceUrl: rowString(row, "source_url"),
     verifiedAt: rowString(row, "verified_at"),
     /** How the listing was checked: "phone" when a reviewer confirmed it by calling, otherwise "online". */
     checkedHow: /phone|line confirmed|called/i.test(rowString(row, "verified_by")) ? "phone" : "online",
     tags: rowString(row, "tags"),
   };
+}
+
+function parseFieldsNa(value: unknown): string[] {
+  try {
+    const parsed = JSON.parse(String(value || "[]"));
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch { return []; }
 }
 
 function mapTask(row: Row) {
@@ -596,12 +605,33 @@ async function initDb() {
     // Y11: "service" (default) or "information" — a PDF/guide with no hours, address or phone to show.
     ["resources", "kind", "TEXT NOT NULL DEFAULT 'service'"],
     ["resource_submissions", "kind", "TEXT NOT NULL DEFAULT 'service'"],
+    // P7: fields a reviewer confirmed the listing genuinely has none of (JSON array, e.g. ["phone","address"]),
+    // and an optional date after which it should be checked again (a summer scholarship, a pilot).
+    ["resources", "fields_na", "TEXT NOT NULL DEFAULT '[]'"],
+    ["resources", "recheck_at", "TEXT"],
   ]) {
     const columns = await db.execute(`PRAGMA table_info(${table})`);
     if (!columns.rows.some(row => row.name === column)) {
       await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
     }
   }
+  // P5/P6: a proposed edit to a published listing. Contributors propose; reviewers
+  // approve (which applies it) or reject. Reviewer edits are recorded as approved.
+  await db.execute(`CREATE TABLE IF NOT EXISTS resource_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    resource_id INTEGER NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    partner_id INTEGER NOT NULL REFERENCES partners(id),
+    partner_name TEXT NOT NULL,
+    partner_email TEXT NOT NULL,
+    changes_json TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending',
+    moderator_note TEXT,
+    reviewed_by TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TEXT
+  )`);
+  await db.execute("CREATE INDEX IF NOT EXISTS idx_changes_status ON resource_changes(status, created_at)");
 }
 
 /**
@@ -1075,27 +1105,29 @@ app.get("/api/partner/analytics", requirePartner, asyncRoute(async (_req, res) =
     db.execute(`SELECT category, COUNT(*) AS count,
         SUM(CASE WHEN lower(cost) LIKE 'free%' AND lower(cost) NOT LIKE '%sliding%' THEN 1 ELSE 0 END) AS free,
         SUM(CASE WHEN cost='' OR lower(cost) LIKE '%not confirmed%' THEN 1 ELSE 0 END) AS cost_unknown,
-        SUM(CASE WHEN date(verified_at) < date('now','-180 days') THEN 1 ELSE 0 END) AS stale
+        SUM(CASE WHEN date(verified_at) < date('now','-180 days') OR (recheck_at IS NOT NULL AND date(recheck_at) <= date('now')) THEN 1 ELSE 0 END) AS stale
       FROM resources WHERE status='verified' GROUP BY category ORDER BY count DESC`),
     db.execute("SELECT county, COUNT(*) AS count FROM resources WHERE status='verified' GROUP BY county ORDER BY count DESC"),
     db.execute("SELECT category, county, COUNT(*) AS count FROM resources WHERE status='verified' GROUP BY category, county"),
     db.execute(`SELECT
         SUM(CASE WHEN date(verified_at) >= date('now','-90 days') THEN 1 ELSE 0 END) AS fresh,
         SUM(CASE WHEN date(verified_at) < date('now','-90 days') AND date(verified_at) >= date('now','-180 days') THEN 1 ELSE 0 END) AS aging,
-        SUM(CASE WHEN date(verified_at) < date('now','-180 days') THEN 1 ELSE 0 END) AS stale,
+        SUM(CASE WHEN date(verified_at) < date('now','-180 days') OR (recheck_at IS NOT NULL AND date(recheck_at) <= date('now')) THEN 1 ELSE 0 END) AS stale,
         SUM(CASE WHEN date(verified_at) IS NULL THEN 1 ELSE 0 END) AS unknown
       FROM resources WHERE status='verified'`),
+    // A field counts as "known" when it is filled in OR a reviewer confirmed the listing has none (P7).
     db.execute(`SELECT
-        SUM(CASE WHEN coalesce(phone,'')!='' THEN 1 ELSE 0 END) AS phone,
-        SUM(CASE WHEN coalesce(website,'')!='' THEN 1 ELSE 0 END) AS website,
-        SUM(CASE WHEN coalesce(hours,'')!='' THEN 1 ELSE 0 END) AS hours,
-        SUM(CASE WHEN coalesce(address,'')!='' THEN 1 ELSE 0 END) AS address,
-        SUM(CASE WHEN cost!='' AND lower(cost) NOT LIKE '%not confirmed%' THEN 1 ELSE 0 END) AS cost_known,
-        SUM(CASE WHEN age_min IS NOT NULL OR age_max IS NOT NULL THEN 1 ELSE 0 END) AS age_known,
-        SUM(CASE WHEN coalesce(languages,'')!='' THEN 1 ELSE 0 END) AS languages,
+        SUM(CASE WHEN coalesce(phone,'')!='' OR fields_na LIKE '%"phone"%' THEN 1 ELSE 0 END) AS phone,
+        SUM(CASE WHEN coalesce(website,'')!='' OR fields_na LIKE '%"website"%' THEN 1 ELSE 0 END) AS website,
+        SUM(CASE WHEN coalesce(hours,'')!='' OR fields_na LIKE '%"hours"%' THEN 1 ELSE 0 END) AS hours,
+        SUM(CASE WHEN coalesce(address,'')!='' OR fields_na LIKE '%"address"%' THEN 1 ELSE 0 END) AS address,
+        SUM(CASE WHEN (cost!='' AND lower(cost) NOT LIKE '%not confirmed%') OR fields_na LIKE '%"cost"%' THEN 1 ELSE 0 END) AS cost_known,
+        SUM(CASE WHEN age_min IS NOT NULL OR age_max IS NOT NULL OR fields_na LIKE '%"age"%' THEN 1 ELSE 0 END) AS age_known,
+        SUM(CASE WHEN coalesce(languages,'')!='' OR fields_na LIKE '%"languages"%' THEN 1 ELSE 0 END) AS languages,
         SUM(CASE WHEN coalesce(source_url,'')!='' THEN 1 ELSE 0 END) AS source
       FROM resources WHERE status='verified'`),
-    db.execute("SELECT id, title, organization, category, county, verified_at FROM resources WHERE status='verified' ORDER BY date(verified_at) ASC, id ASC LIMIT 25"),
+    db.execute(`SELECT id, title, organization, category, county, verified_at, recheck_at FROM resources WHERE status='verified'
+      ORDER BY CASE WHEN recheck_at IS NOT NULL AND date(recheck_at) <= date('now') THEN 0 ELSE 1 END, date(verified_at) ASC, id ASC LIMIT 25`),
     db.execute(`SELECT
         SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) AS pending,
         SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) AS approved,
@@ -1108,8 +1140,10 @@ app.get("/api/partner/analytics", requirePartner, asyncRoute(async (_req, res) =
       ORDER BY rr.created_at DESC LIMIT 20`),
     db.execute(`SELECT COUNT(*) AS count FROM resource_submissions WHERE status='approved' AND date(reviewed_at) >= date('now','-30 days')`),
   ]);
+  const pendingChanges = await db.execute("SELECT COUNT(*) AS count FROM resource_changes WHERE status='pending'");
   res.json({
     totals: { ...totals.rows[0], publishedLast30: Number(recentPublished.rows[0]?.count ?? 0) },
+    changes: { pending: Number(pendingChanges.rows[0]?.count ?? 0) },
     byCategory: byCategory.rows,
     byCounty: byCounty.rows,
     matrix: matrix.rows,
@@ -1120,6 +1154,171 @@ app.get("/api/partner/analytics", requirePartner, asyncRoute(async (_req, res) =
     reports: reports.rows,
     generatedAt: new Date().toISOString(),
   });
+}));
+
+/* ── Partner: browse listings behind a Coverage bar, and propose or apply edits (P4–P7) ── */
+
+const MISSING_FILTERS: Record<string, string> = {
+  phone: "coalesce(r.phone,'')='' AND r.fields_na NOT LIKE '%\"phone\"%'",
+  website: "coalesce(r.website,'')='' AND r.fields_na NOT LIKE '%\"website\"%'",
+  hours: "coalesce(r.hours,'')='' AND r.fields_na NOT LIKE '%\"hours\"%'",
+  address: "coalesce(r.address,'')='' AND r.fields_na NOT LIKE '%\"address\"%'",
+  languages: "coalesce(r.languages,'')='' AND r.fields_na NOT LIKE '%\"languages\"%'",
+  cost: "(r.cost='' OR lower(r.cost) LIKE '%not confirmed%') AND r.fields_na NOT LIKE '%\"cost\"%'",
+  age: "r.age_min IS NULL AND r.age_max IS NULL AND r.fields_na NOT LIKE '%\"age\"%'",
+};
+const STALE_FILTER = "(date(r.verified_at) < date('now','-180 days') OR (r.recheck_at IS NOT NULL AND date(r.recheck_at) <= date('now')))";
+
+app.get("/api/partner/resources", requirePartner, asyncRoute(async (req, res) => {
+  const query = z.object({
+    q: z.string().max(200).optional(),
+    county: z.string().max(200).optional(),
+    category: z.string().max(400).optional(),
+    missing: z.enum(["phone", "website", "hours", "address", "languages", "cost", "age"]).optional(),
+    stale: z.coerce.boolean().optional(),
+    limit: z.coerce.number().int().min(1).max(500).optional().default(200),
+  }).parse(req.query);
+  const { filters, args } = buildResourceFilters({ county: query.county, category: query.category });
+  // Partners see exact-county lists (no regional fold-in), otherwise a county bar's list would not match its count.
+  const counties = listParam(query.county);
+  if (counties.length) { filters.shift(); filters.shift(); filters.unshift("r.status = 'verified'"); filters.push(`r.county IN (${counties.map(() => "?").join(",")})`); args.splice(0, counties.length); args.push(...counties); }
+  if (query.missing) filters.push(MISSING_FILTERS[query.missing]);
+  if (query.stale) filters.push(STALE_FILTER);
+  if (query.q) { filters.push("(lower(r.title) LIKE ? OR lower(r.organization) LIKE ?)"); const like = `%${query.q.toLowerCase()}%`; args.push(like, like); }
+  const result = await db.execute({ sql: `SELECT r.* FROM resources r WHERE ${filters.join(" AND ")} ORDER BY r.title ASC LIMIT ?`, args: [...args, query.limit] });
+  res.json(result.rows.map(mapResource));
+}));
+
+app.get("/api/partner/resources/:id", requirePartner, asyncRoute(async (req, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const resource = (await resourcesByIds([id]))[0];
+  if (!resource) { res.status(404).json({ error: "Resource not found" }); return; }
+  const changes = await db.execute({ sql: "SELECT id, partner_name, status, note, changes_json, created_at FROM resource_changes WHERE resource_id=? ORDER BY created_at DESC LIMIT 10", args: [id] });
+  res.json({ ...resource, changes: changes.rows.map(row => ({ ...row, changes: JSON.parse(String(row.changes_json)) })) });
+}));
+
+const EDITABLE_FIELDS = {
+  title: "title", organization: "organization", description: "description", eligibility: "eligibility", cost: "cost",
+  applicationSteps: "application_steps", whatToBring: "what_to_bring", website: "website", phone: "phone",
+  address: "address", hours: "hours", languages: "languages", accessibility: "accessibility", serviceArea: "service_area",
+} as const;
+const NA_FIELDS = ["phone", "website", "hours", "address", "languages", "cost", "age"] as const;
+
+const changeSchema = z.object({
+  changes: z.object({
+    title: z.string().trim().min(3).max(140).optional(),
+    organization: z.string().trim().min(2).max(140).optional(),
+    description: z.string().trim().min(10).max(2000).optional(),
+    eligibility: z.string().trim().max(1000).optional(),
+    cost: z.string().trim().max(200).optional(),
+    applicationSteps: z.string().trim().max(2000).optional(),
+    whatToBring: z.string().trim().max(1000).optional(),
+    website: z.string().trim().max(500).optional(),
+    phone: z.string().trim().max(120).optional(),
+    address: z.string().trim().max(300).optional(),
+    hours: z.string().trim().max(200).optional(),
+    languages: z.string().trim().max(200).optional(),
+    accessibility: z.string().trim().max(300).optional(),
+    serviceArea: z.string().trim().max(200).optional(),
+    ageMin: z.number().int().min(0).max(120).nullable().optional(),
+    ageMax: z.number().int().min(0).max(120).nullable().optional(),
+    /** Fields this listing genuinely has none of, confirmed with the program (P7). */
+    fieldsNa: z.array(z.enum(NA_FIELDS)).optional(),
+    /** Check this listing again on or before this date (P7). Null clears it. */
+    recheckAt: z.string().date().nullable().optional(),
+    checkedBy: z.enum(["phone", "online"]).optional(),
+  }).refine(value => Object.keys(value).length > 0, { message: "Nothing to change" }),
+  note: z.string().trim().max(1000).optional().default(""),
+});
+type ResourceChanges = z.infer<typeof changeSchema>["changes"];
+
+/** Apply a change set to a listing and refresh its search entry. The applier's email becomes verified_by. */
+async function applyResourceChanges(resourceId: number, changes: ResourceChanges, actor: Partner) {
+  const before = await db.execute({ sql: "SELECT * FROM resources WHERE id=?", args: [resourceId] });
+  const row = before.rows[0];
+  if (!row) return false;
+  const sets: string[] = [];
+  const args: (string | number | null)[] = [];
+  for (const [key, column] of Object.entries(EDITABLE_FIELDS)) {
+    const value = changes[key as keyof typeof EDITABLE_FIELDS];
+    if (value !== undefined) { sets.push(`${column}=?`); args.push(value); }
+  }
+  if (changes.ageMin !== undefined) { sets.push("age_min=?"); args.push(changes.ageMin); }
+  if (changes.ageMax !== undefined) { sets.push("age_max=?"); args.push(changes.ageMax); }
+  if (changes.fieldsNa !== undefined) { sets.push("fields_na=?"); args.push(JSON.stringify([...new Set(changes.fieldsNa)])); }
+  if (changes.recheckAt !== undefined) { sets.push("recheck_at=?"); args.push(changes.recheckAt); }
+  const today = new Date().toISOString().slice(0, 10);
+  sets.push("verified_at=?", "verified_by=?", "updated_at=CURRENT_TIMESTAMP");
+  args.push(today, changes.checkedBy === "phone" ? `${actor.email} (confirmed by phone)` : actor.email);
+  await executeSerialised(db, {
+    sql: `INSERT INTO resources_fts(resources_fts, rowid, title, organization, description, category, county, service_area, eligibility, application_steps, tags)
+          VALUES ('delete', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [resourceId, rowString(row, "title"), rowString(row, "organization"), rowString(row, "description"), rowString(row, "category"), rowString(row, "county"), rowString(row, "service_area"), rowString(row, "eligibility"), rowString(row, "application_steps"), rowString(row, "tags")],
+  });
+  await executeSerialised(db, { sql: `UPDATE resources SET ${sets.join(", ")} WHERE id=?`, args: [...args, resourceId] });
+  await executeSerialised(db, {
+    sql: `INSERT INTO resources_fts(rowid, title, organization, description, category, county, service_area, eligibility, application_steps, tags)
+          SELECT id, title, organization, description, category, county, service_area, eligibility, application_steps, tags FROM resources WHERE id = ?`,
+    args: [resourceId],
+  });
+  return true;
+}
+
+app.post("/api/partner/resources/:id/changes", requirePartner, asyncRoute(async (req: PartnerRequest, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const input = changeSchema.parse(req.body);
+  const partner = req.partner!;
+  const exists = await db.execute({ sql: "SELECT id, title FROM resources WHERE id=?", args: [id] });
+  if (!exists.rows[0]) { res.status(404).json({ error: "Resource not found" }); return; }
+  const reviewer = canReview(partner);
+  const inserted = await executeSerialised(db, {
+    sql: `INSERT INTO resource_changes (resource_id, partner_id, partner_name, partner_email, changes_json, note, status, reviewed_by, reviewed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${reviewer ? "CURRENT_TIMESTAMP" : "NULL"})`,
+    args: [id, partner.id, partner.name, partner.email, JSON.stringify(input.changes), input.note, reviewer ? "approved" : "pending", reviewer ? partner.email : null],
+  });
+  if (reviewer) {
+    await applyResourceChanges(id, input.changes, partner);
+    await executeSerialised(db, audit(partner, "resource.edit", "resource", id, JSON.stringify({ changeId: Number(inserted.lastInsertRowid), fields: Object.keys(input.changes) })));
+    res.json({ id: Number(inserted.lastInsertRowid), status: "approved", resource: (await resourcesByIds([id]))[0] });
+    return;
+  }
+  await executeSerialised(db, audit(partner, "resource.propose", "resource", id, JSON.stringify({ changeId: Number(inserted.lastInsertRowid), fields: Object.keys(input.changes) })));
+  res.status(202).json({ id: Number(inserted.lastInsertRowid), status: "pending" });
+}));
+
+app.get("/api/partner/changes", requirePartner, requireReviewer, asyncRoute(async (req, res) => {
+  const status = z.enum(["pending", "approved", "rejected"]).optional().default("pending").parse(req.query.status);
+  const result = await db.execute({
+    sql: `SELECT c.*, r.title AS resource_title, r.organization AS resource_organization, r.county AS resource_county
+          FROM resource_changes c JOIN resources r ON r.id = c.resource_id
+          WHERE c.status = ? ORDER BY c.created_at ASC LIMIT 200`,
+    args: [status],
+  });
+  const ids = [...new Set(result.rows.map(row => Number(row.resource_id)))];
+  const current = new Map((await resourcesByIds(ids)).map(resource => [resource.id, resource]));
+  res.json(result.rows.map(row => ({
+    id: Number(row.id), resourceId: Number(row.resource_id), resourceTitle: rowString(row, "resource_title"), resourceOrganization: rowString(row, "resource_organization"), resourceCounty: rowString(row, "resource_county"),
+    partnerName: rowString(row, "partner_name"), partnerEmail: rowString(row, "partner_email"), note: rowString(row, "note"), status: rowString(row, "status"),
+    changes: JSON.parse(String(row.changes_json)), current: current.get(Number(row.resource_id)) ?? null, createdAt: rowString(row, "created_at"), reviewedAt: row.reviewed_at ? String(row.reviewed_at) : null, moderatorNote: row.moderator_note ? String(row.moderator_note) : null,
+  })));
+}));
+
+app.patch("/api/partner/changes/:id", requirePartner, requireReviewer, asyncRoute(async (req: PartnerRequest, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const input = z.object({ status: z.enum(["approved", "rejected"]), moderatorNote: z.string().trim().max(1000).optional().default("") }).parse(req.body);
+  const partner = req.partner!;
+  const existing = await db.execute({ sql: "SELECT * FROM resource_changes WHERE id=?", args: [id] });
+  const change = existing.rows[0];
+  if (!change) { res.status(404).json({ error: "Change not found" }); return; }
+  if (String(change.status) !== "pending") { res.status(409).json({ error: "This change was already reviewed." }); return; }
+  if (input.status === "approved") {
+    const parsed = changeSchema.shape.changes.safeParse(JSON.parse(String(change.changes_json)));
+    if (!parsed.success) { res.status(422).json({ error: "This proposal is no longer valid." }); return; }
+    await applyResourceChanges(Number(change.resource_id), parsed.data, partner);
+  }
+  await executeSerialised(db, { sql: "UPDATE resource_changes SET status=?, moderator_note=?, reviewed_by=?, reviewed_at=CURRENT_TIMESTAMP WHERE id=?", args: [input.status, input.moderatorNote, partner.email, id] });
+  await executeSerialised(db, audit(partner, `resource.change.${input.status}`, "resource", Number(change.resource_id), JSON.stringify({ changeId: id })));
+  res.json({ id, status: input.status });
 }));
 
 app.post("/api/partner/logout", requirePartner, asyncRoute(async (req: PartnerRequest, res) => {
