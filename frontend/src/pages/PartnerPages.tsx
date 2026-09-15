@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Loader2, Plus, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpen, ChartNoAxesCombined, FilePlus2, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { usePartner } from "@/contexts/PartnerContext";
 import { askPartnerGuide, fetchMySubmissions, fetchPartnerAnalytics, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type Submission } from "@/lib/api";
 import { Coverage, Queue, SignIn } from "./InsightsPage";
@@ -25,11 +25,13 @@ export function Heading({ eyebrow, title, children, action }: { eyebrow: string;
   );
 }
 
+/** Workspace gate (P1): anything inside needs a signed-in partner; otherwise go to the one sign-in page and come back after. */
 function Access({ children, reviewer = false }: { children: ReactNode; reviewer?: boolean }) {
-  const { partner, checking, error, refresh, signedIn } = usePartner();
+  const { partner, checking, error, refresh } = usePartner();
+  const location = useLocation();
   if (checking) return <p role="status" className="py-10 text-ink-soft">Checking your sign-in…</p>;
   if (error) return <div role="alert" className="mt-6 rounded-md border border-rule bg-surface p-6"><p>{error}</p><Button className="mt-4 h-11 rounded-md bg-brand text-white" onClick={refresh}>Try again</Button></div>;
-  if (!partner) return <div className="mt-8"><SignIn onSignedIn={signedIn} /></div>;
+  if (!partner) return <Navigate to={`/partners/sign-in?next=${encodeURIComponent(location.pathname)}`} replace />;
   if (reviewer && partner.role !== "reviewer") {
     return (
       <div className="mt-8 max-w-[560px] rounded-md border border-rule bg-surface p-6">
@@ -54,7 +56,7 @@ export function PartnerOverview() {
   const firstName = partner?.name.split(" ")[0];
   return (
     <div className="flex flex-col gap-8">
-      <Heading eyebrow="Overview" title={partner ? `Welcome back, ${firstName}.` : "Help make the next step possible."}>
+      <Heading eyebrow="Overview" title={partner ? `Welcome back, ${firstName}.` : "Signing you in…"}>
         Share local services, follow them through review, and see where the directory is thin. A useful connection starts with accurate information.
       </Heading>
       <Access>
@@ -356,16 +358,94 @@ function Guide() {
   );
 }
 
+/**
+ * The one sign-in page (P1, P3). Partner users sign in here; reviewers use the
+ * same form via the small link at the bottom (?as=reviewer), which changes the
+ * copy and lands them on the review queue.
+ */
 export function PartnerSignIn() {
+  const { partner, checking, signedIn } = usePartner();
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const asReviewer = params.get("as") === "reviewer";
+  const next = params.get("next");
+  const destination = (identity: { role: string }) => {
+    if (next && next.startsWith("/partners/")) return next;
+    return asReviewer && identity.role === "reviewer" ? "/partners/review" : "/partners/overview";
+  };
+  if (!checking && partner) return <Navigate to={destination(partner)} replace />;
+  return (
+    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-6 py-6 lg:py-12">
+      <div>
+        <p className="text-eyebrow text-brand">{asReviewer ? "Reviewer sign-in" : "Partner sign-in"}</p>
+        <h1 className="mt-2 font-display text-[30px] font-bold text-ink">{asReviewer ? "Approve what young people will see." : "Same directory, different tools."}</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
+          {asReviewer
+            ? "Reviewers are the one or two people Foster Connect has vetted to approve listings and changes. Sign in with your reviewer account."
+            : "For caseworkers, agencies and community partners: add services, fill in gaps and use the staff guide."}
+        </p>
+      </div>
+      <SignIn onSignedIn={identity => { signedIn(identity); navigate(destination(identity), { replace: true }); }} reviewer={asReviewer} />
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-ink-faint">
+        <Link to="/partners" className="hover:text-ink">← About Foster Connect for partners</Link>
+        {asReviewer
+          ? <Link to="/partners/sign-in" className="hover:text-ink">Not a reviewer? Partner sign-in</Link>
+          : <Link to="/partners/sign-in?as=reviewer" className="hover:text-ink">Reviewer? Sign in here</Link>}
+      </div>
+    </div>
+  );
+}
+
+/** Public landing (P2): what Foster Connect is, who partners are, what they can do, and the way in. */
+export function PartnerLanding() {
   const { partner } = usePartner();
   return (
-    <div className="flex flex-col gap-8">
-      <Heading eyebrow="Partner account" title={partner ? "You're signed in." : "Same directory, different tools."}>
-        For caseworkers, agencies and community partners. Accounts are created by Foster Connect — there&rsquo;s no self sign-up.
-      </Heading>
-      <Access>
-        <Link to="/partners" className="inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold text-brand hover:underline">Go to overview <ArrowRight className="size-4" /></Link>
-      </Access>
+    <div className="flex flex-col gap-12 py-4 lg:py-10">
+      <section className="max-w-[720px]">
+        <p className="text-eyebrow text-brand">About Foster Connect · for partners</p>
+        <h1 className="mt-3 font-display text-[34px] font-bold leading-tight text-ink lg:text-[44px]">Every program for foster youth in the East Bay, checked by people who know them.</h1>
+        <p className="mt-4 text-[17px] leading-relaxed text-ink-soft">
+          Foster Connect is a free directory and AI guide for current and former foster youth in Alameda and Contra Costa counties. Young people search it, save listings, and turn them into a plan without giving their name. Everything they see was checked by a person first.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link to={partner ? "/partners/overview" : "/partners/sign-in"} className="inline-flex h-12 items-center gap-2 rounded-md bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-deep">
+            {partner ? "Open the workspace" : "Partner sign-in"} <ArrowRight className="size-4" />
+          </Link>
+          <Link to="/add-resource" className="inline-flex h-12 items-center rounded-md border border-ink px-5 text-[15px] font-semibold text-ink hover:bg-surface">Suggest a listing without an account</Link>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-eyebrow text-ink-faint">Who partners are</h2>
+        <p className="mt-2 max-w-[64ch] text-[16px] leading-relaxed text-ink-soft">
+          Caseworkers, ILP and THP staff, school liaisons, clinic and shelter teams, and community organisations that serve transition-age youth. Accounts are created by Foster Connect; there is no self sign-up.
+        </p>
+      </section>
+
+      <section>
+        <h2 className="text-eyebrow text-ink-faint">What you can do once signed in</h2>
+        <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { icon: FilePlus2, title: "Add a resource", body: "Submit a service or a guide. A reviewer checks it before young people see it." },
+            { icon: ChartNoAxesCombined, title: "See where the directory is thin", body: "Coverage by kind and county, and which listings are missing a phone, cost or hours. Fill a gap and it goes to review." },
+            { icon: BookOpen, title: "Use the staff guide", body: "An AI assistant for drafting descriptions and verification checklists. It never sees youth plans or chats." },
+          ].map(({ icon: Icon, title, body }) => (
+            <li key={title} className="rounded-md border border-rule bg-surface p-5">
+              <Icon className="size-5 text-brand" />
+              <h3 className="mt-3 text-[17px] font-semibold text-ink">{title}</h3>
+              <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{body}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="max-w-[720px] rounded-md bg-sand-soft p-6">
+        <h2 className="font-display text-[22px] font-bold text-ink">Reviewers</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
+          One or two people vetted by Foster Connect approve new listings and proposed changes, and can see who proposed them. Youth plans, chats and saved lists are never visible to anyone.
+        </p>
+        <Link to="/partners/sign-in?as=reviewer" className="mt-3 inline-flex min-h-10 items-center text-[14px] font-semibold text-brand hover:underline">Reviewer sign-in →</Link>
+      </section>
     </div>
   );
 }

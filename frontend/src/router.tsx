@@ -6,6 +6,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { ErrorFallback, NotFoundPage } from "./components/safety/ErrorFallback";
 
 const PartnerSignIn = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerSignIn })));
+const PartnerLanding = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerLanding })));
 const PartnerOverview = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerOverview })));
 const PartnerSubmissions = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerSubmissions })));
 const PartnerAddResource = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerAddResource })));
@@ -41,8 +42,9 @@ export const router = createBrowserRouter([{
 ]}, {
   path: "/partners", element: <PartnerLayout />, errorElement: <ErrorFallback />,
   children: [
-    { index: true, element: page(<PartnerOverview />) },
+    { index: true, element: page(<PartnerLanding />) },
     { path: "sign-in", element: page(<PartnerSignIn />) },
+    { path: "overview", element: page(<PartnerOverview />) },
     { path: "submissions", element: page(<PartnerSubmissions />) },
     { path: "add-resource", element: page(<PartnerAddResource />) },
     { path: "coverage", element: page(<PartnerCoverage />) },

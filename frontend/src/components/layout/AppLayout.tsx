@@ -114,7 +114,7 @@ function TopBar() {
         </nav>
 
         <div className="flex items-center gap-1.5 lg:gap-3">
-          <Link to="/partners" className="hidden text-[13px] text-ink-faint hover:text-ink xl:inline-flex">For partners</Link>
+          <Link to="/partners" className="hidden text-[13px] text-ink-faint hover:text-ink xl:inline-flex">About &amp; partners</Link>
           <CrisisButton />
           <QuickExit />
         </div>
@@ -165,7 +165,7 @@ function SiteFooter() {
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link to="/add-resource" className="text-brand hover:underline">Tell us about a program we&rsquo;re missing</Link>
-          <Link to="/partners" className="text-brand hover:underline">For partners</Link>
+          <Link to="/partners" className="text-brand hover:underline">About &amp; partners</Link>
           {(import.meta.env.DEV || import.meta.env.VITE_PREVIEW) && <AccentToggle />}
         </div>
       </div>

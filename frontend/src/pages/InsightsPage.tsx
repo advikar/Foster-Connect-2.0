@@ -186,7 +186,7 @@ function Pipe({ label, value }: { label: string; value: number }) {
   return <div><p className="text-eyebrow text-ink-faint">{label}</p><p className="tabular mt-1 font-display text-[28px] font-bold leading-none text-ink">{value}</p></div>;
 }
 
-export function SignIn({ onSignedIn }: { onSignedIn: (partner: PartnerIdentity) => void }) {
+export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner: PartnerIdentity) => void; reviewer?: boolean }) {
   const emailId = useId();
   const passwordId = useId();
   const [email, setEmail] = useState("");
@@ -209,9 +209,9 @@ export function SignIn({ onSignedIn }: { onSignedIn: (partner: PartnerIdentity) 
 
   return (
     <form onSubmit={submit} className="max-w-[420px] rounded-md border border-rule bg-surface p-6 sm:p-8">
-      <h2 className="font-display text-[26px] font-bold text-ink">Sign in</h2>
+      <h2 className="font-display text-[26px] font-bold text-ink">{reviewer ? "Reviewer sign-in" : "Sign in"}</h2>
       <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">
-        Sign in to submit resources, track review status, and use the staff guide.
+        {reviewer ? "Reviewer accounts approve listings and changes. Contributor accounts work here too." : "Sign in to submit resources, fill gaps, and use the staff guide."}
       </p>
 
       <div className="mt-5 space-y-4">
