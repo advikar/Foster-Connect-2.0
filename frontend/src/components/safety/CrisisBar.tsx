@@ -36,13 +36,15 @@ export function CrisisButton() {
       {open && (
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-dismiss; the close button and Escape remain keyboard-operable
         <div
-          className="fixed inset-0 z-[110] flex items-start justify-center overflow-y-auto bg-brand-deep/55 p-4 sm:items-center"
+          // `m-auto` on the card (not `items-center` here): a centred flex child
+          // taller than a scroll container has its top clipped and unreachable.
+          className="fixed inset-0 z-[110] flex overflow-y-auto bg-brand-deep/55 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Crisis support lines"
           onClick={event => event.target === event.currentTarget && setOpen(false)}
         >
-          <div className="w-full max-w-[640px] rounded-lg bg-ground p-6 shadow-2xl sm:p-8">
+          <div className="m-auto w-full max-w-[640px] rounded-lg bg-ground p-6 shadow-2xl sm:p-8">
             <div className="flex items-start justify-between gap-6">
               <div>
                 <h2 className="font-display text-[26px] font-bold leading-tight text-ink sm:text-[30px]">Someone is available right now.</h2>

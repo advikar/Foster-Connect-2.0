@@ -74,8 +74,8 @@ const EMPTY: Answers = {
 };
 
 export function IntakeConversation({
-  onSubmit, building,
-}: { onSubmit: (input: RoadmapIntake) => void; building: boolean }) {
+  onSubmit, building, onCancel,
+}: { onSubmit: (input: RoadmapIntake) => void; building: boolean; onCancel?: () => void }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>(EMPTY);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -252,6 +252,11 @@ export function IntakeConversation({
 
   return (
     <div className="container-wide"><div className="flex min-h-[calc(100vh-260px)] max-w-[760px] flex-col pb-10 pt-6 lg:min-h-0 lg:pt-14">
+      {onCancel && (
+        <button type="button" onClick={onCancel} className="mb-4 inline-flex min-h-9 items-center gap-1.5 self-start text-[14px] text-brand hover:underline">
+          <ArrowLeft className="size-4" /> Back to my current plan
+        </button>
+      )}
       <div className="flex items-center gap-3">
         {step > 0 && (
           <button

@@ -19,10 +19,13 @@ import { toast } from "sonner";
 export function RoadmapPage() {
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<number | null>(null);
+  // "Start a new plan" used to clear activeId, and the effect below promptly
+  // re-selected the first existing plan. This flag keeps the intake open.
+  const [startingNew, setStartingNew] = useState(false);
   const [building, setBuilding] = useState(false);
   const [deferred, setDeferred] = useState<{ response: RoadmapDeferredResponse; input: RoadmapIntake } | null>(null);
   const { data: roadmaps = [], isPending: loadingRoadmaps, isError: roadmapsFailed } = useQuery({ queryKey: ["roadmaps"], queryFn: fetchRoadmaps, retry: 1 });
-  useEffect(() => { if (!activeId && roadmaps[0]) setActiveId(roadmaps[0].id); }, [roadmaps, activeId]);
+  useEffect(() => { if (!activeId && !startingNew && roadmaps[0]) setActiveId(roadmaps[0].id); }, [roadmaps, activeId, startingNew]);
   const { data: roadmap, isPending: loadingRoadmap } = useQuery({ queryKey: ["roadmap", activeId], queryFn: () => fetchRoadmap(activeId!), enabled: Boolean(activeId), retry: 1 });
 
   const create = async (input: RoadmapIntake) => {
@@ -39,6 +42,7 @@ export function RoadmapPage() {
       setDeferred(null);
       queryClient.setQueryData(["roadmap", result.id], result);
       await queryClient.invalidateQueries({ queryKey: ["roadmaps"] });
+      setStartingNew(false);
       setActiveId(result.id);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn\u2019t build that just now. Try again in a moment.");
@@ -66,8 +70,16 @@ export function RoadmapPage() {
       />
     );
   }
-  if (!activeId || !roadmap) return <IntakeConversation onSubmit={create} building={building} />;
-  return <JourneyPlan roadmap={roadmap} onNew={() => setActiveId(null)} />;
+  if (startingNew || !activeId || !roadmap) {
+    return (
+      <IntakeConversation
+        onSubmit={create}
+        building={building}
+        onCancel={startingNew && roadmaps[0] ? () => { setStartingNew(false); setActiveId(roadmaps[0].id); } : undefined}
+      />
+    );
+  }
+  return <JourneyPlan roadmap={roadmap} onNew={() => { setStartingNew(true); setActiveId(null); }} />;
 }
 
 /** Shown when the intake text itself triggered a crisis assessment. Support first; the plan waits. */
