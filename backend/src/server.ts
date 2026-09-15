@@ -248,6 +248,12 @@ function searchTerms(query: string) {
   return [...expanded].slice(0, 18);
 }
 
+/** "a,b, c" → ["a","b","c"]; "All", "" and undefined → []. */
+function listParam(value?: string) {
+  if (!value) return [];
+  return value.split(",").map(item => item.trim()).filter(item => item && item !== "All");
+}
+
 /** One place that decides which resources a query may return, so the list
  *  query and the count query can never drift apart. */
 function buildResourceFilters(options: {
@@ -255,15 +261,18 @@ function buildResourceFilters(options: {
 }) {
   const filters = ["r.status = 'verified'"];
   const args: (string | number)[] = [];
-  if (options.county && options.county !== "All") {
+  // County and category accept a comma-separated list (Y10): "Contra Costa,California".
+  const counties = listParam(options.county);
+  if (counties.length) {
     // Regional records ("Bay Area") and statewide/national records must surface
     // for a county search, or they become unreachable entirely (audit D-02).
-    filters.push("(r.county = ? OR r.county IN ('California', 'National', 'Bay Area'))");
-    args.push(options.county);
+    filters.push(`(r.county IN (${counties.map(() => "?").join(",")}) OR r.county IN ('California', 'National', 'Bay Area'))`);
+    args.push(...counties);
   }
-  if (options.category && options.category !== "All") {
-    filters.push("r.category = ?");
-    args.push(options.category);
+  const categories = listParam(options.category);
+  if (categories.length) {
+    filters.push(`r.category IN (${categories.map(() => "?").join(",")})`);
+    args.push(...categories);
   }
   if (options.urgency && options.urgency !== "All") {
     filters.push("r.urgency_level = ?");
@@ -603,8 +612,8 @@ app.get("/api/health", (_req, res) => res.json({
 
 app.get("/api/resources", asyncRoute(async (req, res) => {
   const query = z.object({
-    q: z.string().max(300).optional(), county: z.string().max(80).optional(),
-    category: z.string().max(80).optional(), urgency: z.string().max(40).optional(),
+    q: z.string().max(300).optional(), county: z.string().max(200).optional(),
+    category: z.string().max(400).optional(), urgency: z.string().max(40).optional(),
     age: z.coerce.number().int().min(13).max(99).optional(),
     limit: z.coerce.number().int().min(1).max(100).optional().default(25),
     offset: z.coerce.number().int().min(0).max(5000).optional().default(0),

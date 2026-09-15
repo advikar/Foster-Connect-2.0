@@ -71,12 +71,15 @@ export function ResourcesPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const searchId = useId();
 
-  const category = params.get("category") || "All";
-  const county = params.get("county") || "All";
+  // Category and county are multi-select (Y10): comma-separated in the URL, "All" when empty.
+  const categories = listOf(params.get("category"));
+  const counties = listOf(params.get("county"));
+  const category = categories.join(",") || "All";
+  const county = counties.join(",") || "All";
   const urgency = params.get("urgency") || "All";
   const ageBand = params.get("age") || "All";
   const sort = params.get("sort") || "relevance";
-  const activeFilterCount = [category, county, urgency, ageBand].filter(value => value !== "All").length;
+  const activeFilterCount = categories.length + counties.length + [urgency, ageBand].filter(value => value !== "All").length;
 
   // First visit with an "About you" saved: pre-fill age and county, once.
   useEffect(() => {
@@ -105,6 +108,12 @@ export function ResourcesPage() {
     else next.set(key, value);
     setParams(next);
   };
+  /** Add or remove one value in a multi-select filter; "All" clears it. */
+  const toggleIn = (key: "category" | "county", value: string) => {
+    const current = key === "category" ? categories : counties;
+    const nextList = value === "All" ? [] : current.includes(value) ? current.filter(item => item !== value) : [...current, value];
+    setFilter(key, nextList.join(",") || "All");
+  };
   const clearFilters = () => {
     const next = new URLSearchParams(params);
     ["category", "county", "urgency", "age"].forEach(key => next.delete(key));
@@ -126,17 +135,17 @@ export function ResourcesPage() {
 
   const heading = [
     total === 1 ? "1 listing" : `${total} listings`,
-    category !== "All" ? `for ${labelOf(CATEGORIES, category).toLowerCase()}` : "",
+    categories.length ? `for ${categories.map(value => labelOf(CATEGORIES, value).toLowerCase()).join(" or ")}` : "",
     ageBand !== "All" ? `· ages ${labelOf(AGES, ageBand)}` : "",
-    county !== "All" ? `· ${labelOf(COUNTIES, county)}` : "",
+    counties.length ? `· ${counties.map(value => labelOf(COUNTIES, value)).join(" + ")}` : "",
   ].filter(Boolean).join(" ");
 
   const filterRail = (
     <div className="flex flex-col gap-7">
-      <FilterGroup label="Kind of support" value={category} options={CATEGORIES} onChange={value => setFilter("category", value)} />
-      <FilterGroup label="Where" value={county} options={COUNTIES} onChange={value => setFilter("county", value)} />
-      <FilterGroup label="Who it's for" value={ageBand} options={AGES} onChange={value => setFilter("age", value)} />
-      <FilterGroup label="How urgent" value={urgency} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
+      <FilterGroup label="Kind of support" values={categories} options={CATEGORIES} onChange={value => toggleIn("category", value)} multi />
+      <FilterGroup label="Where" values={counties} options={COUNTIES} onChange={value => toggleIn("county", value)} multi />
+      <FilterGroup label="Who it's for" values={[ageBand]} options={AGES} onChange={value => setFilter("age", value)} />
+      <FilterGroup label="How urgent" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
     </div>
   );
 
@@ -164,7 +173,7 @@ export function ResourcesPage() {
               Filters{activeFilterCount > 0 && <span className="ml-1 rounded-full bg-ink px-1.5 text-[11px] text-white">{activeFilterCount}</span>}
             </Chip>
             {QUICK.map(value => (
-              <Chip key={value} selected={category === value} onClick={() => setFilter("category", category === value ? "All" : value)} className="shrink-0">
+              <Chip key={value} selected={categories.includes(value)} onClick={() => toggleIn("category", value)} className="shrink-0">
                 {labelOf(CATEGORIES, value)}
               </Chip>
             ))}
@@ -198,13 +207,16 @@ export function ResourcesPage() {
             )}
             {activeFilterCount > 0 && (
               <div className="flex flex-wrap gap-1.5 lg:hidden">
-                {[["category", category, CATEGORIES], ["county", county, COUNTIES], ["age", ageBand, AGES], ["urgency", urgency, URGENCIES]]
-                  .filter(([, value]) => value !== "All")
-                  .map(([key, value, options]) => (
-                    <button key={key as string} type="button" onClick={() => setFilter(key as string, "All")} aria-label={`Remove ${value} filter`} className="inline-flex h-8 items-center gap-1 rounded-full bg-ink px-3 text-[12px] font-semibold text-white">
-                      {labelOf(options as typeof CATEGORIES, value as string)} <X className="size-3" />
-                    </button>
-                  ))}
+                {[
+                  ...categories.map(value => ({ key: "category" as const, value, options: CATEGORIES, remove: () => toggleIn("category", value) })),
+                  ...counties.map(value => ({ key: "county" as const, value, options: COUNTIES, remove: () => toggleIn("county", value) })),
+                  ...(ageBand !== "All" ? [{ key: "age", value: ageBand, options: AGES, remove: () => setFilter("age", "All") }] : []),
+                  ...(urgency !== "All" ? [{ key: "urgency", value: urgency, options: URGENCIES, remove: () => setFilter("urgency", "All") }] : []),
+                ].map(({ key, value, options, remove }) => (
+                  <button key={`${key}-${value}`} type="button" onClick={remove} aria-label={`Remove ${value} filter`} className="inline-flex h-8 items-center gap-1 rounded-full bg-ink px-3 text-[12px] font-semibold text-white">
+                    {labelOf(options, value)} <X className="size-3" />
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -271,10 +283,10 @@ export function ResourcesPage() {
             <h2 className="font-display text-[24px] font-bold text-ink">Filters</h2>
             <button type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="-mr-2 flex size-11 items-center justify-center rounded-md text-ink-faint hover:bg-sunk"><X className="size-5" /></button>
           </div>
-          <ChipGroup label="Kind of support" value={category} options={CATEGORIES} onChange={value => setFilter("category", value)} />
-          <ChipGroup label="Where" value={county} options={COUNTIES} onChange={value => setFilter("county", value)} />
-          <ChipGroup label="Who it's for" value={ageBand} options={AGES} onChange={value => setFilter("age", value)} />
-          <ChipGroup label="How urgent" value={urgency} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
+          <ChipGroup label="Kind of support" values={categories} options={CATEGORIES} onChange={value => toggleIn("category", value)} hint="Pick more than one" />
+          <ChipGroup label="Where" values={counties} options={COUNTIES} onChange={value => toggleIn("county", value)} hint="Pick more than one" />
+          <ChipGroup label="Who it's for" values={[ageBand]} options={AGES} onChange={value => setFilter("age", value)} />
+          <ChipGroup label="How urgent" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
           <div className="flex gap-2.5 pt-2">
             {activeFilterCount > 0 && <Button type="button" variant="outline" onClick={clearFilters} className="h-13 rounded-md border-ink px-5 text-[15px] font-semibold text-ink">Clear</Button>}
             <Button type="button" onClick={() => setFiltersOpen(false)} className="h-13 flex-1 rounded-md bg-brand text-[16px] font-semibold text-white hover:bg-brand-deep">
@@ -290,15 +302,19 @@ export function ResourcesPage() {
 function labelOf(options: { value: string; label: string }[], value: string) {
   return options.find(option => option.value === value)?.label ?? value;
 }
+function listOf(value: string | null) {
+  return (value || "").split(",").map(item => item.trim()).filter(item => item && item !== "All");
+}
 
-/** Desktop rail: a quiet list, selected row tinted. */
-function FilterGroup({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
+/** Desktop rail: a quiet list, selected rows tinted. `multi` groups let several rows be on; "All" is on when none are. */
+function FilterGroup({ label, values, options, onChange, multi = false }: { label: string; values: string[]; options: { value: string; label: string }[]; onChange: (value: string) => void; multi?: boolean }) {
+  const chosen = values.filter(value => value !== "All");
   return (
     <fieldset>
-      <legend className="text-eyebrow pb-2 text-ink-faint">{label}</legend>
+      <legend className="text-eyebrow pb-2 text-ink-faint">{label}{multi && <span className="ml-1 normal-case tracking-normal">· pick any</span>}</legend>
       <div className="flex flex-col">
         {options.map(option => {
-          const on = value === option.value;
+          const on = option.value === "All" ? chosen.length === 0 : chosen.includes(option.value);
           return (
             <button
               key={option.value}
@@ -316,12 +332,15 @@ function FilterGroup({ label, value, options, onChange }: { label: string; value
   );
 }
 
-function ChipGroup({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
+function ChipGroup({ label, values, options, onChange, hint }: { label: string; values: string[]; options: { value: string; label: string }[]; onChange: (value: string) => void; hint?: string }) {
+  const chosen = values.filter(value => value !== "All");
   return (
     <fieldset>
-      <legend className="pb-2 text-[13px] font-semibold text-ink-soft">{label}</legend>
+      <legend className="pb-2 text-[13px] font-semibold text-ink-soft">{label}{hint && <span className="ml-1.5 font-normal text-ink-faint">· {hint}</span>}</legend>
       <div className="flex flex-wrap gap-2">
-        {options.map(option => <Chip key={option.value} selected={value === option.value} onClick={() => onChange(option.value)}>{option.label}</Chip>)}
+        {options.map(option => (
+          <Chip key={option.value} selected={option.value === "All" ? chosen.length === 0 : chosen.includes(option.value)} onClick={() => onChange(option.value)}>{option.label}</Chip>
+        ))}
       </div>
     </fieldset>
   );
