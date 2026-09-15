@@ -1,5 +1,12 @@
 # Current handoff
 
+## 2026-09-15 — Live site verified end to end (checkpoint 5)
+
+- User fixed LLM_API_KEY in Render. Verified on https://advikar.github.io/foster-connect/ against Render + Turso: /api/health ok; POST /api/chat not degraded (grounded reply, Food Bank number matches listing); Find search; Save → shown on Saved; plan intake (6 questions) → AI plan, 7 tasks, 4 directory listings, no fallback notice; Mark done persisted across reload (1 of 7); Privacy → Delete my data → redirected to /foster-connect/, Saved empty; Turso afterwards 0 roadmaps / 0 tasks / 0 saved.
+- Bug found, not fixed: gpt-oss-120b writes internal resource IDs into youth-facing task text ("Call Alameda County Welfare-to-Work (150)", "(147)", "(151)", "(421)"). Fix belongs in `groundRoadmapDraft` (strip "(<supplied id>)") and/or the prompt in `config/prompts.ts`; it is AI grounding, so needs a regression test and independent review. Also the plan named banks not in the directory ("Chase or Bank of America") — the known organisation-name gap already noted under FC-02.
+- Not done: reviewer account creation; partner screens on the live site; mobile width on the live site.
+- Ownership released: yes.
+
 ## 2026-09-14 — Render live; AI failing on Render (checkpoint 4)
 
 - User created the Render Blueprint (synced 8e05f9a, service foster-connect-api).
