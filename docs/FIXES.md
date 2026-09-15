@@ -10,7 +10,7 @@ Status key: `todo` · `doing` · `done <commit>` · `decide`
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| U1 | Accent colour: teal reads as "AI green"; offer a deeper blue and a way to toggle | done | Accent is a token set (`--brand`, `--brand-deep`, `--brand-soft`). Two palettes: **Teal** (current) and **Deep blue** (#1F4E8C / #163A69 / #DCE7F5). Toggle: footer "Accent" switch (preview builds only) + `?accent=blue` URL parameter; choice kept in localStorage. Design board with both side by side: see the artifact link in HANDOFF. **Decide** which becomes the default. |
+| U1 | Accent colour: teal reads as "AI green"; offer a deeper blue and a way to toggle | done | Accent is a token set (`--brand`, `--brand-deep`, `--brand-soft`). Two palettes: **Teal** (current) and **Deep blue** (#1F4E8C / #163A69 / #DCE7F5). Toggle: footer "Accent" switch (preview builds only) + `?accent=blue` URL parameter; choice kept in localStorage. Design board with both side by side and three mark directions: https://claude.ai/artifact/F94E8b5RUzk9arMmDN515V **Decide** which becomes the default. |
 | U2 | Logo: replace the two-circle mark with something like the reference image, on a coloured circle, more professional | decide | **The reference image did not come through in the message** — only text arrived. Interim: a serif "FC" monogram on a brand-coloured circle, so the mark is at least legible and consistent with the wordmark. Send the image and it will be redrawn to match. |
 
 ## Youth site
