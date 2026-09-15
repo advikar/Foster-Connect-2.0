@@ -1,6 +1,6 @@
 # Current handoff
 
-## 2026-09-15 — Resource-ID leak fix + two grounding gaps (checkpoint 1)
+## 2026-09-15 — Resource-ID leak fix + two grounding gaps (checkpoint 2)
 
 - Task: (1) internal resource IDs in youth-facing AI text; (2) reviewer account for the user on the hosted DB. Owner: Claude Code (Opus 5).
 - ID fix: `stripResourceIds(text, ids)` in `grounding.ts` removes only SUPPLIED ids in bracketed forms "(150)", "[150]", "(ID 150)", "(resourceId: 150)", "(#150)" (not when followed by a 7-digit phone, so "(415) 555-0199" survives) and explicit labels "resource ID 150", "resourceId 3", "ID: 150". Bare "Resource 1" / "Family Resource Center 3" / "photo ID 3" are untouched (a first version stripped "Resource 1"; caught by the test fixture and tightened). Applied in `groundRoadmapDraft` (logged, never drops a task) and `getNavigatorResponse` (reply, suggestedTasks taskText/motivationNote). Prompt rule added to NAVIGATOR and ROADMAP_GENERATOR in `config/prompts.ts`.
@@ -9,8 +9,10 @@
 - Tests written first and observed failing (5 ID tests with a no-op stub; 3 of 4 typography/email tests), then 61/61 pass. New cases in `grounding.test.ts` and `ai.service.test.ts`.
 - Real model (local, copy of DB): AI plan 7 tasks and chat reply with no resource IDs; listed numbers and the listed Unity Council email kept; no removals logged. A second plan run hit Groq 429 and fell back.
 - Independent review still required (AI grounding) and not done.
-- Next: push (Render redeploys), verify on live site; reviewer account — user runs the create-partner command in their own terminal (advika.richhariya@gmail.com, "Advika Richhariya", "Foster Connect", reviewer).
-- Ownership released: no.
+- Pushed bb4062b. ~4 min later the live API chat reply had no resource IDs, listed numbers and the listed email intact (the only bracketed numbers were "(510)" area codes). The API has no version endpoint, so that Render was already serving bb4062b was not confirmed from here.
+- `create-partner.ts` checked with @libsql/client 0.18 against a throwaway local DB (reviewer, active), then deleted. The user's reviewer account (advika.richhariya@gmail.com, "Advika Richhariya", "Foster Connect") is to be created by the user in their own terminal so the password never enters the chat; not yet confirmed created.
+- Next: user runs the command, signs in at /foster-connect/partners/sign-in; then check partner overview, coverage, review queue on the live site. Independent review of grounding changes.
+- Ownership released: yes.
 
 ## 2026-09-15 — Live site verified end to end (checkpoint 5)
 
