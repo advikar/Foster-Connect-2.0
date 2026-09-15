@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildAllowList, sanitiseReply, signHistory, verifyHistory,
+  buildAllowList, sanitiseReply, signHistory, stripResourceIds, verifyHistory,
   type SignedMessage,
 } from "./grounding";
 
@@ -24,6 +24,7 @@ const RESOURCES = [
     sourceUrl: "https://www.cdss.ca.gov/inforesources/foster-care",
   },
   { phone: "925-655-1208, vestiainc@gmail.com", website: "https://vestiainc.org/" },
+  { description: "Questions go to intake.team@calyouth.example." },
 ];
 
 const CRISIS = [
@@ -172,4 +173,82 @@ test("an empty allow list still permits emergency numbers only", () => {
   const result = sanitiseReply("Call 911. Also call (510) 667-7610.", empty);
   assert.ok(result.reply.includes("911"));
   assert.ok(!result.reply.includes("667-7610"), "unlisted number must be removed");
+});
+
+// ─── Typographic phone formats and email addresses ─────────────────────────
+// Seen live 2026-09-15: the model wrote "Call 1‑800‑275‑8777" with U+2011
+// non-breaking hyphens, which the ASCII-only pattern did not see, and
+// "Email kcole@unitycouncil.org", an address in no listing that survived
+// because the domain was an allowed website.
+
+test("an invented number written with non-breaking hyphens is removed", () => {
+  const result = sanitiseReply("Call 1\u2011800\u2011275\u20118777 (Social Security Administration).", ALLOWED);
+  assert.ok(!result.reply.includes("8777"), result.reply);
+  assert.equal(result.removed.length, 1);
+});
+
+test("a listed number written with typographic dashes is kept", () => {
+  const replies = ["Call 510\u2011667\u20117610.", "Call (510)\u00a0667\u20137610.", "Call 1\u2010510\u2010667\u20107610."];
+  for (const reply of replies) {
+    const result = sanitiseReply(reply, ALLOWED);
+    assert.equal(result.reply, reply);
+    assert.equal(result.removed.length, 0, `removed: ${result.removed}`);
+  }
+});
+
+test("an invented email address is removed even on an allowed domain", () => {
+  const result = sanitiseReply("Email KCole@alamedacountyilp.org and ask about housing.", ALLOWED);
+  assert.ok(!result.reply.includes("@"), result.reply);
+  assert.ok(!result.reply.includes("alamedacountyilp.org"), result.reply);
+  assert.ok(result.reply.includes("the contact on their listing below"));
+  assert.equal(result.removed.length, 1);
+});
+
+test("an email address that is in a listing is kept", () => {
+  const reply = "Email vestiainc@gmail.com or VestiaInc@Gmail.com, or intake.team@calyouth.example.";
+  const result = sanitiseReply(reply, ALLOWED);
+  assert.equal(result.reply, reply);
+  assert.equal(result.removed.length, 0, `removed: ${result.removed}`);
+});
+
+// ─── Internal resource IDs in prose ─────────────────────────────────────────
+// Seen live 2026-09-15 with openai/gpt-oss-120b: "Call Alameda County
+// Welfare-to-Work (150) and say ...". The ID is a database key, meaningless
+// to the person reading it.
+
+const IDS = [3, 147, 150, 415];
+
+test("a bracketed resource ID after a program name is removed", () => {
+  const { reply, removed } = stripResourceIds('Call Alameda County Welfare-to-Work (150) and say: "I am 19."', IDS);
+  assert.equal(reply, 'Call Alameda County Welfare-to-Work and say: "I am 19."');
+  assert.deepEqual(removed, ["(150)"]);
+});
+
+test("labelled ID forms are removed", () => {
+  const cases: [string, string][] = [
+    ["Call Las Positas NextUp (ID 147).", "Call Las Positas NextUp."],
+    ["Call Las Positas NextUp (resourceId: 147), then wait.", "Call Las Positas NextUp, then wait."],
+    ["Call Las Positas NextUp [147] today.", "Call Las Positas NextUp today."],
+    ["Call Las Positas NextUp (#147) today.", "Call Las Positas NextUp today."],
+    ["See resource ID 147 for details.", "See for details."],
+    ["Start with resourceId 3.", "Start with."],
+    ["Start with ID: 150 first.", "Start with first."],
+  ];
+  for (const [input, expected] of cases) {
+    assert.equal(stripResourceIds(input, IDS).reply, expected, input);
+  }
+});
+
+test("numbers that are not supplied IDs are left alone", () => {
+  const text = "Ages (16-24). Bring 2 forms of ID. Step (2) is optional. Room (999). Family Resource Center 3. Bring photo ID 3 times.";
+  assert.deepEqual(stripResourceIds(text, IDS), { reply: text, removed: [] });
+});
+
+test("an area code that happens to equal an ID is not stripped from a phone number", () => {
+  const text = "Call (415) 555-0199 or (150) 555 0101.";
+  assert.equal(stripResourceIds(text, IDS).reply, text);
+});
+
+test("line breaks survive ID removal", () => {
+  assert.equal(stripResourceIds("First (150).\nThen (147).", IDS).reply, "First.\nThen.");
 });

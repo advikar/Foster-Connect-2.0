@@ -94,19 +94,26 @@ export interface AllowedContacts {
   phoneDigits: Set<string>;
   /** Permitted hostnames, lowercased, without "www.". */
   hosts: Set<string>;
+  /** Email addresses that appear in a listing, lowercased. */
+  emails: Set<string>;
 }
 
 export function buildAllowList(
-  resources: { phone?: string; website?: string; sourceUrl?: string }[],
+  resources: { phone?: string; website?: string; sourceUrl?: string; description?: string; applicationSteps?: string }[],
   crisisContacts: { phone?: string; text?: string; website?: string }[] = [],
 ): AllowedContacts {
   const phoneDigits = new Set<string>();
   const hosts = new Set<string>();
+  const emails = new Set<string>();
+
+  const addEmails = (value?: string) => {
+    for (const match of value?.matchAll(EMAIL_PATTERN) ?? []) emails.add(match[0].toLowerCase());
+  };
 
   const addPhone = (value?: string) => {
     if (!value) return;
     // A single field can hold several numbers, e.g. "(925) 496-7743, x2".
-    for (const match of value.matchAll(/\d[\d\s().-]{6,}\d/g)) {
+    for (const match of value.matchAll(/\d[\d\s().\u2010-\u2015\u2212-]{6,}\d/g)) {
       const digits = match[0].replace(/\D/g, "");
       if (digits.length >= 3) phoneDigits.add(digits.slice(-10));
     }
@@ -126,6 +133,10 @@ export function buildAllowList(
   };
 
   for (const resource of resources) {
+    // Listings put emails in the phone field ("925-655-1208, x@y.org") or the text.
+    addEmails(resource.phone);
+    addEmails(resource.description);
+    addEmails(resource.applicationSteps);
     addPhone(resource.phone);
     addHost(resource.website);
     addHost(resource.sourceUrl);
@@ -139,11 +150,17 @@ export function buildAllowList(
   // Emergency services are always sayable.
   ["911", "988"].forEach(number => phoneDigits.add(number));
 
-  return { phoneDigits, hosts };
+  return { phoneDigits, hosts, emails };
 }
 
-const PHONE_PATTERN =
-  /(?:\+?1[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]?\d{4}\b|\b\d{6}\b|\b\d{3}\b(?=\s*(?:hotline|line|lifeline)|\s*$)/gi;
+// Separators include the typographic dashes and no-break spaces models emit
+// ("1‑800‑275‑8777" with U+2011); \s already covers U+00A0 and U+202F.
+const PHONE_SEP = String.raw`[\s.\u2010-\u2015\u2212-]`;
+const PHONE_PATTERN = new RegExp(
+  String.raw`(?:\+?1${PHONE_SEP}?)?(?:\(\d{3}\)|\d{3})${PHONE_SEP}?\d{3}${PHONE_SEP}?\d{4}\b|\b\d{6}\b|\b\d{3}\b(?=\s*(?:hotline|line|lifeline)|\s*$)`,
+  "gi",
+);
+const EMAIL_PATTERN = /\b[a-z0-9._%+-]+@(?:[a-z0-9-]+\.)+[a-z]{2,}\b/gi;
 const URL_PATTERN = /\b(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s,)]*)?/gi;
 
 /** Words that look like domains but are ordinary prose. */
@@ -165,6 +182,14 @@ export function sanitiseReply(reply: string, allowed: AllowedContacts): Sanitise
   const removed: string[] = [];
   let output = reply;
 
+  // Before URLs: otherwise the domain half of an address is judged as a link,
+  // and an invented address on an allowed domain survives.
+  output = output.replace(EMAIL_PATTERN, match => {
+    if (allowed.emails?.has(match.toLowerCase())) return match;
+    removed.push(match.trim());
+    return "the contact on their listing below";
+  });
+
   output = output.replace(PHONE_PATTERN, match => {
     const digits = match.replace(/\D/g, "");
     const key = digits.length > 10 ? digits.slice(-10) : digits;
@@ -173,8 +198,10 @@ export function sanitiseReply(reply: string, allowed: AllowedContacts): Sanitise
     return "the number on their listing below";
   });
 
-  output = output.replace(URL_PATTERN, match => {
+  output = output.replace(URL_PATTERN, (match, offset: number, whole: string) => {
     if (NOT_A_DOMAIN.test(match)) return match;
+    // Either half of an address already allowed by the email pass above.
+    if (whole[offset - 1] === "@" || whole[offset + match.length] === "@") return match;
     let host: string;
     try {
       host = new URL(match.startsWith("http") ? match : `https://${match}`)
@@ -188,5 +215,39 @@ export function sanitiseReply(reply: string, allowed: AllowedContacts): Sanitise
     return "their official page, linked below";
   });
 
+  return { reply: output, removed };
+}
+
+const ID_LABEL = String.raw`(?:resource\s*id|resourceid|resource|listing|id)`;
+// "(150)", "[150]", "(ID 150)", "(resourceId: 150)", "(#150)". The lookahead
+// keeps "(415) 555-0199": an area code is not an ID even when the digits match.
+const BRACKETED_ID = new RegExp(String.raw`[ \t]*[(\[]\s*(?:${ID_LABEL}\s*[:=#]?\s*|#\s*)?(\d{1,6})\s*[)\]](?![ \t]*\d{3}[-.\s]?\d{4})`, "gi");
+// Without brackets only an explicit ID label counts: "resource ID 150",
+// "resourceId: 3", "ID: 150", "id #150". "Resource 1" or "Family Resource
+// Center 2" can be real program names, and "photo ID 2" is ordinary English.
+const LABELLED_ID = /[ \t]*\b(?:resource\s*id|resourceid)\s*[:=#]?\s*(\d{1,6})\b|[ \t]*\bid\s*[:=#]\s*(\d{1,6})\b/gi;
+
+/**
+ * Remove internal resource IDs the model wrote into prose.
+ *
+ * IDs are database keys: the model needs them to cite a listing in the
+ * resourceId field, but "Call Welfare-to-Work (150)" means nothing to the
+ * person reading it. Only IDs that were actually supplied are removed, so ages,
+ * step numbers and phone numbers are left alone. This never drops a task; the
+ * listing card beside it carries the real name and contact.
+ */
+export function stripResourceIds(reply: string, ids: Iterable<number>): SanitisedReply {
+  const known = new Set([...ids].map(String));
+  const removed: string[] = [];
+  const drop = (match: string, id?: string, idAfterColon?: string) => {
+    if (!known.has(id ?? idAfterColon ?? "")) return match;
+    removed.push(match.trim());
+    return "";
+  };
+
+  let output = reply.replace(BRACKETED_ID, drop).replace(LABELLED_ID, drop);
+  if (removed.length) {
+    output = output.replace(/[ \t]+([.,;:!?])/g, "$1").replace(/[ \t]{2,}/g, " ");
+  }
   return { reply: output, removed };
 }

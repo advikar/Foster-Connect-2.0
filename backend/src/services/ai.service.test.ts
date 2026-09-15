@@ -217,6 +217,18 @@ test("a draft where most tasks are fabricated is rejected and falls back", withP
   },
 ));
 
+test("resource IDs written into task text are removed and the task is kept", () => {
+  const draft = validDraft();
+  draft.tasks[0] = task({ taskText: "Call Resource 1 (1) and ask for a coordinator.", whyItMatters: "They run the program (ID 1)." });
+  draft.greeting = "I picked Resource 2 [2] for you.";
+  const result = groundRoadmapDraft(draft, RESOURCES);
+  assert.ok(result.roadmap);
+  assert.equal(result.roadmap.tasks.length, 5);
+  assert.equal(result.roadmap.tasks[0].taskText, "Call Resource 1 and ask for a coordinator.");
+  assert.equal(result.roadmap.tasks[0].whyItMatters, "They run the program.");
+  assert.equal(result.roadmap.greeting, "I picked Resource 2 for you.");
+});
+
 // ─── Navigator suggested tasks ──────────────────────────────────────────────
 
 test("navigator suggested tasks with unknown resource IDs are dropped", withProvider(
@@ -234,5 +246,22 @@ test("navigator suggested tasks with unknown resource IDs are dropped", withProv
     assert.deepEqual(result.resourceIds, [1]);
     assert.equal(result.suggestedTasks.length, 1);
     assert.equal(result.suggestedTasks[0].resourceId, 1);
+  },
+));
+
+test("navigator reply and suggested tasks have resource IDs removed", withProvider(
+  async () => jsonReply({
+    reply: "Try Resource 3 (3). They can help.",
+    resourceIds: [3],
+    needsClarification: false,
+    suggestedTasks: [
+      { taskText: "Call Resource 3 (ID 3) this week", taskCategory: "Housing", timeframe: "This Week", resourceId: 3, motivationNote: "One call (3)." },
+    ],
+  }),
+  async () => {
+    const result = await getNavigatorResponse("housing?", [], RESOURCES);
+    assert.equal(result.reply, "Try Resource 3. They can help.");
+    assert.equal(result.suggestedTasks[0].taskText, "Call Resource 3 this week");
+    assert.equal(result.suggestedTasks[0].motivationNote, "One call.");
   },
 ));

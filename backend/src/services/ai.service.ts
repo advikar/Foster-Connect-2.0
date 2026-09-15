@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { SYSTEM_PROMPTS } from "../config/prompts";
 import { CRISIS_CONTACTS } from "../config/crisis";
-import { buildAllowList, sanitiseReply, type AllowedContacts } from "./grounding";
+import { buildAllowList, sanitiseReply, stripResourceIds, type AllowedContacts } from "./grounding";
 
 export interface GroundedResource {
   id: number;
@@ -189,10 +189,13 @@ export async function getNavigatorResponse(
     navigatorResponseSchema,
   ) as z.infer<typeof navigatorResponseSchema>;
 
+  const withoutIds = (text: string) => stripResourceIds(text, allowed).reply;
   return {
     ...result,
+    reply: withoutIds(result.reply),
     resourceIds: [...new Set(result.resourceIds.filter(id => allowed.has(id)))],
-    suggestedTasks: dropUnknownResourceTasks(result.suggestedTasks, allowed),
+    suggestedTasks: dropUnknownResourceTasks(result.suggestedTasks, allowed)
+      .map(task => ({ ...task, taskText: withoutIds(task.taskText), motivationNote: withoutIds(task.motivationNote) })),
   };
 }
 
@@ -295,8 +298,12 @@ export function groundRoadmapDraft(
   const allowed = allowList ?? buildAllowList(resources, CRISIS_CONTACTS);
   const removed: string[] = [];
 
+  // Resource IDs in prose are stripped and logged but never drop a task; only
+  // removed contact details do (rule 3).
   const clean = (text: string, label: string) => {
-    const result = sanitiseReply(text, { ...allowed });
+    const ids = stripResourceIds(text, allowedIds);
+    ids.removed.forEach(item => removed.push(`${label}: resource id ${item}`));
+    const result = sanitiseReply(ids.reply, { ...allowed });
     result.removed.forEach(item => removed.push(`${label}: ${item}`));
     return result;
   };

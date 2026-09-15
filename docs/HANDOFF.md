@@ -1,5 +1,17 @@
 # Current handoff
 
+## 2026-09-15 — Resource-ID leak fix + two grounding gaps (checkpoint 1)
+
+- Task: (1) internal resource IDs in youth-facing AI text; (2) reviewer account for the user on the hosted DB. Owner: Claude Code (Opus 5).
+- ID fix: `stripResourceIds(text, ids)` in `grounding.ts` removes only SUPPLIED ids in bracketed forms "(150)", "[150]", "(ID 150)", "(resourceId: 150)", "(#150)" (not when followed by a 7-digit phone, so "(415) 555-0199" survives) and explicit labels "resource ID 150", "resourceId 3", "ID: 150". Bare "Resource 1" / "Family Resource Center 3" / "photo ID 3" are untouched (a first version stripped "Resource 1"; caught by the test fixture and tightened). Applied in `groundRoadmapDraft` (logged, never drops a task) and `getNavigatorResponse` (reply, suggestedTasks taskText/motivationNote). Prompt rule added to NAVIGATOR and ROADMAP_GENERATOR in `config/prompts.ts`.
+- Gap A (found while verifying, fixed): PHONE_PATTERN only knew ASCII separators. Live gpt-oss-120b output "Call 1‑800‑275‑8777 (Social Security Administration)" used U+2011 and survived; that number is in no listing (SSA listing 310 is 800-772-1213), i.e. a wrong number reached the plan. Separators now include U+2010–U+2015 and U+2212 (no-break spaces via \s), also in `buildAllowList`.
+- Gap B (fixed): email addresses were never checked; the URL pass judged only the domain, so an invented address on an allowed domain survived. New EMAIL_PATTERN pass before URLs; allowed emails collected from listing phone, description and applicationSteps (`AllowedContacts.emails`); URL pass skips either half of an address. Note: the live example "kcole@unitycouncil.org" is genuinely in listing 153 application_steps (an earlier check concatenated a NULL phone and wrongly reported it absent) and is correctly kept.
+- Tests written first and observed failing (5 ID tests with a no-op stub; 3 of 4 typography/email tests), then 61/61 pass. New cases in `grounding.test.ts` and `ai.service.test.ts`.
+- Real model (local, copy of DB): AI plan 7 tasks and chat reply with no resource IDs; listed numbers and the listed Unity Council email kept; no removals logged. A second plan run hit Groq 429 and fell back.
+- Independent review still required (AI grounding) and not done.
+- Next: push (Render redeploys), verify on live site; reviewer account — user runs the create-partner command in their own terminal (advika.richhariya@gmail.com, "Advika Richhariya", "Foster Connect", reviewer).
+- Ownership released: no.
+
 ## 2026-09-15 — Live site verified end to end (checkpoint 5)
 
 - User fixed LLM_API_KEY in Render. Verified on https://advikar.github.io/foster-connect/ against Render + Turso: /api/health ok; POST /api/chat not degraded (grounded reply, Food Bank number matches listing); Find search; Save → shown on Saved; plan intake (6 questions) → AI plan, 7 tasks, 4 directory listings, no fallback notice; Mark done persisted across reload (1 of 7); Privacy → Delete my data → redirected to /foster-connect/, Saved empty; Turso afterwards 0 roadmaps / 0 tasks / 0 saved.
