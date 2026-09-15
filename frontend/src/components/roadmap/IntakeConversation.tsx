@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/primitives/Chip";
@@ -66,12 +66,17 @@ interface Answers {
   county: RoadmapIntake["county"] | "";
   age: string;
   youthName: string;
+  /** "Something else…" free text per chip question (Y7). Sent to the model as additional context. */
+  other: { needs: string; housing: string; documents: string; deadlines: string };
 }
 
 const EMPTY: Answers = {
   needs: [], housingStatus: "unsaid", documents: [], deadlines: [],
   futurePlan: "", county: "", age: "", youthName: "",
+  other: { needs: "", housing: "", documents: "", deadlines: "" },
 };
+
+const NOT_SURE = "Not sure yet";
 
 export function IntakeConversation({
   onSubmit, building, onCancel,
@@ -88,23 +93,28 @@ export function IntakeConversation({
 
   const toggle = <T extends string>(list: T[], value: T) =>
     list.includes(value) ? list.filter(item => item !== value) : [...list, value];
+  const setOther = (key: keyof Answers["other"], value: string) =>
+    setAnswers(previous => ({ ...previous, other: { ...previous.other, [key]: value } }));
 
   const steps = [
     {
       question: "What's going on right now?",
       hint: "Pick as many as fit. Most people pick more than one.",
-      valid: answers.needs.length > 0,
+      valid: answers.needs.length > 0 || answers.other.needs.trim().length >= 3,
       body: (
-        <div className="flex flex-wrap gap-2">
-          {NEEDS.map(need => (
-            <Chip
-              key={need}
-              selected={answers.needs.includes(need)}
-              onClick={() => set("needs", toggle(answers.needs, need))}
-            >
-              {NEED_LABELS[need]}
-            </Chip>
-          ))}
+        <div>
+          <div className="flex flex-wrap gap-2">
+            {NEEDS.map(need => (
+              <Chip
+                key={need}
+                selected={answers.needs.includes(need)}
+                onClick={() => set("needs", toggle(answers.needs, need))}
+              >
+                {NEED_LABELS[need]}
+              </Chip>
+            ))}
+          </div>
+          <OtherText value={answers.other.needs} onChange={value => setOther("needs", value)} placeholder="e.g. my phone got cut off, or I need a lawyer for a ticket" />
         </div>
       ),
     },
@@ -113,16 +123,19 @@ export function IntakeConversation({
       hint: "This changes what I can actually suggest. Skip it if you'd rather not say.",
       valid: true,
       body: (
-        <div className="flex flex-wrap gap-2">
-          {HOUSING.map(option => (
-            <Chip
-              key={option.id}
-              selected={answers.housingStatus === option.id}
-              onClick={() => set("housingStatus", answers.housingStatus === option.id ? "unsaid" : option.id)}
-            >
-              {option.label}
-            </Chip>
-          ))}
+        <div>
+          <div className="flex flex-wrap gap-2">
+            {HOUSING.map(option => (
+              <Chip
+                key={option.id}
+                selected={answers.housingStatus === option.id}
+                onClick={() => set("housingStatus", answers.housingStatus === option.id ? "unsaid" : option.id)}
+              >
+                {option.label}
+              </Chip>
+            ))}
+          </div>
+          <OtherText value={answers.other.housing} onChange={value => setOther("housing", value)} placeholder="e.g. I can stay here until the end of the month" />
         </div>
       ),
     },
@@ -156,6 +169,7 @@ export function IntakeConversation({
               </button>
             );
           })}
+          <OtherText value={answers.other.documents} onChange={value => setOther("documents", value)} placeholder="e.g. my ID is expired, or my birth certificate is with my old foster mom" />
         </div>
       ),
     },
@@ -187,21 +201,29 @@ export function IntakeConversation({
           <Chip selected={answers.deadlines.length === 0} onClick={() => set("deadlines", [])}>
             Nothing right now
           </Chip>
+          <div className="basis-full">
+            <OtherText value={answers.other.deadlines} onChange={value => setOther("deadlines", value)} placeholder="e.g. rent is due on the 1st, or my job starts in two weeks" />
+          </div>
         </div>
       ),
     },
     {
       question: "What would you want to be different in six months?",
-      hint: "However you'd say it. It doesn't have to be impressive or figured out.",
+      hint: "However you'd say it. It doesn't have to be impressive or figured out. \"Not sure yet\" is a real answer — the plan starts with the basics then.",
       valid: answers.futurePlan.trim().length >= 3,
       body: (
-        <Textarea
-          value={answers.futurePlan}
-          onChange={event => set("futurePlan", event.target.value)}
-          placeholder="my own place, and back in school"
-          className="min-h-28 rounded-md border-rule bg-surface text-base"
-          aria-label="What would you want to be different in six months?"
-        />
+        <div className="space-y-3">
+          <Textarea
+            value={answers.futurePlan}
+            onChange={event => set("futurePlan", event.target.value)}
+            placeholder="my own place, and back in school"
+            className="min-h-28 rounded-md border-rule bg-surface text-base"
+            aria-label="What would you want to be different in six months?"
+          />
+          <Chip selected={answers.futurePlan === NOT_SURE} onClick={() => set("futurePlan", answers.futurePlan === NOT_SURE ? "" : NOT_SURE)}>
+            I&rsquo;m not sure yet
+          </Chip>
+        </div>
       ),
     },
     {
@@ -237,12 +259,21 @@ export function IntakeConversation({
         : "",
     ].filter(Boolean).join(". ");
 
+    const inTheirWords = [
+      answers.other.needs && `What's going on, in their words: ${answers.other.needs.trim()}`,
+      answers.other.housing && `About where they're staying: ${answers.other.housing.trim()}`,
+      answers.other.documents && `About documents: ${answers.other.documents.trim()}`,
+      answers.other.deadlines && `About dates: ${answers.other.deadlines.trim()}`,
+      answers.futurePlan === NOT_SURE && "They are not sure what they want in six months; start with stability and documents, and keep the plan short.",
+    ].filter(Boolean).join("\n");
+
     onSubmit({
       youthName: answers.youthName || undefined,
       age: answers.age ? Number(answers.age) : undefined,
       county: answers.county as RoadmapIntake["county"],
-      currentNeeds: needsSummary || "Figuring things out",
+      currentNeeds: [needsSummary, answers.other.needs.trim()].filter(Boolean).join(". ") || "Figuring things out",
       futurePlan: answers.futurePlan,
+      additionalContext: inTheirWords || undefined,
       needs: answers.needs,
       housingStatus: answers.housingStatus,
       documents: answers.documents,
@@ -305,6 +336,25 @@ export function IntakeConversation({
         {!current.valid && !building && <p className="mt-2 text-[13px] text-ink-faint">Pick one or more to continue.</p>}
       </div>
     </div></div>
+  );
+}
+
+/** A quiet "Something else…" that opens a short free-text field under a chip question (Y7). */
+function OtherText({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  const [open, setOpen] = useState(Boolean(value));
+  const id = useId();
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-3 inline-flex min-h-9 items-center text-[14px] font-medium text-brand hover:underline">
+        + Something else, in your own words
+      </button>
+    );
+  }
+  return (
+    <div className="mt-3">
+      <label htmlFor={id} className="text-[13px] font-medium text-ink-soft">In your own words <span className="font-normal text-ink-faint">(optional)</span></label>
+      <Textarea id={id} value={value} onChange={event => onChange(event.target.value)} placeholder={placeholder} maxLength={400} className="mt-1.5 min-h-20 rounded-md border-rule bg-surface text-base" />
+    </div>
   );
 }
 
