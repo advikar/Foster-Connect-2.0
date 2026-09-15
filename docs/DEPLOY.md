@@ -45,18 +45,21 @@ Frontend build-time variable: `VITE_API_URL` = the backend's public URL.
 
 ## Order of operations
 
-1. **You:** install the Turso CLI and sign in (creates your account):
-   `brew install tursodatabase/tap/turso` then `turso auth signup`.
-2. **Engineer:** make a seed copy of the local database with only the resource
-   directory (plans, saved items, partner accounts and audit rows emptied):
-   `./scripts/make-seed-db.sh`. Upload it:
-   `turso db create foster-connect --from-file data/seed/foster_connect_seed.db`.
-   Then `turso db show foster-connect --url` and
-   `turso db tokens create foster-connect`. (`data/import_resources.py` only
-   writes to a local SQLite file; it cannot target Turso directly.)
-3. **You:** get an LLM key (the default endpoint is Groq; a free key comes from
-   console.groq.com). Optional: without it chat is off and plans use the
-   deterministic builder.
+1. **You:** install the Turso CLI and sign in: `curl -sSfL https://get.tur.so/install.sh | bash`
+   then `turso auth signup`. (Done 2026-09-14.)
+2. **Engineer:** `./scripts/make-seed-db.sh` writes `data/seed/foster_connect_seed.sql`:
+   the resource directory only (plans, saved items, partner accounts and audit
+   rows emptied), with the FTS search index rebuilt at the end, and checks the
+   dump loads and searches. Then `turso db create foster-connect` and
+   `turso db shell foster-connect < data/seed/foster_connect_seed.sql`.
+   (`--from-file` is rejected by CLI v1.0.32 and `--from-dump` created an empty
+   database without an error, so load through the shell and check
+   `select count(*) from resources`.) Get the values for Render with
+   `turso db show foster-connect --url` and `turso db tokens create foster-connect`.
+   (`data/import_resources.py` only writes to a local SQLite file.)
+   Done 2026-09-14: 425 resources, search verified.
+3. **You:** Groq key from console.groq.com (the local `backend/.env` key works).
+   Without a key chat is off and plans use the deterministic builder.
 4. **You:** Render → sign up with GitHub → New → Blueprint → pick
    `advikar/Foster-Connect-2.0`. Paste `DATABASE_URL`, `DATABASE_AUTH_TOKEN`
    and `LLM_API_KEY` when asked. `CHAT_SIGNING_SECRET` is generated and
@@ -87,6 +90,26 @@ Frontend build-time variable: `VITE_API_URL` = the backend's public URL.
 - **Escalation.** Name the human a partner contacts when a youth disclosure
   comes through a submission or report. The app routes to hotlines; it does not
   notify anyone.
+
+## Switching providers later
+
+Nothing in the code is tied to Groq, Render or Turso's dashboard.
+
+- **AI (e.g. Gemini).** The backend calls any OpenAI-compatible
+  chat-completions endpoint with JSON mode. In Render set
+  `LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+  `LLM_MODEL=` a current Gemini Flash model, `LLM_API_KEY=` a Google AI Studio
+  key. Check the provider's data-use terms first: Gemini's free tier may use
+  prompts to improve Google products, which matters for youth chat. Groq free
+  tier is 8,000 tokens/minute per model (about one plan per minute across all
+  users); over that, chat and plans fall back to directory search and the
+  deterministic builder rather than failing.
+- **Hosting (e.g. Google Cloud Run).** The API is a plain Node process that
+  reads `PORT` and the variables above. Add a Dockerfile for `backend/`
+  (`npm ci --include=dev && npm run build`, `npm start`), deploy it with the
+  same environment variables, then point the site at it:
+  `gh variable set API_URL --repo advikar/Foster-Connect-2.0 --body <url>` and
+  re-run "Deploy site". Turso and the site don't change.
 
 ## Backups
 

@@ -93,7 +93,7 @@ function hasValidApiKey() {
 async function callLLM(messages: { role: string; content: string }[], schema: z.ZodTypeAny) {
   const apiKey = process.env.LLM_API_KEY;
   const baseUrl = process.env.LLM_BASE_URL || "https://api.groq.com/openai/v1/chat/completions";
-  const modelName = process.env.LLM_MODEL || "llama-3.3-70b-versatile";
+  const modelName = process.env.LLM_MODEL || "openai/gpt-oss-120b";
 
   const run = async (repairInstruction?: string) => {
     const requestMessages = repairInstruction

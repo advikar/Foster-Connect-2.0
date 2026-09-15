@@ -1,5 +1,16 @@
 # Current handoff
 
+## 2026-09-14 — Turso database live; backend hosted-DB and AI fixes (checkpoint 3)
+
+- User chose Turso + Groq + Render, with Gemini / Cloud Run as possible later swaps. Turso account `advikar`; CLI at `~/.turso/turso` (not on the agent shell PATH).
+- Turso: `foster-connect` at libsql://foster-connect-advikar.aws-us-west-2.turso.io, loaded from `scripts/make-seed-db.sh` output (now a SQL dump with FTS rebuilt) through `turso db shell`. Verified 425 resources, FTS 'housing' = 90 (same as local), 0 plans/partners. `--from-file` was rejected and `--from-dump` produced an empty DB with no error.
+- Bug 1: `@libsql/client` 0.6 failed at boot against Turso ("Unexpected status code while fetching migration jobs: 400"). Upgraded to ^0.18.0. Production-mode smoke test against Turso: /api/health ok, search ok, CORS header for https://advikar.github.io, plan POST saved 8 tasks, DELETE /api/session removed them (Turso back to 0 roadmaps/tasks).
+- Bug 2: default model `llama-3.3-70b-versatile` is no longer offered by Groq, so chat/plans would always fall back. Default is now `openai/gpt-oss-120b` (ai.service.ts, .env.example, README, local backend/.env, render.yaml sets LLM_BASE_URL/LLM_MODEL). Local test with the existing key: chat reply grounded (Food Bank number matches the listing), plan generatedBy "ai", 8 tasks. Groq free tier: 8,000 tokens/min for every usable model; one plan is about 5.5k, so a burst returns 429 and the app falls back (observed; fallback worked).
+- DEPLOY.md: Turso steps corrected; new "Switching providers later" (Gemini env values + data-use caution; Cloud Run via Dockerfile + API_URL variable).
+- Checks: `npm test --prefix backend` 50/50 after both changes.
+- Next: user creates Render Blueprint and pastes DATABASE_URL, DATABASE_AUTH_TOKEN (`turso db tokens create foster-connect`), LLM_API_KEY; then verify the live site end to end and create a reviewer account.
+- Ownership released: yes.
+
 ## 2026-09-14 — UI sync pass + live deployment setup (checkpoint 2)
 
 - Task: user could not see the redesign locally or on GitHub; asked for a hosted site like Cool Equity and for the UI to be consistent everywhere. User chose (2026-09-14): full live app; frontend published from a separate public repo (source stays private); public preview OK before crisis numbers are verified, labeled as preview.
