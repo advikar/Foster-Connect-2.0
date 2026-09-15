@@ -39,7 +39,7 @@ export function PrivacyPage() {
     try {
       await deleteSessionData();
       toast.success("Deleted. Nothing of yours is left on this device.");
-      window.location.assign("/");
+      window.location.assign(import.meta.env.BASE_URL);
     } catch {
       toast.error("Couldn't delete that just now. Try again in a moment.");
       setBusy(false);
@@ -48,14 +48,14 @@ export function PrivacyPage() {
 
   return (
     <div className="container-wide"><div className="max-w-[760px] pb-16 pt-8 lg:pt-12">
-      <h1 className="text-display-sm text-ink">Your data</h1>
-      <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
+      <h1 className="text-display text-ink">Your data</h1>
+      <p className="mt-3 text-[16px] leading-relaxed text-ink-soft">
         Short version: there&apos;s no account, we never asked for your name, and you can
         delete everything from this page in two taps.
       </p>
 
       <section className="mt-9">
-        <h2 className="font-display text-xl font-bold tracking-[-0.025em] text-ink">What&apos;s actually stored</h2>
+        <h2 className="font-display text-[22px] font-bold text-ink">What&apos;s actually stored</h2>
         <ul className="mt-3 space-y-2.5 text-[15px] leading-relaxed text-ink-soft">
           <li className="flex gap-3">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
@@ -78,8 +78,8 @@ export function PrivacyPage() {
         </ul>
       </section>
 
-      <section className="mt-9 rounded-2xl bg-sand-soft p-5">
-        <h2 className="font-display text-lg font-bold tracking-[-0.025em] text-ink">
+      <section className="mt-9 rounded-md bg-sand-soft p-6">
+        <h2 className="font-display text-[22px] font-bold text-ink">
           On a library or shared computer?
         </h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
@@ -89,30 +89,30 @@ export function PrivacyPage() {
       </section>
 
       <section className="mt-9 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-rule bg-surface p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-rule bg-surface p-6">
           <div>
-            <h2 className="font-semibold text-ink">Take a copy with you</h2>
+            <h2 className="font-display text-[20px] font-bold text-ink">Take a copy with you</h2>
             <p className="mt-1 text-sm text-ink-soft">Your plan and saved resources, as a file.</p>
           </div>
-          <Button onClick={exportData} variant="outline" className="h-11 rounded-xl border-rule px-5">
+          <Button onClick={exportData} variant="outline" className="h-11 rounded-md border-rule px-5">
             <Download className="size-4" />
             Download
           </Button>
         </div>
 
-        <div className="rounded-2xl border border-crisis/25 bg-crisis-soft p-5">
-          <h2 className="font-semibold text-ink">Delete everything</h2>
+        <div className="rounded-md border border-crisis/25 bg-crisis-soft p-6">
+          <h2 className="font-display text-[20px] font-bold text-ink">Delete everything</h2>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
             Wipes your plan, notes, and saved resources from this device and from our database.
             This can&apos;t be undone.
           </p>
           {confirming ? (
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={remove} disabled={busy} className="h-11 rounded-xl bg-crisis px-5 text-white hover:opacity-90">
+              <Button onClick={remove} disabled={busy} className="h-11 rounded-md bg-crisis px-5 text-white hover:opacity-90">
                 <Trash2 className="size-4" />
                 {busy ? "Deleting" : "Yes, delete it all"}
               </Button>
-              <Button onClick={() => setConfirming(false)} variant="outline" className="h-11 rounded-xl border-rule px-5">
+              <Button onClick={() => setConfirming(false)} variant="outline" className="h-11 rounded-md border-rule px-5">
                 Never mind
               </Button>
             </div>
@@ -120,7 +120,7 @@ export function PrivacyPage() {
             <Button
               onClick={() => setConfirming(true)}
               variant="outline"
-              className="mt-4 h-11 rounded-xl border-crisis/30 px-5 text-crisis hover:bg-crisis/5"
+              className="mt-4 h-11 rounded-md border-crisis/30 px-5 text-crisis hover:bg-crisis/5"
             >
               <Trash2 className="size-4" />
               Delete my data

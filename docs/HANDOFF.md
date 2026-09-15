@@ -1,5 +1,17 @@
 # Current handoff
 
+## 2026-09-14 — UI sync pass + live deployment setup (checkpoint 2)
+
+- Task: user could not see the redesign locally or on GitHub; asked for a hosted site like Cool Equity and for the UI to be consistent everywhere. User chose (2026-09-14): full live app; frontend published from a separate public repo (source stays private); public preview OK before crisis numbers are verified, labeled as preview.
+- Owner: Claude Code (Opus 5).
+- Why it was "missing": af5a591 was already on origin/main (private repo; commits authored `Advika <you@example.com>`, not linked to the advikar account). Locally the Vite server was not running and the old nodemon backend (started 2026-09-08) was not listening on 4000, so nothing loaded. Repo-local git author is now `advikar <70820122+advikar@users.noreply.github.com>`; earlier commits were not rewritten.
+- UI sync: `ErrorFallback.tsx` restyled; `NotFoundPage` renders inside the shell (no duplicate crisis bar, router Link); `PrivacyPage.tsx` rounded-md + serif headings; `RoadmapPage` privacy link is a router `Link`. Bug fixed: pages used React Query `isLoading`, which is false while a query is paused (hidden tab / offline), so Find showed "0 listings · Nothing matched that" and Saved "Nothing saved yet" instead of loading. Now `isPending` in `ResourcesPage`, `SavedPage`, `RoadmapPage`, `InsightsPage`, `PartnerPages`; partner overview stats show "…" on error instead of 0.
+- Deploy setup: `frontend/vite.config.ts` (`VITE_BASE`, noindex meta when `VITE_PREVIEW`), preview banner also when `VITE_PREVIEW`; `.github/workflows/deploy-site.yml` (type-check, build with base `/foster-connect/`, 404.html SPA fallback, force-push dist to public `advikar/foster-connect` via deploy key secret `SITE_DEPLOY_KEY`; repo variable `API_URL`=https://foster-connect-api.onrender.com); `render.yaml` (free web service, rootDir backend, CORS https://advikar.github.io, generated CHAT_SIGNING_SECRET, DB/LLM secrets sync:false); `scripts/make-seed-db.sh` (resource-only copy for `turso db create --from-file`, ignored `data/seed/`); `docs/DEPLOY.md` order of operations rewritten (old text wrongly said import_resources.py could target Turso). Created public repo advikar/foster-connect + write deploy key.
+- Checks: frontend type-check pass; ESLint on changed pages 0 errors; `npm test --prefix backend` 50/50; production build pass; Pages-style build served at localhost:4173/foster-connect/ (links and deep link /foster-connect/resources resolve; API blocked by CORS as expected for that origin; hidden tab shows "Looking…" not 0). Seed DB: 425 resources, integrity ok. Browser 5173: /nope, /privacy, /resources (401), /saved, /roadmap.
+- Not verified: error state "Can't reach the directory" in a visible tab after the isPending change (branch unchanged); the Actions deploy and Pages until pushed; Render/Turso not created (need the user's accounts).
+- Next: push; enable Pages on advikar/foster-connect; user creates Turso + Render accounts per DEPLOY.md steps 1-4; then verify /api/health and the live site end to end.
+- Ownership released: no.
+
 ## 2026-09-14 — UI redesign implementation (checkpoint 1 complete)
 
 - Task: implement the approved redesign (design canvas https://claude.ai/code/artifact/835f8b92-7f0d-4325-9ec8-4ac8adaeeafd) across youth and partner interfaces, plus a fuller partner analytics page. User approved the canvas on 2026-09-14 and asked for it to be coded, with "the analytics page can be more robust".

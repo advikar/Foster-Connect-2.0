@@ -19,9 +19,9 @@ import { toast } from "sonner";
  * Every number describes listings, never open beds or eligibility.
  */
 export function Coverage() {
-  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["partner-analytics"], queryFn: fetchPartnerAnalytics, retry: 1 });
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["partner-analytics"], queryFn: fetchPartnerAnalytics, retry: 1 });
   const [county, setCounty] = useState("All");
-  if (isLoading) return <div role="status" className="rounded-md border border-rule bg-surface p-6 text-ink-soft">Loading directory coverage…</div>;
+  if (isPending) return <div role="status" className="rounded-md border border-rule bg-surface p-6 text-ink-soft">Loading directory coverage…</div>;
   if (isError || !data) {
     return (
       <div role="status" className="rounded-md border border-rule bg-surface p-6">
@@ -258,13 +258,13 @@ export function SignIn({ onSignedIn }: { onSignedIn: (partner: PartnerIdentity) 
 }
 
 export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
-  const { data: submissions = [], isLoading, isError, refetch } = useQuery({
+  const { data: submissions = [], isPending, isError, refetch } = useQuery({
     queryKey: ["partner-submissions", reviewer.email],
     queryFn: fetchSubmissions,
     retry: 1,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <div className="rounded-md border border-rule bg-surface p-10 text-center text-ink-soft">Loading the queue…</div>;
   }
   if (isError) {

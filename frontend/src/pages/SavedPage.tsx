@@ -7,7 +7,7 @@ import { ResourceRow } from "@/components/resources/ResourceRow";
 import { fetchSavedResources } from "@/lib/api";
 
 export function SavedPage() {
-  const { data = [], isLoading, isError } = useQuery({ queryKey: ["saved-resources"], queryFn: fetchSavedResources });
+  const { data = [], isPending, isError } = useQuery({ queryKey: ["saved-resources"], queryFn: fetchSavedResources });
   const [filter, setFilter] = useState("All");
   const categories = Array.from(new Set(data.map(resource => resource.category)));
   const shown = filter === "All" ? data : data.filter(resource => resource.category === filter);
@@ -20,7 +20,7 @@ export function SavedPage() {
           {data.length === 0 ? "Listings you bookmark land here." : `${data.length} ${data.length === 1 ? "listing" : "listings"}, kept for this browser. Nothing here is tied to your name.`}
         </p>
 
-        {isLoading ? (
+        {isPending ? (
           <p className="mt-8 text-[14px] text-ink-faint">Loading…</p>
         ) : isError ? (
           <p role="alert" className="mt-8 rounded-md border border-rule bg-surface p-5 text-[15px] text-ink-soft">We couldn&rsquo;t load your saved list right now. It&rsquo;s still there; try again in a moment.</p>

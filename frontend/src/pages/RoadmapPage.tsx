@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { ChevronDown, Loader2, PencilLine, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepCard } from "@/components/primitives/StepCard";
@@ -20,9 +21,9 @@ export function RoadmapPage() {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [building, setBuilding] = useState(false);
   const [deferred, setDeferred] = useState<{ response: RoadmapDeferredResponse; input: RoadmapIntake } | null>(null);
-  const { data: roadmaps = [], isLoading: loadingRoadmaps, isError: roadmapsFailed } = useQuery({ queryKey: ["roadmaps"], queryFn: fetchRoadmaps, retry: 1 });
+  const { data: roadmaps = [], isPending: loadingRoadmaps, isError: roadmapsFailed } = useQuery({ queryKey: ["roadmaps"], queryFn: fetchRoadmaps, retry: 1 });
   useEffect(() => { if (!activeId && roadmaps[0]) setActiveId(roadmaps[0].id); }, [roadmaps, activeId]);
-  const { data: roadmap, isLoading: loadingRoadmap } = useQuery({ queryKey: ["roadmap", activeId], queryFn: () => fetchRoadmap(activeId!), enabled: Boolean(activeId), retry: 1 });
+  const { data: roadmap, isPending: loadingRoadmap } = useQuery({ queryKey: ["roadmap", activeId], queryFn: () => fetchRoadmap(activeId!), enabled: Boolean(activeId), retry: 1 });
 
   const create = async (input: RoadmapIntake) => {
     setBuilding(true);
@@ -214,7 +215,7 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
           <p>This plan is kept for this browser only. Clearing your browser data removes it.</p>
           <div className="mt-1 flex flex-wrap gap-4">
             <button type="button" onClick={onNew} className="inline-flex min-h-9 items-center gap-1 text-brand hover:underline"><PencilLine className="size-3.5" /> Start a new plan</button>
-            <a href="/privacy" className="inline-flex min-h-9 items-center text-brand hover:underline">Download or delete my data</a>
+            <Link to="/privacy" className="inline-flex min-h-9 items-center text-brand hover:underline">Download or delete my data</Link>
           </div>
         </div>
       </aside>

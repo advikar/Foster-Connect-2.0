@@ -56,7 +56,7 @@ export function HomePage() {
 
   return (
     <div>
-      {import.meta.env.DEV && <p className="border-b border-rule bg-sand-soft px-5 py-2 text-center text-xs text-ink-soft">Preview · Resource information is still being reviewed for launch.</p>}
+      {(import.meta.env.DEV || import.meta.env.VITE_PREVIEW) && <p className="border-b border-rule bg-sand-soft px-5 py-2 text-center text-xs text-ink-soft">Preview · Resource information is still being reviewed for launch.</p>}
 
       {/* Category bar */}
       <div className="border-b border-rule bg-surface">

@@ -2,8 +2,14 @@
 
 This is the checklist for putting the app in front of real people. It is written
 so a non-engineer can follow the "you" steps and hand the "engineer" steps to
-whoever is helping. Nothing here is done automatically; agents in this repo do
-not deploy.
+whoever is helping.
+
+**Chosen setup (2026-09-14, public preview):** frontend on GitHub Pages at
+https://advikar.github.io/foster-connect/ (built from this private repo by
+`.github/workflows/deploy-site.yml` and pushed to the public repo
+`advikar/foster-connect`, which holds compiled files only), API on Render
+(`render.yaml`), database on Turso. The site carries a noindex tag and the
+preview banner until the launch blockers below are cleared.
 
 ## Shape of a deployment
 
@@ -11,8 +17,8 @@ Three pieces, three hosts:
 
 | Piece | What it is | Where it goes | Cost today |
 | --- | --- | --- | --- |
-| Frontend | Static files built by `npm run build --prefix frontend` | Any static host (Netlify, Vercel, Cloudflare Pages, Render static) | Free tier |
-| Backend | Node/Express API in `backend/` | A Node host that keeps a process running (Render, Railway, Fly.io) | Free or ~$7/mo |
+| Frontend | Static files built by `npm run build --prefix frontend` | GitHub Pages (`advikar/foster-connect`) | Free |
+| Backend | Node/Express API in `backend/` | Render web service `foster-connect-api` | Free (sleeps after 15 min idle; first request ~1 min) or ~$7/mo always-on |
 | Database | libSQL/SQLite | Turso (hosted libSQL) | Free tier |
 
 The backend refuses to start in production without a hosted database URL, on
@@ -39,18 +45,33 @@ Frontend build-time variable: `VITE_API_URL` = the backend's public URL.
 
 ## Order of operations
 
-1. **Engineer:** create the Turso database. Load resources with
-   `FC_DB=<turso url> python3 data/import_resources.py --dry-run`, then without
-   `--dry-run`. Never run `data/run_etl.py` against it.
-2. **Engineer:** deploy the backend with the variables above. Confirm
-   `GET /api/health` returns `{"status":"ok","aiConfigured":true}`.
-3. **Engineer:** build and deploy the frontend with `VITE_API_URL` pointing at
-   the backend. Confirm the directory loads and a search returns results.
-4. **You:** create the first reviewer account from a machine with the production
+1. **You:** install the Turso CLI and sign in (creates your account):
+   `brew install tursodatabase/tap/turso` then `turso auth signup`.
+2. **Engineer:** make a seed copy of the local database with only the resource
+   directory (plans, saved items, partner accounts and audit rows emptied):
+   `./scripts/make-seed-db.sh`. Upload it:
+   `turso db create foster-connect --from-file data/seed/foster_connect_seed.db`.
+   Then `turso db show foster-connect --url` and
+   `turso db tokens create foster-connect`. (`data/import_resources.py` only
+   writes to a local SQLite file; it cannot target Turso directly.)
+3. **You:** get an LLM key (the default endpoint is Groq; a free key comes from
+   console.groq.com). Optional: without it chat is off and plans use the
+   deterministic builder.
+4. **You:** Render → sign up with GitHub → New → Blueprint → pick
+   `advikar/Foster-Connect-2.0`. Paste `DATABASE_URL`, `DATABASE_AUTH_TOKEN`
+   and `LLM_API_KEY` when asked. `CHAT_SIGNING_SECRET` is generated and
+   `CORS_ORIGINS` is set by the blueprint. Confirm
+   `https://foster-connect-api.onrender.com/api/health` returns ok.
+5. **Engineer:** if Render gave the service a different URL, update the
+   repository variable: `gh variable set API_URL --repo advikar/Foster-Connect-2.0 --body <url>`
+   and re-run the "Deploy site" workflow. Pushing frontend changes to `main`
+   redeploys the site automatically; pushing backend changes redeploys Render.
+6. **You:** create the first reviewer account from a machine with the production
    variables in its environment:
-   `npm run partner --prefix backend -- you@example.org "Your Name" "Org" --role=reviewer`.
+   `DATABASE_URL=... DATABASE_AUTH_TOKEN=... npm run partner --prefix backend -- you@example.org "Your Name" "Org" --role=reviewer`.
    The password prints once. Store it in a password manager.
-5. **You:** run through the launch checks below with a synthetic test account.
+7. **You:** run through the checks under "Verifying a deploy" with a synthetic
+   test account.
 
 ## Launch blockers (human work, no code)
 
@@ -89,8 +110,9 @@ Frontend build-time variable: `VITE_API_URL` = the backend's public URL.
 
 ## What is not set up
 
-- No CI. `npm test` at the root runs backend tests, frontend type-check, and
-  frontend build; run it before every deploy.
+- No backend CI. The site workflow type-checks and builds the frontend only;
+  `npm test` at the root (backend tests, type-check, build) should still be run
+  before pushing, because Render deploys backend changes on push.
 - No uptime monitoring. Point any free pinger at `/api/health`.
 - No password reset for partner accounts. Reset by re-running the partner
   script for that email, which sets a new password and revokes sessions.

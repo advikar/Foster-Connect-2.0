@@ -106,7 +106,7 @@ export function ResourcesPage() {
   };
 
   const age = AGES.find(option => option.value === ageBand)?.age;
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isFetching } =
+  const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isFetching } =
     useInfiniteQuery<ResourcePage>({
       queryKey: ["resources", search, category, county, urgency, age],
       queryFn: ({ pageParam = 0 }) =>
@@ -177,7 +177,7 @@ export function ResourcesPage() {
 
         <section aria-live="polite">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h1 className="font-display text-[24px] font-bold text-ink lg:text-[28px]">{isLoading ? "Looking…" : isError ? "Find support" : heading}</h1>
+            <h1 className="font-display text-[24px] font-bold text-ink lg:text-[28px]">{isPending ? "Looking…" : isError ? "Find support" : heading}</h1>
             {activeFilterCount > 0 && (
               <div className="flex flex-wrap gap-1.5 lg:hidden">
                 {[["category", category, CATEGORIES], ["county", county, COUNTIES], ["age", ageBand, AGES], ["urgency", urgency, URGENCIES]]
@@ -191,7 +191,7 @@ export function ResourcesPage() {
             )}
           </div>
 
-          {isLoading ? (
+          {isPending ? (
             <div aria-busy="true" aria-label="Loading resources" className="mt-6 divide-y divide-rule border-t border-rule">
               {Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-[104px] animate-pulse" />)}
             </div>
@@ -244,7 +244,7 @@ export function ResourcesPage() {
           <div className="flex gap-2.5 pt-2">
             {activeFilterCount > 0 && <Button type="button" variant="outline" onClick={clearFilters} className="h-13 rounded-md border-ink px-5 text-[15px] font-semibold text-ink">Clear</Button>}
             <Button type="button" onClick={() => setFiltersOpen(false)} className="h-13 flex-1 rounded-md bg-brand text-[16px] font-semibold text-white hover:bg-brand-deep">
-              {isError ? "Apply filters" : isLoading ? "Loading…" : `Show ${total} ${total === 1 ? "listing" : "listings"}`}
+              {isError ? "Apply filters" : isPending ? "Loading…" : `Show ${total} ${total === 1 ? "listing" : "listings"}`}
             </Button>
           </div>
         </div>

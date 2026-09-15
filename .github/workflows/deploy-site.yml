@@ -1,0 +1,71 @@
+# Builds the youth + partner frontend and publishes it to the public
+# advikar/foster-connect repository, which serves it on GitHub Pages at
+# https://advikar.github.io/foster-connect/.
+#
+# This repository stays private. Only the compiled static files are published.
+# The API runs on Render (render.yaml); its URL comes from the repository
+# variable API_URL. Push access to the site repo is a deploy key stored in
+# the SITE_DEPLOY_KEY secret.
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", ".github/workflows/deploy-site.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Check API_URL is set
+        run: |
+          if [ -z "${{ vars.API_URL }}" ]; then
+            echo "Repository variable API_URL is not set; the site would call localhost." >&2
+            exit 1
+          fi
+
+      - name: Install
+        run: npm ci --prefix frontend
+
+      - name: Type-check
+        run: npm run type-check --prefix frontend
+
+      - name: Build
+        env:
+          VITE_BASE: /foster-connect/
+          VITE_API_URL: ${{ vars.API_URL }}
+          VITE_PREVIEW: "1"
+        run: |
+          npm run build --prefix frontend
+          # Pages has no SPA rewrites: serve the app for deep links too.
+          cp frontend/dist/index.html frontend/dist/404.html
+          touch frontend/dist/.nojekyll
+
+      - name: Publish to advikar/foster-connect
+        env:
+          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SITE_DEPLOY_KEY" > ~/.ssh/site_key
+          chmod 600 ~/.ssh/site_key
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/site_key -o StrictHostKeyChecking=accept-new"
+          cd frontend/dist
+          git init -q -b main
+          git config user.name "advikar"
+          git config user.email "70820122+advikar@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::7}"
+          git push -f git@github.com:advikar/foster-connect.git main

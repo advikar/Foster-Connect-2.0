@@ -79,9 +79,9 @@ function OverviewBody({ reviewer }: { reviewer?: boolean }) {
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Awaiting review" value={analytics.isLoading ? null : pending} detail={myPending ? `${myPending} yours` : "Across all partners"} tone={pending > 0 ? "rust" : "ink"} />
-        <Stat label="Your published listings" value={mine.isLoading ? null : myPublished} detail={mine.data?.length ? `${mine.data.length} submitted in total` : "Nothing submitted yet"} />
-        <Stat label="Flagged by youth" value={analytics.isLoading ? null : reports.length} detail="Reports on live listings" tone={reports.length ? "rust" : "ink"} />
+        <Stat label="Awaiting review" value={analytics.isPending || analytics.isError ? null : pending} detail={myPending ? `${myPending} yours` : "Across all partners"} tone={pending > 0 ? "rust" : "ink"} />
+        <Stat label="Your published listings" value={mine.isPending || mine.isError ? null : myPublished} detail={mine.data?.length ? `${mine.data.length} submitted in total` : "Nothing submitted yet"} />
+        <Stat label="Flagged by youth" value={analytics.isPending || analytics.isError ? null : reports.length} detail="Reports on live listings" tone={reports.length ? "rust" : "ink"} />
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -154,9 +154,9 @@ export function PartnerSubmissions() {
 }
 
 function Submissions() {
-  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ["partner-my-submissions"], queryFn: fetchMySubmissions, retry: 1 });
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["partner-my-submissions"], queryFn: fetchMySubmissions, retry: 1 });
   const [filter, setFilter] = useState<"all" | Submission["status"]>("all");
-  if (isLoading) return <p role="status" className="text-ink-soft">Loading your submissions…</p>;
+  if (isPending) return <p role="status" className="text-ink-soft">Loading your submissions…</p>;
   if (isError) return <div role="alert" className="rounded-md border border-rule bg-surface p-6"><p>We couldn&rsquo;t load your submissions.</p><Button onClick={() => { void refetch(); }} className="mt-4 h-11 rounded-md bg-brand text-white">Try again</Button></div>;
   if (!data?.length) {
     return (
