@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { applyAccent, currentAccent } from "@/lib/accent";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Bookmark, Home, ListChecks, MessageCircle, Search } from "lucide-react";
-import { MayaProvider } from "@/contexts/MayaContext";
+import { NovaProvider } from "@/contexts/NovaContext";
 import { CrisisButton } from "@/components/safety/CrisisBar";
 import { QuickExit } from "@/components/safety/QuickExit";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,7 @@ export function AppLayout() {
   }, [location.pathname]);
 
   return (
-    <MayaProvider>
+    <NovaProvider>
       <div className="flex min-h-screen flex-col bg-ground">
         <a
           href="#main"
@@ -60,23 +60,27 @@ export function AppLayout() {
           {tabs.map(tab => <TabBarItem key={tab.path} {...tab} active={tab.path === "/" ? location.pathname === "/" : location.pathname.startsWith(tab.path)} />)}
         </nav>
       </div>
-    </MayaProvider>
+    </NovaProvider>
   );
 }
 
 /**
- * The mark (U2, interim): a serif "FC" monogram on a brand-coloured circle.
- * Follows the accent token. To be redrawn once the reference image arrives.
+ * The mark (U2): two hands clasped into a heart, on a brand-coloured circle.
+ * Drawn from the user's reference; the circle follows the accent token.
  */
 export function Mark({ className = "size-[30px]" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn("shrink-0", className)} aria-hidden focusable="false">
       <circle cx="16" cy="16" r="16" fill="var(--brand)" />
-      <text x="16" y="21.5" textAnchor="middle" fontFamily="'Source Serif 4', Georgia, serif" fontWeight="700" fontSize="15" letterSpacing="-0.5" fill="#FFFFFF">FC</text>
+      <path d={HEART} fill="#FFFFFF" />
+      <path d={CLASP} fill="none" stroke="var(--brand)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
-
+/** Heart silhouette, 32×32 box. */
+const HEART = "M16 26.5 C 12.6 23.6, 7.2 19.6, 7.2 14.4 C 7.2 11.2, 9.5 9.2, 12.1 9.2 C 13.8 9.2, 15.2 10.1, 16 11.5 C 16.8 10.1, 18.2 9.2, 19.9 9.2 C 22.5 9.2, 24.8 11.2, 24.8 14.4 C 24.8 19.6, 19.4 23.6, 16 26.5 Z";
+/** The clasp: the right hand's cuff and edge crossing from the top right, the left hand's fingers curling under at the bottom left. */
+const CLASP = "M22.6 11.6 L14.4 19.8 M20.2 10.2 L16.4 14 M10.6 16.6 L13.4 19.4 M11.6 18.9 L14.3 21.6 M12.9 21 L15.4 23.5 M14.4 22.9 L16.4 24.9 M16.2 21.2 L19.8 17.6 M17.9 22.8 L21.2 19.5";
 export function Brand({ subtitle = "Alameda & Contra Costa County", to = "/" }: { subtitle?: string; to?: string }) {
   return (
     <Link to={to} className="flex items-center gap-2.5" aria-label="Foster Connect home">

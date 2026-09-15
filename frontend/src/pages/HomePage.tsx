@@ -5,7 +5,7 @@ import { ArrowRight, Bus, Check, GraduationCap, HeartHandshake, Home as HomeIcon
 import { AboutYouCard } from "@/components/home/AboutYouCard";
 import { ResourceRow } from "@/components/resources/ResourceRow";
 import { useAboutYou } from "@/hooks/useAboutYou";
-import { useMaya } from "@/contexts/MayaContext";
+import { useNova } from "@/contexts/NovaContext";
 import { fetchResources, fetchRoadmap, fetchRoadmaps } from "@/lib/api";
 
 const KINDS = [
@@ -26,14 +26,21 @@ const KINDS = [
  * guidance, not a personal calendar: the app never knows a birthday.
  */
 const DEADLINES = [
-  { title: "Extended Foster Care re-certification", detail: "Keeps the monthly payment coming. One form to your worker, every six months.", when: "Before each re-cert date", category: "Financial Support" },
-  { title: "THP-Plus housing application", detail: "An apartment plus a support team, up to 36 months. Apply before you age out.", when: "Before 21 (some counties 24)", category: "Housing" },
-  { title: "Chafee Grant — money for college or training", detail: "Up to $5,000 a year. FAFSA plus a verification letter; your college's foster youth liaison files both with you.", when: "FAFSA opens Oct 1", category: "Education" },
+  { title: "Extended Foster Care re-certification", detail: "Keeps the monthly payment coming. One form to your worker, every six months.", when: "Before each re-cert date", to: "/resources?category=Financial%20Support" },
+  { title: "THP-Plus housing application", detail: "An apartment plus a support team, up to 36 months. Apply before you age out.", when: "Before 21 (some counties 24)", to: "/resources?category=Housing" },
+  { title: "Chafee Grant — money for college or training", detail: "Up to $5,000 a year. FAFSA plus a verification letter; your college's foster youth liaison files both with you.", when: "FAFSA opens Oct 1", to: "/resources?category=Education" },
+];
+
+/** For someone under 18 the deadline that matters is 18, not 21. */
+const DEADLINES_UNDER_18 = [
+  { title: "Extended Foster Care (AB 12) — decide before 18", detail: "You can stay in care with housing and a monthly payment until 21. Tell your worker you want it before your 18th birthday.", when: "Before 18", to: "/resources?q=extended%20foster%20care" },
+  { title: "Independent Living Program (ILP)", detail: "Classes, a stipend and a mentor, from age 16. Ask your worker to enrol you if nobody has.", when: "From 16", to: "/resources?category=Life%20Skills%20and%20Mentoring" },
+  { title: "Your documents, in your hands", detail: "State ID, birth certificate and Social Security card. Your worker has to help you get them before you leave care.", when: "Before 18", to: "/resources?q=birth%20certificate" },
 ];
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { openMaya } = useMaya();
+  const { openNova } = useNova();
   const { about } = useAboutYou();
   const [search, setSearch] = useState("");
   const [ask, setAsk] = useState("");
@@ -45,19 +52,24 @@ export function HomePage() {
   const doneCount = roadmap?.tasks.filter(task => task.status === "completed").length ?? 0;
 
   const county = about?.county && about.county !== "elsewhere" ? about.county : undefined;
+  // Not a fixed "Housing" list: the three most recently checked listings of
+  // any kind for where they are. Crisis lines live in the crisis bar instead.
   const { data: nearby } = useQuery({
-    queryKey: ["home-housing", county],
-    // Crisis text lines are also filed under Housing; they belong in the crisis
-    // bar, not in a list headed "Housing near you".
+    queryKey: ["home-recent", county],
     queryFn: async () => {
-      const page = await fetchResources({ category: "Housing", county, limit: 8 });
+      const page = await fetchResources({ county, sort: "checked", limit: 8 });
       return { ...page, items: page.items.filter(resource => !resource.isCrisis).slice(0, 3) };
     },
     retry: 1,
   });
 
-  const showDeadlines = !about || about.age === "under18" || about.age === "18-20" || about.age === "unsaid";
-  const deadlineHeading = about?.age === "18-20" || about?.age === "under18" ? "Before you turn 21, three things close." : "Turning 21 soon? Three things close before then.";
+  const under18 = about?.age === "under18";
+  const showDeadlines = !about || under18 || about.age === "18-20" || about.age === "unsaid";
+  const deadlines = under18 ? DEADLINES_UNDER_18 : DEADLINES;
+  const deadlineHeading = under18 ? "Before you turn 18, three things to line up." : about?.age === "18-20" ? "Before you turn 21, three things close." : "Turning 21 soon? Three things close before then.";
+  const deadlineIntro = under18
+    ? "Turning 18 in care comes with choices nobody explains well. These three keep your options open."
+    : `Extended Foster Care ends at 21 in California. These are the deadlines most people miss.${!about ? " Tell us your age below and we'll show yours." : ""}`;
 
   return (
     <div>
@@ -113,16 +125,14 @@ export function HomePage() {
             <section aria-labelledby="deadlines-heading">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 id="deadlines-heading" className="font-display text-[24px] font-bold text-ink lg:text-[26px]">{deadlineHeading}</h2>
-                <Link to="/resources?q=extended%20foster%20care" className="text-[14px] text-brand hover:underline">Why 21 matters →</Link>
+                <Link to="/resources?q=extended%20foster%20care" className="text-[14px] text-brand hover:underline">{under18 ? "Why 18 matters →" : "Why 21 matters →"}</Link>
               </div>
-              <p className="mt-2 max-w-[620px] text-[15px] text-ink-soft">
-                Extended Foster Care ends at 21 in California. These are the deadlines most people miss.{!about && " Tell us your age below and we'll show yours."}
-              </p>
+              <p className="mt-2 max-w-[620px] text-[15px] text-ink-soft">{deadlineIntro}</p>
               <ul className="mt-4 divide-y divide-rule border-y border-rule">
-                {DEADLINES.map(item => (
+                {deadlines.map(item => (
                   <li key={item.title} className="row-hover grid gap-1 py-4 sm:grid-cols-[1fr_230px] sm:gap-6">
                     <div>
-                      <Link to={`/resources?category=${encodeURIComponent(item.category)}`} className="text-[17px] font-semibold text-ink hover:underline">{item.title}</Link>
+                      <Link to={item.to} className="text-[17px] font-semibold text-ink hover:underline">{item.title}</Link>
                       <p className="mt-0.5 text-[14px] text-ink-soft">{item.detail}</p>
                     </div>
                     <p className="text-stamp text-crisis sm:pt-1 sm:text-right">{item.when}</p>
@@ -134,12 +144,12 @@ export function HomePage() {
 
           <section aria-labelledby="nearby-heading">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 id="nearby-heading" className="font-display text-[24px] font-bold text-ink lg:text-[26px]">Housing{county ? `, ${county} County` : " near you"}</h2>
-              <Link to={`/resources?category=Housing${county ? `&county=${encodeURIComponent(county)}` : ""}`} className="text-[14px] text-brand hover:underline">
-                All {nearby?.total ?? ""} housing listings →
+              <h2 id="nearby-heading" className="font-display text-[24px] font-bold text-ink lg:text-[26px]">Checked recently{county ? `, ${county} County` : ""}</h2>
+              <Link to={`/resources?sort=checked${county ? `&county=${encodeURIComponent(county)}` : ""}`} className="text-[14px] text-brand hover:underline">
+                All {nearby?.total ?? ""} listings →
               </Link>
             </div>
-            {!county && <p className="mt-2 text-[14px] text-ink-faint">Pick a county in “About you” to see listings for where you are.</p>}
+            <p className="mt-2 text-[14px] text-ink-faint">{county ? "The latest listings a person has checked for where you are." : "Pick a county in “About you” to see listings for where you are."}</p>
             <div className="mt-2 divide-y divide-rule border-t border-rule">
               {nearby?.items.map(resource => <ResourceRow key={resource.id} resource={resource} dense />)}
               {!nearby && <p className="py-6 text-[14px] text-ink-faint">Loading listings…</p>}
@@ -184,10 +194,10 @@ export function HomePage() {
           <section className="flex flex-col gap-3 rounded-md border border-rule bg-surface p-6">
             <h2 className="font-display text-[22px] font-bold text-ink">Not sure what you qualify for?</h2>
             <form
-              onSubmit={event => { event.preventDefault(); openMaya(ask.trim() || undefined); }}
+              onSubmit={event => { event.preventDefault(); openNova(ask.trim() || undefined); }}
               className="flex items-center gap-2 rounded-md border border-rule bg-surface pl-4 pr-1.5 focus-within:border-ink"
             >
-              <label htmlFor="home-ask" className="sr-only">Ask Maya about your situation</label>
+              <label htmlFor="home-ask" className="sr-only">Ask Nova about your situation</label>
               <input
                 id="home-ask"
                 value={ask}
@@ -195,9 +205,9 @@ export function HomePage() {
                 placeholder="I'm 19, my case closed last year, and I'm staying with a friend…"
                 className="h-[52px] min-w-0 flex-1 bg-transparent text-[15px] text-ink-body outline-none placeholder:text-ink-stamp"
               />
-              <button className="flex size-10 shrink-0 items-center justify-center rounded-md bg-brand text-white hover:bg-brand-deep" aria-label="Ask Maya"><Send className="size-4" /></button>
+              <button className="flex size-10 shrink-0 items-center justify-center rounded-md bg-brand text-white hover:bg-brand-deep" aria-label="Ask Nova"><Send className="size-4" /></button>
             </form>
-            <p className="text-[13px] leading-relaxed text-ink-faint">Maya answers from the checked listings only and shows you where each fact came from. AI — not a caseworker.</p>
+            <p className="text-[13px] leading-relaxed text-ink-faint">Nova answers from the checked listings only and shows you where each fact came from. AI — not a caseworker.</p>
           </section>
         </div>
       </div>

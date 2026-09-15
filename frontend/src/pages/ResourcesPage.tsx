@@ -249,7 +249,7 @@ export function ResourcesPage() {
                 {search && (
                   <p className="mt-4 text-[15px] text-ink-soft">
                     Not sure what to call it?{" "}
-                    <Link to={`/ask?q=${encodeURIComponent(search)}`} className="font-semibold text-brand hover:underline">Ask Maya about &ldquo;{search}&rdquo;</Link>
+                    <Link to={`/ask?q=${encodeURIComponent(search)}`} className="font-semibold text-brand hover:underline">Ask Nova about &ldquo;{search}&rdquo;</Link>
                   </p>
                 )}
               </div>

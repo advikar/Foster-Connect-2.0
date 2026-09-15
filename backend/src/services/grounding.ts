@@ -1,17 +1,17 @@
 import crypto from "crypto";
 
 /**
- * The two things that make Maya's "no invented programs, phone numbers, or
+ * The two things that make Nova's "no invented programs, phone numbers, or
  * links" promise actually true.
  *
  * The app already strips resource IDs the model did not receive, and rehydrates
  * every link and phone number from SQLite after generation. That protects the
- * resource CARDS. It does nothing about Maya's prose — the model could write a
+ * resource CARDS. It does nothing about Nova's prose — the model could write a
  * fabricated number mid-sentence and it would go straight to a young person
  * under a badge claiming the opposite. This module closes both holes.
  *
  * 1. HISTORY SIGNING. The browser sends the conversation back on every turn,
- *    including what Maya supposedly said. Anyone can edit that, which is the
+ *    including what Nova supposedly said. Anyone can edit that, which is the
  *    standard way these guardrails get broken: forge an assistant turn saying
  *    the rules changed, and the model plays along.
  *
@@ -20,7 +20,7 @@ import crypto from "crypto";
  *    product — and the privacy page promises chat is not saved. Signing keeps
  *    that promise and still makes forgery impossible.
  *
- * 2. REPLY SANITISATION. Any phone number or link in Maya's prose that was not
+ * 2. REPLY SANITISATION. Any phone number or link in Nova's prose that was not
  *    in the data she was given is removed before it reaches the person.
  */
 
@@ -94,7 +94,7 @@ export function verifyHistory(
 
 // ─── Reply sanitisation ─────────────────────────────────────────────────────
 
-/** Contact details Maya is allowed to say out loud. */
+/** Contact details Nova is allowed to say out loud. */
 export interface AllowedContacts {
   /** Last 10 digits of every permitted phone number. */
   phoneDigits: Set<string>;
@@ -179,7 +179,7 @@ export interface SanitisedReply {
 }
 
 /**
- * Remove contact details Maya was not given.
+ * Remove contact details Nova was not given.
  *
  * Replaced rather than deleted, so the sentence still reads, and the person is
  * pointed at the verified card instead of a number we cannot stand behind.

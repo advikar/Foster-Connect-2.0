@@ -10,7 +10,7 @@ import {
  *
  * RUN BEFORE EVERY DEPLOY: `npm test` in backend/.
  *
- * Maya's badge says "no invented programs, phone numbers, or links". These are
+ * Nova's badge says "no invented programs, phone numbers, or links". These are
  * the tests that keep that true. When someone finds a way through, add the case
  * here first, watch it fail, then fix the module.
  */
@@ -54,7 +54,7 @@ test("a forged assistant turn is rejected", () => {
   ];
   const token = signHistory(SESSION, real);
 
-  // The classic attack: keep the token, rewrite what Maya "said".
+  // The classic attack: keep the token, rewrite what Nova "said".
   const forged: SignedMessage[] = [
     { role: "user", content: "I need housing" },
     {
@@ -107,7 +107,7 @@ test("an empty history is fine and needs no token", () => {
 
 // ─── Fabricated contact details ─────────────────────────────────────────────
 
-test("phone numbers Maya was given are kept", () => {
+test("phone numbers Nova was given are kept", () => {
   const reply = "Call Alameda County ILP at (510) 667-7610 and ask for a coordinator.";
   const result = sanitiseReply(reply, ALLOWED);
   assert.ok(result.reply.includes("(510) 667-7610"));
@@ -135,7 +135,7 @@ test("crisis numbers and 911 are always allowed", () => {
   assert.ok(result.reply.includes("911"));
 });
 
-test("links Maya was given are kept, invented ones are removed", () => {
+test("links Nova was given are kept, invented ones are removed", () => {
   const good = sanitiseReply("See https://www.alamedacountyilp.org/services/ for details.", ALLOWED);
   assert.equal(good.removed.length, 0, `removed: ${good.removed}`);
 

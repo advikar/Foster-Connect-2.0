@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, ListPlus, Loader2, MessageSquarePlus, Send, ShieldCheck } from "lucide-react";
 import { ResourceRow } from "@/components/resources/ResourceRow";
-import { useMaya } from "@/contexts/MayaContext";
+import { useNova } from "@/contexts/NovaContext";
 import { addTask, deleteTask, MAYA_ARCHIVE_KEY, MAYA_CONVERSATION_KEY, sendChat, type ChatMessageInput, type CrisisContact, type PlanSuggestion, type ResourceItem } from "@/lib/api";
 import { toast } from "sonner";
 import { dialString } from "@/lib/crisis";
@@ -15,7 +15,7 @@ interface DisplayMessage {
   resources?: ResourceItem[];
   crisisContacts?: CrisisContact[];
   degraded?: boolean;
-  /** A network/app failure, not something Maya said. Never sent back as history. */
+  /** A network/app failure, not something Nova said. Never sent back as history. */
   error?: boolean;
   planSuggestions?: PlanSuggestion[];
   /** Indexes into planSuggestions that the person has applied. */
@@ -33,7 +33,7 @@ interface StoredConversation {
   historyToken?: string;
 }
 
-/** A past chat, kept on this device until cleared (Y9). Costs nothing: Maya is only called when a message is sent. */
+/** A past chat, kept on this device until cleared (Y9). Costs nothing: Nova is only called when a message is sent. */
 interface ArchivedConversation extends StoredConversation {
   id: string;
   title: string;
@@ -60,7 +60,7 @@ function titleOf(conversation: StoredConversation) {
 
 const GREETING: DisplayMessage = {
   role: "assistant",
-  content: "Hi, I'm Maya. Tell me what's going on and I'll look through the checked listings. No name needed.",
+  content: "Hi, I'm Nova. Tell me what's going on and I'll look through the checked listings. No name needed.",
 };
 
 const STARTERS = [
@@ -98,15 +98,15 @@ function loadConversation(): StoredConversation {
 }
 
 /**
- * The Maya conversation, rendered inline on the Ask page.
+ * The Nova conversation, rendered inline on the Ask page.
  *
- * Kept in localStorage — with the server-signed history — so Maya remembers
+ * Kept in localStorage — with the server-signed history — so Nova remembers
  * the thread across pages and reloads until the person clears it (or uses
  * "Delete my data"). Resources come back as in-app ResourceRows (never a
  * full-page link), so the conversation is never lost to a reload.
  */
-export function MayaConversation({ className }: { className?: string }) {
-  const { pendingPrompt, clearPendingPrompt } = useMaya();
+export function NovaConversation({ className }: { className?: string }) {
+  const { pendingPrompt, clearPendingPrompt } = useNova();
   const queryClient = useQueryClient();
   const [conversation, setConversation] = useState<StoredConversation>(loadConversation);
   const [applying, setApplying] = useState<string | null>(null);
@@ -196,7 +196,7 @@ export function MayaConversation({ className }: { className?: string }) {
   const forgetPast = () => { setArchive([]); saveArchive([]); setPastOpen(false); };
 
   /**
-   * Apply one of Maya's plan suggestions (Y3). Uses the same endpoints as
+   * Apply one of Nova's plan suggestions (Y3). Uses the same endpoints as
    * editing by hand, so nothing the model said is trusted beyond the text.
    */
   const applySuggestion = async (messageIndex: number, suggestionIndex: number, suggestion: PlanSuggestion) => {
@@ -258,7 +258,7 @@ export function MayaConversation({ className }: { className?: string }) {
               <li key={item.id} className="flex items-center justify-between gap-3 py-2">
                 <button type="button" onClick={() => reopen(item)} className="min-w-0 flex-1 text-left">
                   <p className="truncate text-[15px] font-medium text-ink">{item.title}</p>
-                  <p className="text-[12px] text-ink-faint">{new Date(item.savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {Math.max(item.messages.length - 1, 0)} messages · Maya remembers it</p>
+                  <p className="text-[12px] text-ink-faint">{new Date(item.savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {Math.max(item.messages.length - 1, 0)} messages · Nova remembers it</p>
                 </button>
                 <span className="text-[13px] text-brand">Open</span>
               </li>
@@ -381,7 +381,7 @@ export function MayaConversation({ className }: { className?: string }) {
             ref={inputRef}
             value={input}
             onChange={event => setInput(event.target.value)}
-            placeholder={fresh ? "What would help?" : "Reply to Maya…"}
+            placeholder={fresh ? "What would help?" : "Reply to Nova…"}
             className="h-[52px] min-w-0 flex-1 bg-transparent text-[16px] text-ink-body outline-none placeholder:text-ink-stamp"
             autoComplete="off"
             enterKeyHint="send"

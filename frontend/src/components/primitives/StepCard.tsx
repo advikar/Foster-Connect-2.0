@@ -32,11 +32,11 @@ const STUCK_REASONS = [
  * StepCard — one item in the plan.
  *
  * "Stuck" matters most: services turn young people away constantly. Tapping
- * it records what happened (blockerReason) and offers to take that to Maya
+ * it records what happened (blockerReason) and offers to take that to Nova
  * so the plan keeps moving.
  */
 export function StepCard({
-  task, resource, index, current = false, onUpdate, onAskMaya, editing,
+  task, resource, index, current = false, onUpdate, onAskNova, editing,
 }: {
   task: RoadmapTask;
   resource?: ResourceItem;
@@ -44,7 +44,7 @@ export function StepCard({
   /** The single highlighted "do this next" step. */
   current?: boolean;
   onUpdate: (update: { status?: TaskStatus; blockerReason?: string }) => void;
-  onAskMaya: (context: string) => void;
+  onAskNova: (context: string) => void;
   editing?: StepEditing;
 }) {
   const [pickingReason, setPickingReason] = useState(false);
@@ -153,11 +153,11 @@ export function StepCard({
             <Chip selected={stuck} onClick={() => setPickingReason(value => !value)}>Stuck?</Chip>
             <button
               type="button"
-              onClick={() => onAskMaya(`I need help with this step: "${task.taskText}".`)}
+              onClick={() => onAskNova(`I need help with this step: "${task.taskText}".`)}
               className="inline-flex min-h-10 items-center gap-1.5 px-2 text-[14px] font-semibold text-brand hover:underline"
             >
               <MessageCircle className="size-4" />
-              Ask Maya
+              Ask Nova
             </button>
           </div>
         )}
@@ -178,11 +178,11 @@ export function StepCard({
             <p>Being turned away is information, not failure.{task.blockerReason ? ` You told us: “${task.blockerReason}.”` : ""}</p>
             <button
               type="button"
-              onClick={() => onAskMaya(`I'm stuck on this step: "${task.taskText}". What happened: ${task.blockerReason || "not specified"}. Can you suggest another way?`)}
+              onClick={() => onAskNova(`I'm stuck on this step: "${task.taskText}". What happened: ${task.blockerReason || "not specified"}. Can you suggest another way?`)}
               className="mt-1 inline-flex items-center gap-1 text-[14px] font-semibold text-brand hover:underline"
             >
               <MessageCircle className="size-3.5" />
-              Ask Maya for another way
+              Ask Nova for another way
             </button>
           </div>
         )}

@@ -1,5 +1,13 @@
 # Current handoff
 
+## 2026-09-15 — Nova, handshake mark, under-18 deadlines (checkpoint 4)
+
+- User: rename Maya → Nova (gender neutral); reference image for the mark arrived (two hands clasped into a heart); colour decision deferred; under-18 wording for the "before 21" section; asked whether a fixed Housing list on Home is needed.
+- Done: `Maya` → `Nova` across frontend, backend prompts and README (files renamed to `NovaConversation.tsx` / `NovaContext.tsx`; storage keys unchanged on purpose). Mark redrawn as a white heart with the clasp in the accent colour on the brand circle (`AppLayout.tsx` `Mark`, `public/favicon.svg`). Home: under-18 gets its own three items (AB 12 decision, ILP from 16, documents before 18); the Housing list became "Checked recently[, County]" (any kind, sorted by check date, crisis lines excluded). FIXES.md rows U2, Y8, Y12, Y13 updated.
+- Checks: backend tests, frontend type-check, lint, build; browser: mark at 160px and 24px, Home with "Under 18 · Alameda" saved.
+- Pending user decision: default accent colour (teal vs deep blue).
+- Ownership released: yes.
+
 ## 2026-09-15 — Fixes backlog worked through (checkpoint 3)
 
 - Task: user's list of UI, youth and partner fixes ("make doc and work one by one"). Doc: `docs/FIXES.md` (every item, status, decisions still open). Owner: Claude Code (Fable 5.1).

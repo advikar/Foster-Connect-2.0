@@ -109,7 +109,7 @@ function OverviewBody({ reviewer }: { reviewer?: boolean }) {
         <aside className="flex flex-col gap-3 self-start rounded-md bg-sand-soft p-6">
           <h2 className="font-display text-[20px] font-bold text-ink">How a listing gets to a young person</h2>
           <ol className="flex flex-col gap-2.5 text-[14px] text-ink-soft">
-            {[["01", "You share the facts and link the official source."], ["02", "A reviewer checks eligibility, cost and how to start."], ["03", "It appears in search and in Maya's answers, with the date it was checked."]].map(([n, t]) => (
+            {[["01", "You share the facts and link the official source."], ["02", "A reviewer checks eligibility, cost and how to start."], ["03", "It appears in search and in Nova's answers, with the date it was checked."]].map(([n, t]) => (
               <li key={n} className="grid grid-cols-[24px_1fr] gap-2"><span className="text-eyebrow pt-0.5 text-brand">{n}</span><span>{t}</span></li>
             ))}
           </ol>
@@ -273,7 +273,7 @@ function loadGuideThread(): GuideThread {
 
 /**
  * The staff guide as a thread. The server signs the history the same way it
- * does for Maya, so follow-ups ("make that shorter", "now the checklist")
+ * does for Nova, so follow-ups ("make that shorter", "now the checklist")
  * work. Kept in sessionStorage alongside the sign-in token: it ends with the
  * tab or with sign-out, whichever is first.
  */
@@ -363,8 +363,8 @@ function Guide() {
         </form>
       </div>
       <aside className="self-start rounded-md bg-sand-soft p-5 text-[14px] text-ink-soft">
-        <p className="font-semibold text-ink">How this differs from Maya</p>
-        <p className="mt-1.5">Maya talks to young people and only answers from published listings. This guide is for staff. It remembers this thread while you are signed in on this tab, and forgets it when you sign out or start over.</p>
+        <p className="font-semibold text-ink">How this differs from Nova</p>
+        <p className="mt-1.5">Nova talks to young people and only answers from published listings. This guide is for staff. It remembers this thread while you are signed in on this tab, and forgets it when you sign out or start over.</p>
       </aside>
     </div>
   );

@@ -48,7 +48,7 @@ const suggestedTaskSchema = z.object({
   motivationNote: z.string().max(240).default(""),
 });
 
-/** A change Maya proposes to the plan (Y3). Applied only when the person taps it. */
+/** A change Nova proposes to the plan (Y3). Applied only when the person taps it. */
 const planSuggestionSchema = z.object({
   action: z.enum(["add", "replace", "split", "remove"]),
   targetTaskId: z.number().int().positive().nullable().default(null),
@@ -361,7 +361,7 @@ export type GeneratedRoadmap = RoadmapDraft & {
  * 1. A task that named a resourceId we did not supply is DROPPED, not nulled.
  *    The model was asserting a specific program; we cannot stand behind it.
  * 2. Every text field (title, greeting, closing, summary, each task's three
- *    strings) goes through the same contact sanitiser Maya's chat uses, with
+ *    strings) goes through the same contact sanitiser Nova's chat uses, with
  *    the allow-list built from the supplied resources and the crisis lines.
  * 3. A task whose text needed a phone/URL removed is dropped too. A roadmap
  *    step with "the number on their listing" and no listing is worse than no

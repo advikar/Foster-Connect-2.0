@@ -37,7 +37,7 @@ export function AddResourcePage({ partnerMode = false }: { partnerMode?: boolean
     <div className="rounded-md border border-rule bg-surface p-8">
       <CheckCircle2 className="size-8 text-brand" />
       <h2 className="mt-3 font-display text-[24px] font-bold text-ink">Submitted for review</h2>
-      <p className="mt-2 max-w-[52ch] text-[15px] text-ink-soft">It&rsquo;s in the review queue. It won&rsquo;t show up in search or in Maya&rsquo;s answers until a person has checked it.</p>
+      <p className="mt-2 max-w-[52ch] text-[15px] text-ink-soft">It&rsquo;s in the review queue. It won&rsquo;t show up in search or in Nova&rsquo;s answers until a person has checked it.</p>
       <Button onClick={() => { setDone(false); setForm(EMPTY); }} className="mt-5 h-11 rounded-md border border-ink bg-transparent px-4 font-semibold text-ink hover:bg-sand-soft">Submit another</Button>
     </div>
   ) : (

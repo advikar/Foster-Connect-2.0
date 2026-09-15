@@ -730,7 +730,7 @@ async function groundedForConversation(
   return [...searched, ...extra].slice(0, limit);
 }
 
-/** The session's most recent plan, for Maya to suggest changes to (Y3). */
+/** The session's most recent plan, for Nova to suggest changes to (Y3). */
 async function currentPlanFor(sessionId: string): Promise<PlanContext | null> {
   const plan = await db.execute({ sql: "SELECT id FROM roadmaps WHERE session_id=? ORDER BY updated_at DESC LIMIT 1", args: [sessionId] });
   if (!plan.rows[0]) return null;
@@ -751,7 +751,7 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
     })).max(20).default([]),
     /**
      * Proof that this server produced the history above. Without it the browser
-     * could forge what Maya previously said and talk the model out of its own
+     * could forge what Nova previously said and talk the model out of its own
      * source rules. See services/grounding.ts.
      */
     historyToken: z.string().max(200).optional(),
@@ -935,7 +935,7 @@ app.get("/api/roadmaps/:id", requireSession, asyncRoute(async (req, res) => {
 const TIMEFRAMES = ["This Week", "30 Days", "3-6 Months", "6-12 Months"] as const;
 
 /**
- * Add a step by hand (Y4). Also used when Maya suggests a step and the person
+ * Add a step by hand (Y4). Also used when Nova suggests a step and the person
  * accepts it. A resourceId must be a published listing; nothing else is trusted.
  */
 app.post("/api/roadmaps/:id/tasks", requireSession, asyncRoute(async (req, res) => {
@@ -1356,7 +1356,7 @@ app.post("/api/partner/guide", requirePartner, asyncRoute(async (req: PartnerReq
     })).max(20).default([]),
     historyToken: z.string().max(200).optional(),
   }).parse(req.body);
-  // Same signing scheme as Maya, keyed to the partner account rather than a
+  // Same signing scheme as Nova, keyed to the partner account rather than a
   // youth session, so one staff member cannot replay another's thread.
   const signer = `partner:${req.partner!.id}`;
   const verified = verifyHistory(signer, input.history as SignedMessage[], input.historyToken);

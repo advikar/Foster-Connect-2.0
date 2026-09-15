@@ -142,7 +142,7 @@ export interface CrisisContact {
   hours: string;
 }
 
-/** A change Maya proposes to the plan (Y3). Nothing happens until the person taps it. */
+/** A change Nova proposes to the plan (Y3). Nothing happens until the person taps it. */
 export interface PlanSuggestion {
   action: "add" | "replace" | "split" | "remove";
   targetTaskId: number | null;
@@ -161,7 +161,7 @@ export interface ChatResponse {
   /**
    * The canonical conversation as the server recorded it, plus a token proving
    * the server produced it. Send both back on the next turn — without the token
-   * the history is discarded, because otherwise a browser could forge what Maya
+   * the history is discarded, because otherwise a browser could forge what Nova
    * previously said and talk the model out of its own source rules.
    */
   history?: ChatMessageInput[];
@@ -173,7 +173,7 @@ export interface ChatResponse {
   crisisContacts?: CrisisContact[];
   /**
    * Set when the AI navigator was unreachable and this reply came from a
-   * direct directory search instead. Maya must say so plainly, never hide it.
+   * direct directory search instead. Nova must say so plainly, never hide it.
    */
   degraded?: boolean;
   suggestedTasks: Array<{

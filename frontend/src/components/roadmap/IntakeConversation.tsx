@@ -9,7 +9,7 @@ import type { DocumentId, HousingStatus, RoadmapIntake } from "@/lib/api";
 /**
  * Intake, as a conversation rather than a form.
  *
- * Maya asks one thing at a time. Most answers are a tap, so this is faster
+ * Nova asks one thing at a time. Most answers are a tap, so this is faster
  * than the three-step form it replaces while collecting far more of what
  * actually determines a useful plan: where they are sleeping, which
  * documents they hold, and what has a date on it.
