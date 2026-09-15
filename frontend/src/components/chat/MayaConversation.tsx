@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, ShieldCheck } from "lucide-react";
 import { ResourceRow } from "@/components/resources/ResourceRow";
 import { useMaya } from "@/contexts/MayaContext";
-import { sendChat, type ChatMessageInput, type CrisisContact, type ResourceItem } from "@/lib/api";
+import { MAYA_CONVERSATION_KEY, sendChat, type ChatMessageInput, type CrisisContact, type ResourceItem } from "@/lib/api";
 import { dialString } from "@/lib/crisis";
 import { cn } from "@/lib/utils";
-
-const STORAGE_KEY = "fc-maya-messages";
 
 interface DisplayMessage {
   role: "user" | "assistant";
@@ -14,6 +12,19 @@ interface DisplayMessage {
   resources?: ResourceItem[];
   crisisContacts?: CrisisContact[];
   degraded?: boolean;
+  /** A network/app failure, not something Maya said. Never sent back as history. */
+  error?: boolean;
+}
+
+/**
+ * What survives navigation and reloads. `history` and `historyToken` are the
+ * server's own signed record of the conversation — the display list is for
+ * people, the signed list is what the model is allowed to remember.
+ */
+interface StoredConversation {
+  messages: DisplayMessage[];
+  history: ChatMessageInput[];
+  historyToken?: string;
 }
 
 const GREETING: DisplayMessage = {
@@ -28,62 +39,76 @@ const STARTERS = [
   "I'm turning 21 soon. What closes?",
 ];
 
-function loadStoredMessages(): DisplayMessage[] {
+const EMPTY: StoredConversation = { messages: [GREETING], history: [] };
+
+function loadConversation(): StoredConversation {
   try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [GREETING];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : [GREETING];
+    const raw = window.localStorage.getItem(MAYA_CONVERSATION_KEY);
+    if (!raw) return EMPTY;
+    const parsed = JSON.parse(raw) as Partial<StoredConversation>;
+    if (!Array.isArray(parsed.messages) || !parsed.messages.length) return EMPTY;
+    return { messages: parsed.messages, history: Array.isArray(parsed.history) ? parsed.history : [], historyToken: parsed.historyToken };
   } catch {
-    return [GREETING];
+    return EMPTY;
   }
 }
 
 /**
  * The Maya conversation, rendered inline on the Ask page.
  *
- * Persists to sessionStorage so it survives navigation and clears with the
- * tab. Resources come back as in-app ResourceRows (never a full-page link),
- * so the conversation is never lost to a reload.
+ * Kept in localStorage — with the server-signed history — so Maya remembers
+ * the thread across pages and reloads until the person clears it (or uses
+ * "Delete my data"). Resources come back as in-app ResourceRows (never a
+ * full-page link), so the conversation is never lost to a reload.
  */
 export function MayaConversation({ className }: { className?: string }) {
   const { pendingPrompt, clearPendingPrompt } = useMaya();
-  const [messages, setMessages] = useState<DisplayMessage[]>(loadStoredMessages);
-  const historyTokenRef = useRef<string | undefined>(undefined);
+  const [conversation, setConversation] = useState<StoredConversation>(loadConversation);
+  const { messages, history, historyToken } = conversation;
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    try { window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch { /* fine */ }
-  }, [messages]);
+    try {
+      if (messages.length <= 1) window.localStorage.removeItem(MAYA_CONVERSATION_KEY);
+      else window.localStorage.setItem(MAYA_CONVERSATION_KEY, JSON.stringify(conversation));
+    } catch { /* private mode: the thread lives for this page only */ }
+  }, [conversation, messages.length]);
 
   useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+    endRef.current?.scrollIntoView({ block: "end" });
   }, [messages, loading]);
 
   const send = async (rawMessage?: string) => {
     const message = (rawMessage ?? input).trim();
     if (!message || loading) return;
-    const history: ChatMessageInput[] = messages.map(m => ({ role: m.role, content: m.content }));
-    setMessages(previous => [...previous, { role: "user", content: message }]);
+    setConversation(previous => ({ ...previous, messages: [...previous.messages, { role: "user", content: message }] }));
     setInput("");
     setLoading(true);
     try {
-      const response = await sendChat(message, history, { historyToken: historyTokenRef.current });
-      historyTokenRef.current = response.historyToken;
-      setMessages(previous => [
-        ...previous,
-        { role: "assistant", content: response.reply, resources: response.resources, crisisContacts: response.crisisContacts, degraded: response.degraded },
-      ]);
+      const response = await sendChat(message, history, { historyToken });
+      setConversation(previous => ({
+        messages: [
+          ...previous.messages,
+          { role: "assistant", content: response.reply, resources: response.resources, crisisContacts: response.crisisContacts, degraded: response.degraded },
+        ],
+        history: response.history ?? previous.history,
+        historyToken: response.historyToken ?? previous.historyToken,
+      }));
     } catch (error) {
-      setMessages(previous => [
+      setConversation(previous => ({
         ...previous,
-        { role: "assistant", content: error instanceof Error ? error.message : "I'm unavailable right now. The checked directory still works from Find." },
-      ]);
+        messages: [
+          ...previous.messages,
+          { role: "assistant", error: true, content: error instanceof Error ? error.message : "I'm unavailable right now. The checked directory still works from Find." },
+        ],
+      }));
     } finally {
       setLoading(false);
+      inputRef.current?.focus({ preventScroll: true });
     }
   };
 
@@ -96,9 +121,8 @@ export function MayaConversation({ className }: { className?: string }) {
   }, [pendingPrompt]);
 
   const clearConversation = () => {
-    setMessages([GREETING]);
-    historyTokenRef.current = undefined;
-    try { window.sessionStorage.removeItem(STORAGE_KEY); } catch { /* fine */ }
+    setConversation(EMPTY);
+    try { window.localStorage.removeItem(MAYA_CONVERSATION_KEY); } catch { /* fine */ }
     inputRef.current?.focus();
   };
 
@@ -115,10 +139,11 @@ export function MayaConversation({ className }: { className?: string }) {
                 message.role === "user"
                   ? "rounded-[12px_12px_2px_12px] bg-ink px-4 py-3 text-on-deep"
                   : "rounded-[12px_12px_12px_2px] border border-rule bg-surface px-[18px] py-3.5 text-ink-body",
+                message.error && "border-crisis/40 text-crisis",
               )}
             >
               {message.degraded && (
-                <p className="mb-1.5 text-[13px] font-medium text-crisis">I can&rsquo;t reach my assistant right now, so I searched the directory directly.</p>
+                <p className="mb-1.5 text-[13px] font-medium text-crisis">Directory search only — the AI guide is unavailable right now.</p>
               )}
               {message.content}
             </div>
@@ -167,11 +192,12 @@ export function MayaConversation({ className }: { className?: string }) {
             ))}
           </div>
         )}
+        <div ref={endRef} />
       </div>
 
       <form
         onSubmit={event => { event.preventDefault(); void send(); }}
-        className="border-t border-rule bg-surface px-4 pb-4 pt-3 lg:px-8"
+        className="sticky bottom-[72px] border-t border-rule bg-surface px-4 pb-4 pt-3 lg:bottom-0 lg:px-8"
       >
         <div className="flex items-center gap-2 rounded-md border border-rule bg-surface pl-4 pr-1.5 focus-within:border-ink">
           <label htmlFor="maya-input" className="sr-only">What would help?</label>
@@ -180,9 +206,10 @@ export function MayaConversation({ className }: { className?: string }) {
             ref={inputRef}
             value={input}
             onChange={event => setInput(event.target.value)}
-            placeholder="What would help?"
+            placeholder={fresh ? "What would help?" : "Reply to Maya…"}
             className="h-[52px] min-w-0 flex-1 bg-transparent text-[16px] text-ink-body outline-none placeholder:text-ink-stamp"
             autoComplete="off"
+            enterKeyHint="send"
           />
           <button
             type="submit"

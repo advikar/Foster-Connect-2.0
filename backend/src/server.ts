@@ -11,6 +11,7 @@ import {
   generateGroundedRoadmap,
   getPartnerGuideResponse,
   getNavigatorResponse,
+  ProviderError,
   type GroundedResource,
   type HistoryMessage,
 } from "./services/ai.service";
@@ -224,7 +225,7 @@ function mapRoadmap(row: Row) {
 }
 
 const synonyms: Record<string, string[]> = {
-  housing: ["shelter", "rent", "apartment", "place", "stay"],
+  housing: ["shelter", "rent", "apartment", "transitional", "homeless"],
   employment: ["job", "work", "career", "resume", "interview"],
   education: ["college", "school", "class", "scholarship", "tuition"],
   transportation: ["ride", "bus", "transit", "car"],
@@ -287,7 +288,15 @@ async function listVerifiedResources(options: {
   const terms = options.query ? searchTerms(options.query) : [];
   let sql: string;
   if (terms.length) {
-    sql = `SELECT r.*, bm25(resources_fts) AS relevance
+    // Column weights: a word in the title or category says far more about a
+    // listing than the same word buried in its description. Without these a
+    // crisis text line whose blurb mentions "a safe place to stay" outranked
+    // every actual housing programme for "housing".
+    // Columns: title, organization, description, category, county, service_area,
+    // eligibility, application_steps, tags.
+    // bm25 is negative (more negative = better). Crisis lines are always one
+    // tap away in the crisis bar, so a plain search ranks them after programmes.
+    sql = `SELECT r.*, bm25(resources_fts, 12.0, 4.0, 1.0, 10.0, 1.0, 1.0, 2.0, 1.0, 6.0) + (r.is_crisis * 4.0) AS relevance
            FROM resources_fts JOIN resources r ON r.id = resources_fts.rowid
            WHERE resources_fts MATCH ? AND ${filters.join(" AND ")}
            ORDER BY relevance ASC, r.verified_at DESC LIMIT ?`;
@@ -642,6 +651,34 @@ app.get("/api/analytics", asyncRoute(async (_req, res) => {
   res.json({ category: category.rows, county: county.rows, totals: totals.rows[0] });
 }));
 
+/**
+ * Listings to ground a reply on, given the whole conversation rather than the
+ * last message alone. A follow-up like "how do I apply for the second one?"
+ * matches nothing in search by itself, so:
+ *   1. listings recommended in the previous assistant turns are re-supplied;
+ *   2. when the message is short, the previous user message is searched too.
+ * Search results come first so a fresh topic is not crowded out.
+ */
+async function groundedForConversation(
+  message: string,
+  history: SignedMessage[],
+  context: { county?: string; age?: number },
+  limit = 12,
+) {
+  const previousUser = [...history].reverse().find(turn => turn.role === "user")?.content ?? "";
+  const shortFollowUp = searchTerms(message).length < 3 && previousUser;
+  const query = shortFollowUp ? `${message} ${previousUser}` : message;
+  const searched = await listVerifiedResources({ query, county: context.county, age: context.age, limit: 10 });
+
+  const carried = history
+    .filter(turn => turn.role === "assistant")
+    .slice(-3)
+    .flatMap(turn => turn.resourceIds ?? []);
+  const seen = new Set(searched.map(resource => resource.id));
+  const extra = await resourcesByIds(carried.filter(id => !seen.has(id)));
+  return [...searched, ...extra].slice(0, limit);
+}
+
 app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
   const input = z.object({
     message: z.string().trim().min(1).max(2000),
@@ -650,6 +687,7 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
     history: z.array(z.object({
       role: z.enum(["user", "assistant"]),
       content: z.string().max(4000),
+      resourceIds: z.array(z.number().int()).max(20).optional(),
     })).max(20).default([]),
     /**
      * Proof that this server produced the history above. Without it the browser
@@ -661,13 +699,6 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
 
   const assessment = assessSafety(input.message);
 
-  // Crisis path: deterministic, model never involved, cannot fail to a 500.
-  if (assessment.level === "crisis") {
-    const crisis = await buildCrisisResponse(assessment, { county: input.county, age: input.age });
-    res.json({ ...crisis, historyToken: signHistory(req.sessionId!, []) });
-    return;
-  }
-
   // Untrusted history is dropped, not rejected — losing context is a far better
   // outcome for the person than an error page.
   const verified = verifyHistory(req.sessionId!, input.history as SignedMessage[], input.historyToken);
@@ -676,10 +707,24 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
   }
   const history = verified.messages;
 
+  // Crisis path: deterministic, model never involved, cannot fail to a 500.
+  // The conversation so far is kept, so the person is not asked to start over
+  // once they are safe.
+  if (assessment.level === "crisis") {
+    const crisis = await buildCrisisResponse(assessment, { county: input.county, age: input.age });
+    const crisisHistory: SignedMessage[] = [
+      ...history,
+      { role: "user" as const, content: input.message },
+      { role: "assistant" as const, content: crisis.reply },
+    ].slice(-20);
+    res.json({ ...crisis, history: crisisHistory, historyToken: signHistory(req.sessionId!, crisisHistory) });
+    return;
+  }
+
   // Everything below may fail. A young person must still get something useful.
   try {
-    const grounded = await listVerifiedResources({ query: input.message, county: input.county, age: input.age, limit: 10 });
-    const result = await getNavigatorResponse(input.message, history as HistoryMessage[], grounded);
+    const grounded = await groundedForConversation(input.message, history, { county: input.county, age: input.age });
+    const result = await getNavigatorResponse(input.message, history.map(({ role, content }) => ({ role, content })) as HistoryMessage[], grounded);
 
     // Resource IDs were already filtered. This checks the prose itself: any
     // phone number or link the model invented is removed before it is shown.
@@ -693,7 +738,7 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
     const nextHistory: SignedMessage[] = [
       ...history,
       { role: "user" as const, content: input.message },
-      { role: "assistant" as const, content: reply },
+      { role: "assistant" as const, content: reply, resourceIds: result.resourceIds },
     ].slice(-20);
 
     res.json({
@@ -1006,12 +1051,30 @@ app.post("/api/partner/my-submissions", requirePartner, asyncRoute(async (req: P
 }));
 
 app.use("/api/partner/guide", rateLimit({ windowMs: 60_000, limit: 10 }));
-app.post("/api/partner/guide", requirePartner, asyncRoute(async (req, res) => {
-  const { message } = z.object({ message: z.string().trim().min(3).max(2000) }).parse(req.body);
-  const resources = await listVerifiedResources({ query: message, limit: 8 });
-  const result = await getPartnerGuideResponse(message, resources);
+app.post("/api/partner/guide", requirePartner, asyncRoute(async (req: PartnerRequest, res) => {
+  const input = z.object({
+    message: z.string().trim().min(3).max(2000),
+    history: z.array(z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string().max(4000),
+      resourceIds: z.array(z.number().int()).max(20).optional(),
+    })).max(20).default([]),
+    historyToken: z.string().max(200).optional(),
+  }).parse(req.body);
+  // Same signing scheme as Maya, keyed to the partner account rather than a
+  // youth session, so one staff member cannot replay another's thread.
+  const signer = `partner:${req.partner!.id}`;
+  const verified = verifyHistory(signer, input.history as SignedMessage[], input.historyToken);
+  const history = verified.messages;
+  const resources = await groundedForConversation(input.message, history, {}, 10);
+  const result = await getPartnerGuideResponse(input.message, resources, history.map(({ role, content }) => ({ role, content })));
   const { reply } = sanitiseReply(result.reply, buildAllowList(resources, CRISIS_CONTACTS));
-  res.json({ reply });
+  const nextHistory: SignedMessage[] = [
+    ...history,
+    { role: "user" as const, content: input.message },
+    { role: "assistant" as const, content: reply, resourceIds: resources.slice(0, 8).map(resource => resource.id) },
+  ].slice(-20);
+  res.json({ reply, history: nextHistory, historyToken: signHistory(signer, nextHistory) });
 }));
 
 app.get("/api/partner/submissions", requirePartner, requireReviewer, asyncRoute(async (_req, res) => {
@@ -1104,6 +1167,17 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
     return;
   }
   console.error(error);
+  if (error instanceof ProviderError) {
+    // The model is rate-limited or down. Say so in a way a person can act on,
+    // and let the browser know it is worth retrying shortly.
+    const busy = /429|rate limit/i.test(String(error.cause instanceof Error ? error.cause.message : error.message));
+    res.status(503).json({
+      error: busy
+        ? "The AI guide is busy right now. Wait about a minute and send that again."
+        : "The AI guide is not responding right now. The checked directory still works. Try again in a few minutes.",
+    });
+    return;
+  }
   const message = error instanceof Error && error.message === "AI service is not configured"
     ? "The navigator is temporarily unavailable. The verified resource directory still works."
     : "Something went wrong. Please try again.";

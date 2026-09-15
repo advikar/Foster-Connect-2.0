@@ -47,7 +47,12 @@ export function HomePage() {
   const county = about?.county && about.county !== "elsewhere" ? about.county : undefined;
   const { data: nearby } = useQuery({
     queryKey: ["home-housing", county],
-    queryFn: () => fetchResources({ category: "Housing", county, limit: 3 }),
+    // Crisis text lines are also filed under Housing; they belong in the crisis
+    // bar, not in a list headed "Housing near you".
+    queryFn: async () => {
+      const page = await fetchResources({ category: "Housing", county, limit: 8 });
+      return { ...page, items: page.items.filter(resource => !resource.isCrisis).slice(0, 3) };
+    },
     retry: 1,
   });
 

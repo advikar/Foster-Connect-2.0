@@ -117,7 +117,11 @@ export interface RoadmapIntake {
   acknowledgedSafety?: boolean;
 }
 
-export interface ChatMessageInput { role: "user" | "assistant"; content: string }
+export interface ChatMessageInput { role: "user" | "assistant"; content: string; resourceIds?: number[] }
+
+/** Where each AI conversation is kept in this browser, so "Delete my data" and sign-out can clear it. */
+export const MAYA_CONVERSATION_KEY = "fc-maya-conversation";
+export const GUIDE_CONVERSATION_KEY = "fc-partner-guide-conversation";
 
 export interface CrisisContact {
   id: string;
@@ -222,6 +226,8 @@ export async function exportSessionData() {
 export async function deleteSessionData() {
   await request<void>("/api/session", { method: "DELETE" }, true);
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(MAYA_CONVERSATION_KEY);
+  try { sessionStorage.removeItem("fc-maya-messages"); } catch { /* older key */ }
 }
 
 /* ── Partner moderation ──────────────────────────────────────────────────── */
@@ -311,6 +317,7 @@ export function partnerMe() {
 export async function partnerLogout() {
   await partnerRequest<void>("/api/partner/logout", { method: "POST" }).catch(() => undefined);
   clearPartnerToken();
+  try { sessionStorage.removeItem(GUIDE_CONVERSATION_KEY); } catch { /* private mode */ }
 }
 
 export function fetchSubmissions() {
@@ -349,6 +356,7 @@ export function fetchMySubmissions() {
 export function submitPartnerResource(input: Parameters<typeof submitResource>[0]) {
   return partnerRequest("/api/partner/my-submissions", { method: "POST", body: JSON.stringify(input) });
 }
-export function askPartnerGuide(message: string) {
-  return partnerRequest<{ reply: string }>("/api/partner/guide", { method: "POST", body: JSON.stringify({ message }) });
+export interface GuideResponse { reply: string; history: ChatMessageInput[]; historyToken: string }
+export function askPartnerGuide(message: string, history: ChatMessageInput[] = [], historyToken?: string) {
+  return partnerRequest<GuideResponse>("/api/partner/guide", { method: "POST", body: JSON.stringify({ message, history, historyToken }) });
 }

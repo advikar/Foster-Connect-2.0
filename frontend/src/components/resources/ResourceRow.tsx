@@ -30,7 +30,7 @@ export function ResourceRow({ resource, dense = false }: { resource: ResourceIte
             <h3 className="font-sans text-[16px] font-semibold leading-snug text-ink lg:text-[17px]">{resource.title}</h3>
             <span className={cn("text-stamp", checked.stale && "text-crisis")}>{checked.label}</span>
           </div>
-          <p className="mt-0.5 text-[13px] text-ink-faint lg:text-[14px]">{resource.organization}</p>
+          {differentOrganisation(resource) && <p className="mt-0.5 text-[13px] text-ink-faint lg:text-[14px]">{resource.organization}</p>}
           {!dense && <p className="mt-1.5 line-clamp-3 max-w-[68ch] text-[14px] leading-relaxed text-ink-soft lg:text-[15px]">{resource.description}</p>}
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {eligibilityTag(resource) && <Tag tone="teal">{eligibilityTag(resource)}</Tag>}
@@ -123,7 +123,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
             {resource.urgencyLevel === "Emergency" && <Tag tone="rust">Emergency</Tag>}
           </div>
           <h2 className="mt-3 font-display text-[26px] font-bold leading-tight text-ink lg:text-[30px]">{resource.title}</h2>
-          <p className="mt-1 text-[15px] text-ink-faint">{resource.organization}</p>
+          {differentOrganisation(resource) && <p className="mt-1 text-[15px] text-ink-faint">{resource.organization}</p>}
         </div>
 
         <div className="hidden flex-wrap gap-2.5 lg:flex">
@@ -203,6 +203,13 @@ function Actions({ phone, phoneLabel, website, saved, onSave, compact = false }:
       </Button>
     </>
   );
+}
+
+/** Most listings are named after their organisation; printing it twice is noise. */
+function differentOrganisation(resource: ResourceItem) {
+  const norm = (value: string) => (value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const org = norm(resource.organization);
+  return Boolean(org) && org !== norm(resource.title);
 }
 
 function hostOf(url: string) {

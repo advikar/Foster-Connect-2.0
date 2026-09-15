@@ -522,7 +522,7 @@ function buildDeterministicRoadmap(input: RoadmapInput, resources: GroundedResou
 }
 
 /** Separate staff assistant: no youth sessions, conversations, or write tools. */
-export async function getPartnerGuideResponse(message: string, resources: GroundedResource[]) {
+export async function getPartnerGuideResponse(message: string, resources: GroundedResource[], history: HistoryMessage[] = []) {
   if (!hasValidApiKey()) throw new Error("AI service is not configured");
   const result = await callLLM([
     { role: "system", content: `You are the Foster Connect partner guide for community service staff.
@@ -533,7 +533,9 @@ Do not make eligibility decisions or medical/legal conclusions. Do not request n
 You cannot publish, contact anyone, access youth plans, or act on a person's behalf. Do not claim you did.
 For a question about guiding a young person, offer choice-centered general steps and suggest confirming local procedures with qualified staff.
 Use short practical paragraphs; put a short heading on its own line if it helps. Write plain text, not Markdown: no asterisks, #, backticks or [links](...); use "- " for list items. Return JSON with a single string field reply.
+Earlier turns of this conversation are provided; build on them when the staff member refers back to something.
 RESOURCE_CONTEXT: ${resourcesToContext(resources)}` },
+    ...history.slice(-10),
     { role: "user", content: message },
   ], z.object({ reply: z.string().min(1).max(4000) })) as { reply: string };
   return { reply: toPlainText(result.reply) };

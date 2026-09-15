@@ -88,6 +88,19 @@ test("a missing or malformed token drops history without throwing", () => {
   }
 });
 
+test("recommended resource IDs are part of what is signed", () => {
+  const real: SignedMessage[] = [
+    { role: "user", content: "housing?" },
+    { role: "assistant", content: "Try My First Place.", resourceIds: [12] },
+  ];
+  const token = signHistory(SESSION, real);
+  assert.equal(verifyHistory(SESSION, real, token).trusted, true);
+  const swapped = [real[0], { ...real[1], resourceIds: [999] }];
+  assert.equal(verifyHistory(SESSION, swapped, token).trusted, false, "changing the IDs must break the signature");
+  const dropped = [real[0], { role: "assistant" as const, content: "Try My First Place." }];
+  assert.equal(verifyHistory(SESSION, dropped, token).trusted, false);
+});
+
 test("an empty history is fine and needs no token", () => {
   assert.equal(verifyHistory(SESSION, [], undefined).trusted, true);
 });

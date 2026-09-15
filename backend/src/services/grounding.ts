@@ -29,6 +29,12 @@ import crypto from "crypto";
 export interface SignedMessage {
   role: "user" | "assistant";
   content: string;
+  /**
+   * Listings the assistant turn recommended. Carried in the signed history so a
+   * follow-up ("what about the second one?") can be answered against the same
+   * listings even when the follow-up's own words match nothing in search.
+   */
+  resourceIds?: number[];
 }
 
 /**
@@ -52,7 +58,7 @@ if (!process.env.CHAT_SIGNING_SECRET && process.env.NODE_ENV === "production") {
 function canonical(sessionId: string, messages: SignedMessage[]) {
   return JSON.stringify({
     sessionId,
-    messages: messages.map(message => [message.role, message.content]),
+    messages: messages.map(message => [message.role, message.content, message.resourceIds ?? []]),
   });
 }
 

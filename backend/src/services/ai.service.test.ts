@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  generateGroundedRoadmap, groundRoadmapDraft, getNavigatorResponse,
+  generateGroundedRoadmap, groundRoadmapDraft, getNavigatorResponse, getPartnerGuideResponse,
   type GroundedResource, type RoadmapInput, type RoadmapDraft,
 } from "./ai.service";
 
@@ -273,3 +273,40 @@ test("navigator reply markdown is flattened to plain text", withProvider(
     assert.equal(result.reply, "Try Resource 3. It is free.");
   },
 ));
+
+// ─── Conversation memory ────────────────────────────────────────────────────
+
+async function captureRequestMessages(run: () => Promise<unknown>) {
+  let sent: { role: string; content: string }[] = [];
+  process.env.LLM_API_KEY = "test-key-not-real";
+  globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+    sent = JSON.parse(String(init?.body)).messages;
+    return jsonReply({ reply: "ok", resourceIds: [], needsClarification: false, suggestedTasks: [] });
+  }) as FetchImpl;
+  try { await run(); } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.LLM_API_KEY;
+  }
+  return sent;
+}
+
+test("navigator sends the earlier turns of the conversation to the model", async () => {
+  const history = [
+    { role: "user" as const, content: "My name is Jordan and I need a bus pass" },
+    { role: "assistant" as const, content: "Alameda CTC has a youth pass." },
+  ];
+  const sent = await captureRequestMessages(() => getNavigatorResponse("what was my name?", history, RESOURCES));
+  assert.equal(sent[0].role, "system");
+  assert.deepEqual(sent.slice(1, 3), history);
+  assert.deepEqual(sent.at(-1), { role: "user", content: "what was my name?" });
+});
+
+test("partner guide sends the earlier turns of the conversation to the model", async () => {
+  const history = [
+    { role: "user" as const, content: "Help me outline a transportation resource." },
+    { role: "assistant" as const, content: "Start with who it serves." },
+  ];
+  const sent = await captureRequestMessages(() => getPartnerGuideResponse("what did you say to start with?", RESOURCES, history));
+  assert.deepEqual(sent.slice(1, 3), history);
+  assert.deepEqual(sent.at(-1), { role: "user", content: "what did you say to start with?" });
+});

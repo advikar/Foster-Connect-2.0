@@ -16,7 +16,7 @@ export function AskPage() {
         </p>
         <div className="mt-6 border-t border-rule pt-5 text-[14px] leading-relaxed text-ink-faint">
           <p>Nothing here is tied to your name.</p>
-          <p className="mt-1">The conversation clears when you close the tab.</p>
+          <p className="mt-1">The conversation stays in this browser, so Maya remembers what you said, until you clear it.</p>
         </div>
       </aside>
 

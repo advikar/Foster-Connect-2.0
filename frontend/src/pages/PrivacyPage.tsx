@@ -72,7 +72,9 @@ export function PrivacyPage() {
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
             <span>
               What you type to Maya is sent to an AI company to generate a reply. Don&apos;t put
-              anything in there you wouldn&apos;t want leaving this app.
+              anything in there you wouldn&apos;t want leaving this app. The conversation itself is
+              kept only in this browser so Maya can follow the thread; &ldquo;Clear this
+              conversation&rdquo; on the Ask page or the delete button below removes it.
             </span>
           </li>
         </ul>

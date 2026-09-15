@@ -1,9 +1,9 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { usePartner } from "@/contexts/PartnerContext";
-import { askPartnerGuide, fetchMySubmissions, fetchPartnerAnalytics, type Submission } from "@/lib/api";
+import { askPartnerGuide, fetchMySubmissions, fetchPartnerAnalytics, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type Submission } from "@/lib/api";
 import { Coverage, Queue, SignIn } from "./InsightsPage";
 import { AddResourcePage } from "./AddResourcePage";
 import { Button } from "@/components/ui/button";
@@ -244,46 +244,113 @@ export function PartnerGuide() {
   );
 }
 
+interface GuideTurn { role: "user" | "assistant"; content: string; error?: boolean }
+interface GuideThread { turns: GuideTurn[]; history: ChatMessageInput[]; historyToken?: string }
+const EMPTY_THREAD: GuideThread = { turns: [], history: [] };
+
+function loadGuideThread(): GuideThread {
+  try {
+    const raw = sessionStorage.getItem(GUIDE_CONVERSATION_KEY);
+    if (!raw) return EMPTY_THREAD;
+    const parsed = JSON.parse(raw) as Partial<GuideThread>;
+    return Array.isArray(parsed.turns) ? { turns: parsed.turns, history: parsed.history ?? [], historyToken: parsed.historyToken } : EMPTY_THREAD;
+  } catch { return EMPTY_THREAD; }
+}
+
+/**
+ * The staff guide as a thread. The server signs the history the same way it
+ * does for Maya, so follow-ups ("make that shorter", "now the checklist")
+ * work. Kept in sessionStorage alongside the sign-in token: it ends with the
+ * tab or with sign-out, whichever is first.
+ */
 function Guide() {
+  const [thread, setThread] = useState<GuideThread>(loadGuideThread);
   const [message, setMessage] = useState("");
-  const [reply, setReply] = useState("");
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const submit = async () => {
-    setBusy(true); setError("");
-    try { setReply((await askPartnerGuide(message)).reply); }
-    catch (caught) { setError(caught instanceof Error ? caught.message : "The guide is unavailable right now."); }
-    finally { setBusy(false); }
+  const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const started = thread.turns.length > 0;
+
+  useEffect(() => {
+    try {
+      if (thread.turns.length) sessionStorage.setItem(GUIDE_CONVERSATION_KEY, JSON.stringify(thread));
+      else sessionStorage.removeItem(GUIDE_CONVERSATION_KEY);
+    } catch { /* private mode */ }
+  }, [thread]);
+  useEffect(() => { if (started) endRef.current?.scrollIntoView({ block: "nearest" }); }, [thread.turns.length, busy, started]);
+
+  const submit = async (text = message) => {
+    const question = text.trim();
+    if (question.length < 3 || busy) return;
+    setBusy(true);
+    setMessage("");
+    setThread(previous => ({ ...previous, turns: [...previous.turns, { role: "user", content: question }] }));
+    try {
+      const response = await askPartnerGuide(question, thread.history, thread.historyToken);
+      setThread(previous => ({ turns: [...previous.turns, { role: "assistant", content: response.reply }], history: response.history, historyToken: response.historyToken }));
+    } catch (caught) {
+      setThread(previous => ({ ...previous, turns: [...previous.turns, { role: "assistant", error: true, content: caught instanceof Error ? caught.message : "The guide is unavailable right now." }] }));
+    } finally {
+      setBusy(false);
+      inputRef.current?.focus({ preventScroll: true });
+    }
   };
+  const clear = () => { setThread(EMPTY_THREAD); inputRef.current?.focus(); };
+
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
       <div className="flex flex-col gap-5">
-        <div className="flex flex-wrap gap-2">
-          {["What should I verify before listing a housing program?", "Help me outline a new transportation resource.", "Questions a young person could ask a provider"].map(prompt => (
-            <Chip key={prompt} onClick={() => setMessage(prompt)}>{prompt}</Chip>
-          ))}
-        </div>
+        {started && (
+          <ol className="flex flex-col gap-3" aria-live="polite">
+            {thread.turns.map((turn, index) => (
+              <li key={index} className={cn("flex", turn.role === "user" ? "justify-end" : "justify-start")}>
+                <div className={cn(
+                  "max-w-[92%] whitespace-pre-wrap text-[15px] leading-relaxed",
+                  turn.role === "user" ? "rounded-[12px_12px_2px_12px] bg-ink px-4 py-3 text-on-deep" : "rounded-[12px_12px_12px_2px] border border-rule bg-surface px-5 py-4 text-ink-body",
+                  turn.error && "border-crisis/40 text-crisis",
+                )}>
+                  {turn.role === "assistant" && !turn.error && <p className="text-eyebrow mb-2 text-brand">Draft · review before use</p>}
+                  {turn.content}
+                </div>
+              </li>
+            ))}
+            {busy && <li className="flex w-fit items-center gap-2 rounded-md border border-rule bg-surface px-4 py-2.5 text-sm text-ink-faint"><Loader2 className="size-3.5 animate-spin" /> Preparing…</li>}
+            <div ref={endRef} />
+          </ol>
+        )}
+        {!started && (
+          <div className="flex flex-wrap gap-2">
+            {["What should I verify before listing a housing program?", "Help me outline a new transportation resource.", "Questions a young person could ask a provider"].map(prompt => (
+              <Chip key={prompt} onClick={() => void submit(prompt)}>{prompt}</Chip>
+            ))}
+          </div>
+        )}
         <form onSubmit={event => { event.preventDefault(); void submit(); }} className="flex flex-col gap-2">
-          <label htmlFor="partner-question" className="text-[13px] font-semibold text-ink-soft">What are you working on?</label>
-          <Textarea id="partner-question" maxLength={2000} value={message} onChange={event => setMessage(event.target.value)} className="min-h-28 rounded-md border-rule bg-surface text-base" />
+          <label htmlFor="partner-question" className="text-[13px] font-semibold text-ink-soft">{started ? "Follow up" : "What are you working on?"}</label>
+          <Textarea
+            id="partner-question"
+            ref={inputRef}
+            maxLength={2000}
+            value={message}
+            onChange={event => setMessage(event.target.value)}
+            onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void submit(); } }}
+            placeholder={started ? "Ask for changes or the next step. Shift+Enter for a new line." : "Describe the service, or paste a draft to tighten."}
+            className="min-h-24 rounded-md border-rule bg-surface text-base"
+          />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-[12px] text-ink-faint">Use public information only. No names, case details or private records.</span>
-            <Button disabled={busy || message.trim().length < 3} className="h-11 rounded-md bg-brand px-5 font-semibold text-white hover:bg-brand-deep">
-              {busy && <Loader2 className="size-4 animate-spin" />}{busy ? "Preparing…" : "Ask the guide"}
-            </Button>
+            <div className="flex items-center gap-4">
+              {started && <button type="button" onClick={clear} className="text-[14px] text-brand hover:underline">Start over</button>}
+              <Button disabled={busy || message.trim().length < 3} className="h-11 rounded-md bg-brand px-5 font-semibold text-white hover:bg-brand-deep">
+                {busy && <Loader2 className="size-4 animate-spin" />}{busy ? "Preparing…" : started ? "Send" : "Ask the guide"}
+              </Button>
+            </div>
           </div>
         </form>
-        {error && <p role="alert" className="rounded-md bg-crisis-soft px-4 py-3 text-[14px] text-crisis">{error}</p>}
-        {reply && (
-          <section aria-live="polite" className="rounded-md border border-rule bg-surface p-6">
-            <p className="text-eyebrow text-brand">Draft · review before use</p>
-            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-ink-body">{reply}</p>
-          </section>
-        )}
       </div>
       <aside className="self-start rounded-md bg-sand-soft p-5 text-[14px] text-ink-soft">
         <p className="font-semibold text-ink">How this differs from Maya</p>
-        <p className="mt-1.5">Maya talks to young people and only answers from published listings. This guide is for staff, handles each question on its own, and remembers nothing between questions.</p>
+        <p className="mt-1.5">Maya talks to young people and only answers from published listings. This guide is for staff. It remembers this thread while you are signed in on this tab, and forgets it when you sign out or start over.</p>
       </aside>
     </div>
   );
