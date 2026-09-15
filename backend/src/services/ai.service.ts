@@ -29,6 +29,7 @@ export interface GroundedResource {
   sourceUrl: string;
   verifiedAt: string;
   checkedHow?: "phone" | "online";
+  kind?: "service" | "information";
   tags: string;
 }
 

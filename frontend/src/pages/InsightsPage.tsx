@@ -373,8 +373,11 @@ function SubmissionCard({
     <article className="rounded-md border border-rule bg-surface p-5 lg:p-6">
       <h3 className="font-display text-[22px] font-bold text-ink">{submission.title}</h3>
       <p className="mt-1 text-[13.5px] text-ink-faint">
-        {submission.organization} · {submission.category} · {submission.county}
+        {submission.organization} · {submission.category} · {submission.county}{submission.kind === "information" && " · Guide / document"}
       </p>
+      {submission.kind === "information" && (
+        <p className="mt-2 text-[13px] text-ink-soft">Submitted as a guide, not a service: hours, phone, address and languages are not shown to young people, so leave them blank unless they apply.</p>
+      )}
       <p className="mt-3 max-w-[70ch] text-[14.5px] leading-relaxed text-ink-soft">{submission.description}</p>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">

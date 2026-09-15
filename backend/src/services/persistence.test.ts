@@ -22,7 +22,8 @@ const SCHEMA = `
     urgency_level TEXT NOT NULL, is_crisis INTEGER NOT NULL DEFAULT 0, source_url TEXT NOT NULL,
     verified_at TEXT NOT NULL, verified_by TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'verified',
     tags TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    kind TEXT NOT NULL DEFAULT 'service'
   );
   CREATE VIRTUAL TABLE resources_fts USING fts5(
     title, organization, description, category, county, service_area,
@@ -35,7 +36,8 @@ const SCHEMA = `
     contact TEXT, source_url TEXT NOT NULL, relationship TEXT NOT NULL,
     submitter_name TEXT NOT NULL DEFAULT 'Anonymous', status TEXT NOT NULL DEFAULT 'pending',
     moderator_note TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT,
-    partner_id INTEGER, resource_id INTEGER, reviewed_by TEXT
+    partner_id INTEGER, resource_id INTEGER, reviewed_by TEXT,
+    kind TEXT NOT NULL DEFAULT 'service'
   );
   CREATE TABLE audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT, partner_id INTEGER, partner_email TEXT NOT NULL,

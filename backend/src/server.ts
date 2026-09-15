@@ -183,6 +183,7 @@ function mapResource(row: Row): GroundedResource {
     deliveryMode: rowString(row, "delivery_mode"),
     urgencyLevel: rowString(row, "urgency_level"),
     isCrisis: Boolean(row.is_crisis),
+    kind: row.kind === "information" ? "information" : "service",
     sourceUrl: rowString(row, "source_url"),
     verifiedAt: rowString(row, "verified_at"),
     /** How the listing was checked: "phone" when a reviewer confirmed it by calling, otherwise "online". */
@@ -481,6 +482,7 @@ const submissionSchema = z.object({
   sourceUrl: z.string().url().max(500),
   relationship: z.string().trim().min(5).max(500),
   submitterName: z.string().trim().max(100).optional().default("Anonymous"),
+  kind: z.enum(["service", "information"]).optional().default("service"),
 });
 
 async function initDb() {
@@ -590,6 +592,9 @@ async function initDb() {
     ["resource_submissions", "partner_id", "INTEGER REFERENCES partners(id)"],
     ["resource_submissions", "reviewed_by", "TEXT"],
     ["resource_submissions", "resource_id", "INTEGER"],
+    // Y11: "service" (default) or "information" — a PDF/guide with no hours, address or phone to show.
+    ["resources", "kind", "TEXT NOT NULL DEFAULT 'service'"],
+    ["resource_submissions", "kind", "TEXT NOT NULL DEFAULT 'service'"],
   ]) {
     const columns = await db.execute(`PRAGMA table_info(${table})`);
     if (!columns.rows.some(row => row.name === column)) {
@@ -642,10 +647,10 @@ app.post("/api/resource-submissions", asyncRoute(async (req, res) => {
   const input = submissionSchema.parse(req.body);
   const result = await db.execute({
     sql: `INSERT INTO resource_submissions
-      (title, organization, description, category, county, website, contact, source_url, relationship, submitter_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (title, organization, description, category, county, website, contact, source_url, relationship, submitter_name, kind)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [input.title, input.organization, input.description, input.category, input.county,
-      input.website, input.contact, input.sourceUrl, input.relationship, input.submitterName],
+      input.website, input.contact, input.sourceUrl, input.relationship, input.submitterName, input.kind],
   });
   res.status(202).json({ id: Number(result.lastInsertRowid), status: "pending", message: "Thanks. A partner will verify this resource before it appears publicly." });
 }));
@@ -1058,9 +1063,9 @@ app.post("/api/partner/my-submissions", requirePartner, asyncRoute(async (req: P
   const input = submissionSchema.parse(req.body);
   const partner = req.partner!;
   const result = await db.execute({
-    sql: `INSERT INTO resource_submissions(title, organization, description, category, county, website, contact, source_url, relationship, submitter_name, partner_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [input.title, input.organization, input.description, input.category, input.county, input.website, input.contact, input.sourceUrl, input.relationship, partner.name, partner.id],
+    sql: `INSERT INTO resource_submissions(title, organization, description, category, county, website, contact, source_url, relationship, submitter_name, partner_id, kind)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [input.title, input.organization, input.description, input.category, input.county, input.website, input.contact, input.sourceUrl, input.relationship, partner.name, partner.id, input.kind],
   });
   res.status(202).json({ id: Number(result.lastInsertRowid), status: "pending" });
 }));

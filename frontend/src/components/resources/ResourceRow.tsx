@@ -35,8 +35,8 @@ export function ResourceRow({ resource, dense = false }: { resource: ResourceIte
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {eligibilityTag(resource) && <Tag tone="teal">{eligibilityTag(resource)}</Tag>}
             <Tag>{resource.county}</Tag>
-            {!dense && resource.deliveryMode && <Tag>{resource.deliveryMode}</Tag>}
-            <CostTag cost={resource.cost} />
+            {resource.kind === "information" ? <Tag tone="sand">Guide</Tag> : !dense && resource.deliveryMode && <Tag>{resource.deliveryMode}</Tag>}
+            {resource.kind !== "information" && <CostTag cost={resource.cost} />}
           </div>
         </button>
         <button
@@ -91,6 +91,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
   const phone = resource.phone?.replace(/[^\d+]/g, "");
+  const guide = resource.kind === "information";
 
   const submitReport = async () => {
     try {
@@ -119,7 +120,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
           <div className="flex flex-wrap gap-1.5">
             <Tag tone="teal">{resource.category}</Tag>
             <Tag>{resource.county}</Tag>
-            <CostTag cost={resource.cost} />
+            {guide ? <Tag tone="sand">Guide</Tag> : <CostTag cost={resource.cost} />}
             {resource.urgencyLevel === "Emergency" && <Tag tone="rust">Emergency</Tag>}
           </div>
           <h2 className="mt-3 font-display text-[26px] font-bold leading-tight text-ink lg:text-[30px]">{resource.title}</h2>
@@ -127,21 +128,30 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
         </div>
 
         <div className="hidden flex-wrap gap-2.5 lg:flex">
-          <Actions phone={phone} phoneLabel={resource.phone} website={resource.website} saved={saved} onSave={() => toggleSave(resource.id)} />
+          <Actions phone={guide ? undefined : phone} phoneLabel={resource.phone} website={resource.website} guide={guide} saved={saved} onSave={() => toggleSave(resource.id)} />
         </div>
 
         <p className="text-[16px] leading-relaxed text-ink-soft">{resource.description}</p>
 
-        <div className="grid gap-5 border-t border-rule pt-6 sm:grid-cols-2 sm:gap-x-8">
-          <Detail title="Who it helps" text={resource.eligibility} />
-          <Detail title="How to start" text={resource.applicationSteps} />
-          <Detail title="What to bring" text={resource.whatToBring} />
-          <Detail title="Hours" text={resource.hours} />
-          <Detail title="Languages" text={resource.languages} />
-          <Detail title="Accessibility" text={resource.accessibility} />
-          {resource.address && <Detail title="Address" text={resource.address} />}
-          {resource.serviceArea && <Detail title="Area served" text={resource.serviceArea} />}
-        </div>
+        {guide ? (
+          // A guide has nothing to call or visit, so no empty "Hours: not confirmed" headings (Y11).
+          <div className="grid gap-5 border-t border-rule pt-6 sm:grid-cols-2 sm:gap-x-8">
+            {resource.eligibility && <Detail title="Who it's for" text={resource.eligibility} />}
+            {resource.applicationSteps && <Detail title="How to use it" text={resource.applicationSteps} />}
+            {resource.serviceArea && <Detail title="Area it covers" text={resource.serviceArea} />}
+          </div>
+        ) : (
+          <div className="grid gap-5 border-t border-rule pt-6 sm:grid-cols-2 sm:gap-x-8">
+            <Detail title="Who it helps" text={resource.eligibility} />
+            <Detail title="How to start" text={resource.applicationSteps} />
+            <Detail title="What to bring" text={resource.whatToBring} />
+            <Detail title="Hours" text={resource.hours} />
+            <Detail title="Languages" text={resource.languages} />
+            <Detail title="Accessibility" text={resource.accessibility} />
+            {resource.address && <Detail title="Address" text={resource.address} />}
+            {resource.serviceArea && <Detail title="Area served" text={resource.serviceArea} />}
+          </div>
+        )}
 
         <div className="border-t border-rule pt-5 text-[13px] leading-relaxed text-ink-faint">
           <p className="flex items-start gap-2 text-ink">
@@ -165,7 +175,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
       </div>
 
       <div className="fixed inset-x-0 bottom-0 flex gap-2.5 border-t border-rule bg-surface px-5 pb-6 pt-3 lg:hidden">
-        <Actions phone={phone} phoneLabel={resource.phone} website={resource.website} saved={saved} onSave={() => toggleSave(resource.id)} compact />
+        <Actions phone={guide ? undefined : phone} phoneLabel={resource.phone} website={resource.website} guide={guide} saved={saved} onSave={() => toggleSave(resource.id)} compact />
       </div>
 
       {reporting && <ReportSheet reason={reportReason} setReason={setReportReason} onCancel={() => setReporting(false)} onSubmit={submitReport} />}
@@ -173,19 +183,23 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
   );
 }
 
-function Actions({ phone, phoneLabel, website, saved, onSave, compact = false }: {
-  phone?: string; phoneLabel?: string; website?: string; saved: boolean; onSave: () => void; compact?: boolean;
+function Actions({ phone, phoneLabel, website, guide = false, saved, onSave, compact = false }: {
+  phone?: string; phoneLabel?: string; website?: string; guide?: boolean; saved: boolean; onSave: () => void; compact?: boolean;
 }) {
   return (
     <>
-      {phone ? (
+      {guide && website ? (
+        <Button asChild className={cn("h-12 rounded-md bg-brand px-5 text-[16px] font-semibold text-white hover:bg-brand-deep", compact && "flex-1")}>
+          <a href={website} target="_blank" rel="noreferrer"><ExternalLink className="size-4" />Open the guide</a>
+        </Button>
+      ) : phone ? (
         <Button asChild className={cn("h-12 rounded-md bg-brand px-5 text-[16px] font-semibold text-white hover:bg-brand-deep", compact && "flex-1")}>
           <a href={`tel:${phone}`}><Phone className="size-4" />{compact ? "Call" : `Call ${phoneLabel}`}</a>
         </Button>
-      ) : compact ? (
+      ) : compact && !guide ? (
         <span className="flex flex-1 items-center text-[13px] text-ink-faint">No phone listed</span>
       ) : null}
-      {website && (
+      {website && !guide && (
         <Button asChild variant="outline" className={cn("h-12 rounded-md border-ink px-4 text-[15px] font-semibold text-ink", compact && "w-12 px-0")}>
           <a href={website} target="_blank" rel="noreferrer" aria-label="Website"><ExternalLink className="size-4" />{!compact && "Website"}</a>
         </Button>

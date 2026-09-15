@@ -47,6 +47,8 @@ export interface ResourceItem {
   deliveryMode: string;
   urgencyLevel: string;
   isCrisis: boolean;
+  /** "information": a guide or PDF, not a place you call or visit (Y11). */
+  kind?: "service" | "information";
   sourceUrl: string;
   verifiedAt: string;
   /** "phone" when a reviewer confirmed the listing by calling; "online" when checked against the program's page. */
@@ -259,6 +261,7 @@ export interface Submission {
   county: string;
   website: string;
   contact: string | null;
+  kind?: "service" | "information";
   source_url: string;
   relationship: string;
   submitter_name: string;

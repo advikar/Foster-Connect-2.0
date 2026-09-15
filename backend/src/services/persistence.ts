@@ -97,8 +97,8 @@ export async function publishSubmission(
         (title, organization, description, category, county, service_area, eligibility,
          age_min, age_max, cost, application_steps, what_to_bring, website, phone, address,
          hours, languages, accessibility, delivery_mode, urgency_level, is_crisis,
-         source_url, verified_at, verified_by, status, tags)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'verified', ?)`,
+         source_url, verified_at, verified_by, status, tags, kind)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'verified', ?, ?)`,
       args: [
         String(submission.title), String(submission.organization), String(submission.description),
         String(submission.category), String(submission.county),
@@ -110,6 +110,7 @@ export async function publishSubmission(
         detail.address, detail.hours, detail.languages, detail.accessibility,
         detail.deliveryMode, detail.urgencyLevel, detail.isCrisis ? 1 : 0,
         String(submission.source_url), today, actor.email, "community",
+        submission.kind === "information" ? "information" : "service",
       ],
     });
     const resourceId = Number(inserted.lastInsertRowid);

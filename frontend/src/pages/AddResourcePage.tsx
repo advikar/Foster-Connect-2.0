@@ -13,7 +13,7 @@ const categories = [
   "Community Support", "Life Skills and Mentoring", "Technology", "Other",
 ]; // must match data/build_resources.py's canonical category list (see ResourcesPage.tsx)
 const counties = ["Alameda", "Contra Costa", "Bay Area", "California", "National"];
-const EMPTY = { title: "", organization: "", description: "", category: "", county: "", website: "", contact: "", sourceUrl: "", relationship: "", submitterName: "" };
+const EMPTY = { title: "", organization: "", description: "", category: "", county: "", website: "", contact: "", sourceUrl: "", relationship: "", submitterName: "", kind: "service" };
 
 /**
  * Share a resource. Used on the youth side (/add-resource, anonymous) and the
@@ -43,14 +43,23 @@ export function AddResourcePage({ partnerMode = false }: { partnerMode?: boolean
   ) : (
     <div className="grid gap-8 lg:grid-cols-[1fr_300px] lg:items-start">
       <form onSubmit={event => { event.preventDefault(); void submit(); }} className="grid gap-5 rounded-md border border-rule bg-surface p-6 sm:grid-cols-2 sm:p-7">
-        <Field label="Program name" value={form.title} set={v => update("title", v)} wide />
+        <fieldset className="sm:col-span-2">
+          <legend className="text-[13px] font-medium text-ink-soft">What kind of listing is this?</legend>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[["service", "A service — somewhere to call, visit or apply"], ["information", "A guide or document — a PDF or web page to read"]].map(([value, label]) => (
+              <button key={value} type="button" aria-pressed={form.kind === value} onClick={() => update("kind", value)} className={`inline-flex min-h-10 items-center rounded-full border px-3.5 text-[14px] font-medium ${form.kind === value ? "border-ink bg-ink text-white" : "border-rule bg-surface text-ink-soft hover:border-ink"}`}>{label}</button>
+            ))}
+          </div>
+          {form.kind === "information" && <p className="mt-2 text-[13px] text-ink-faint">Guides don&rsquo;t show hours, address, phone or languages. Young people see &ldquo;Open the guide&rdquo; instead.</p>}
+        </fieldset>
+        <Field label={form.kind === "information" ? "Guide title" : "Program name"} value={form.title} set={v => update("title", v)} wide />
         <Field label="Organization" value={form.organization} set={v => update("organization", v)} wide />
         <TextField label="What does it offer, and who is it for?" hint="Plain words. What a 19-year-old gets, and who can get it." value={form.description} onChange={v => update("description", v)} minHeight="min-h-28" wide />
         <SelectField label="Kind of support" value={form.category} set={v => update("category", v)} options={categories} />
         <SelectField label="County or region" value={form.county} set={v => update("county", v)} options={counties} />
-        <Field label="Program website" value={form.website} set={v => update("website", v)} type="url" placeholder="https://" />
+        <Field label={form.kind === "information" ? "Link to the guide or PDF" : "Program website"} value={form.website} set={v => update("website", v)} type="url" placeholder="https://" />
         <Field label="Official page you used to verify details" value={form.sourceUrl} set={v => update("sourceUrl", v)} type="url" placeholder="https://" />
-        <Field label="Phone or contact (optional)" value={form.contact} set={v => update("contact", v)} />
+        {form.kind !== "information" && <Field label="Phone or contact (optional)" value={form.contact} set={v => update("contact", v)} />}
         <Field label={partnerMode ? "Your name (as it should appear to reviewers)" : "Your name (optional — anonymous is okay)"} value={form.submitterName} set={v => update("submitterName", v)} />
         <TextField label="How do you know about this resource?" value={form.relationship} onChange={v => update("relationship", v)} minHeight="min-h-20" placeholder="I work there, I used it, I found it through…" wide />
         {error && <p className="rounded-md bg-crisis-soft px-4 py-3 text-[14px] text-crisis sm:col-span-2">{error}</p>}
