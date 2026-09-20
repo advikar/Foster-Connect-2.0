@@ -1,7 +1,7 @@
 import type { CrisisCategory } from "../config/crisis";
 
 /**
- * Safety triage for anything a young person types into Foster Connect.
+ * Safety triage for anything a young person types into Foster Guide.
  *
  * Design notes, because the details here matter more than the code:
  *

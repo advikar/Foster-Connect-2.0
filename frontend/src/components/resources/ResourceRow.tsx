@@ -159,7 +159,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
             <ShieldCheck className="mt-0.5 size-4 shrink-0" />
             <span>
               <span className="font-semibold">{checked.stale ? "Needs a re-check" : `Checked ${checked.how} ${checked.full}`}</span>
-              {" "}by a Foster Connect reviewer{checked.how === "online" ? " against the program's own page, not by calling" : ""}.
+              {" "}by a Foster Guide reviewer{checked.how === "online" ? " against the program's own page, not by calling" : ""}.
             </span>
           </p>
           {resource.sourceUrl && (

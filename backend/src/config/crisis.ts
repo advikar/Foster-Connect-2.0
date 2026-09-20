@@ -1,7 +1,7 @@
 /**
  * Always-available crisis contacts.
  *
- * These are hardcoded on purpose. Every other resource in Foster Connect comes
+ * These are hardcoded on purpose. Every other resource in Foster Guide comes
  * from the database, which means it disappears if the database is unreachable,
  * the AI provider is down, or a query fails. These do not. They are compiled
  * into both the API and the frontend bundle so that a young person in crisis

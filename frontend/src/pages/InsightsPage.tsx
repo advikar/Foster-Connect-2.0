@@ -325,7 +325,7 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
   const orgId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Partner users create their own account (R11); reviewer accounts are made by Foster Connect.
+  // Partner users create their own account (R11); reviewer accounts are made by Foster Guide.
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [organisation, setOrganisation] = useState("");
@@ -402,7 +402,7 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
       </Button>
 
       {reviewer ? (
-        <p className="mt-4 text-[13px] leading-relaxed text-ink-faint">Reviewer accounts are created by Foster Connect. Contact the team if you should have one.</p>
+        <p className="mt-4 text-[13px] leading-relaxed text-ink-faint">Reviewer accounts are created by Foster Guide. Contact the team if you should have one.</p>
       ) : (
         <p className="mt-4 text-[13px] leading-relaxed text-ink-faint">
           {creating ? "Already have an account? " : "New here? "}

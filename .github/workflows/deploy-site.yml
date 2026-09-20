@@ -1,6 +1,6 @@
 # Builds the youth + partner frontend and publishes it to the public
 # advikar/foster-connect repository, which serves it on GitHub Pages at
-# https://advikar.github.io/foster-connect/.
+# https://fosterguide.org (custom domain; CNAME written at build time).
 #
 # This repository stays private. Only the compiled static files are published.
 # The API runs on Render (render.yaml); its URL comes from the repository
@@ -45,7 +45,7 @@ jobs:
 
       - name: Build
         env:
-          VITE_BASE: /foster-connect/
+          VITE_BASE: /
           VITE_API_URL: ${{ vars.API_URL }}
           VITE_PREVIEW: "1"
         run: |
@@ -53,6 +53,7 @@ jobs:
           # Pages has no SPA rewrites: serve the app for deep links too.
           cp frontend/dist/index.html frontend/dist/404.html
           touch frontend/dist/.nojekyll
+          echo fosterguide.org > frontend/dist/CNAME
 
       - name: Publish to advikar/foster-connect
         env:

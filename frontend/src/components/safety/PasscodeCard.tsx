@@ -79,7 +79,7 @@ export function PasscodeCard({ compact = false }: { compact?: boolean }) {
         <>
           <p className={compact ? "mt-1 text-ink-faint" : "mt-2 text-[15px] leading-relaxed text-ink-soft"}>
             {enabled
-              ? "Type your passcode on any phone or computer, at Foster Connect → My plan, to open this same plan there. Only you know it; it can't be reset."
+              ? "Type your passcode on any phone or computer, at Foster Guide → My plan, to open this same plan there. Only you know it; it can't be reset."
               : "Optional. Pick a few words only you know, and this plan opens on your next phone or on a caseworker's computer with you there. No email, no account, no reminders."}
           </p>
           <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">

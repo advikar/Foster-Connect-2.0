@@ -361,7 +361,7 @@ export async function partnerLogin(email: string, password: string) {
   setPartnerToken(payload.token);
   return payload.partner as PartnerIdentity;
 }
-/** Create a contributor account (R11). Reviewer accounts are created by Foster Connect. */
+/** Create a contributor account (R11). Reviewer accounts are created by Foster Guide. */
 export async function partnerRegister(input: { name: string; email: string; organisation: string; password: string }) {
   const response = await fetch(`${API_BASE_URL}/api/partner/register`, {
     method: "POST",

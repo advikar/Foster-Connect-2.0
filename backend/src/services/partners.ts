@@ -76,7 +76,7 @@ function expiryTimestamp() {
 export function passwordProblem(password: string): string | null {
   if (password.length < 12) return "Use at least 12 characters.";
   if (/^\d+$/.test(password)) return "Use more than just numbers.";
-  const common = ["password", "fosterconnect", "letmein", "qwerty", "demo-partner-access"];
+  const common = ["password", "fosterguide", "fosterconnect", "letmein", "qwerty", "demo-partner-access"];
   if (common.some(bad => password.toLowerCase().includes(bad))) {
     return "That contains a word that is too easy to guess.";
   }

@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Foster Connect — "Paper & Teal" (redesign, September 2026)
+ * Foster Guide — "Paper & Teal" (redesign, September 2026)
  *
  * Editorial, not dashboard: warm paper ground, ink-green headings, one teal
  * for actions, rust for deadlines and crisis, gold only in the mark and on
@@ -188,7 +188,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Foster Connect semantic tokens — bg-ground, text-ink-soft, bg-brand-deep… */
+  /* Foster Guide semantic tokens — bg-ground, text-ink-soft, bg-brand-deep… */
   --color-ground: var(--ground);
   --color-surface: var(--surface);
   --color-sunk: var(--sunk);

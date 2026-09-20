@@ -393,13 +393,13 @@ export function PartnerSignIn() {
         <h1 className="mt-2 font-display text-[30px] font-bold text-ink">{asReviewer ? "Approve what young people will see." : "Same directory, different tools."}</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
           {asReviewer
-            ? "Reviewers are the one or two people Foster Connect has vetted to approve listings and changes. Sign in with your reviewer account."
+            ? "Reviewers are the one or two people Foster Guide has vetted to approve listings and changes. Sign in with your reviewer account."
             : "For caseworkers, agencies and community partners: add services, fill in gaps and use the staff guide."}
         </p>
       </div>
       <SignIn onSignedIn={identity => { signedIn(identity); navigate(destination(identity), { replace: true }); }} reviewer={asReviewer} />
       <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-ink-faint">
-        <Link to="/partners" className="hover:text-ink">← About Foster Connect for partners</Link>
+        <Link to="/partners" className="hover:text-ink">← About Foster Guide for partners</Link>
         {asReviewer
           ? <Link to="/partners/sign-in" className="hover:text-ink">Not a reviewer? Partner sign-in</Link>
           : <Link to="/partners/sign-in?as=reviewer" className="hover:text-ink">Reviewer? Sign in here</Link>}
@@ -408,16 +408,16 @@ export function PartnerSignIn() {
   );
 }
 
-/** Public landing (P2): what Foster Connect is, who partners are, what they can do, and the way in. */
+/** Public landing (P2): what Foster Guide is, who partners are, what they can do, and the way in. */
 export function PartnerLanding() {
   const { partner } = usePartner();
   return (
     <div className="flex flex-col gap-12 py-4 lg:py-10">
       <section className="max-w-[720px]">
-        <p className="text-eyebrow text-brand">About Foster Connect · for partners</p>
+        <p className="text-eyebrow text-brand">About Foster Guide · for partners</p>
         <h1 className="mt-3 font-display text-[34px] font-bold leading-tight text-ink lg:text-[44px]">Every program for foster youth in the East Bay, checked by people who know them.</h1>
         <p className="mt-4 text-[17px] leading-relaxed text-ink-soft">
-          Foster Connect is a free directory and AI guide for current and former foster youth in Alameda and Contra Costa counties. Young people search it, save listings, and turn them into a plan without giving their name. Everything they see was checked by a person first.
+          Foster Guide is a free directory and AI guide for current and former foster youth in Alameda and Contra Costa counties. Young people search it, save listings, and turn them into a plan without giving their name. Everything they see was checked by a person first.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link to={partner ? "/partners/overview" : "/partners/sign-in"} className="inline-flex h-12 items-center gap-2 rounded-md bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-deep">
@@ -430,7 +430,7 @@ export function PartnerLanding() {
       <section>
         <h2 className="text-eyebrow text-ink-faint">Who partners are</h2>
         <p className="mt-2 max-w-[64ch] text-[16px] leading-relaxed text-ink-soft">
-          Caseworkers, ILP and THP staff, school liaisons, clinic and shelter teams, and community organizations that serve transition-age youth. Partners create their own account; reviewer accounts are set up by Foster Connect.
+          Caseworkers, ILP and THP staff, school liaisons, clinic and shelter teams, and community organizations that serve transition-age youth. Partners create their own account; reviewer accounts are set up by Foster Guide.
         </p>
       </section>
 
@@ -454,7 +454,7 @@ export function PartnerLanding() {
       <section className="max-w-[720px] rounded-md bg-sand-soft p-6">
         <h2 className="font-display text-[22px] font-bold text-ink">Reviewers</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
-          One or two people vetted by Foster Connect approve new listings and proposed changes, and can see who proposed them. Youth plans, chats and saved lists are never visible to anyone.
+          One or two people vetted by Foster Guide approve new listings and proposed changes, and can see who proposed them. Youth plans, chats and saved lists are never visible to anyone.
         </p>
         <Link to="/partners/sign-in?as=reviewer" className="mt-3 inline-flex min-h-10 items-center text-[14px] font-semibold text-brand hover:underline">Reviewer sign-in →</Link>
       </section>

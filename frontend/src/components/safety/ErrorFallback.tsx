@@ -54,7 +54,7 @@ function Message({ title, detail, home }: { title: string; detail: string; home:
 
   return (
     <>
-      <p className="text-eyebrow text-brand">Foster Connect</p>
+      <p className="text-eyebrow text-brand">Foster Guide</p>
       <h1 className="text-display-sm mt-2 text-ink">{title}</h1>
       <p className="mt-3 text-[16px] leading-relaxed text-ink-soft">{detail}</p>
 

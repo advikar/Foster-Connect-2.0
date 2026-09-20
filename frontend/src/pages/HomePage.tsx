@@ -149,7 +149,7 @@ export function HomePage() {
         {/* Left column */}
         <div className="flex flex-col gap-12">
           <section>
-            <p className="text-eyebrow text-brand">Free · no account · Alameda and Contra Costa</p>
+            <p className="text-eyebrow text-brand">Your guide to what you qualify for · free · no account</p>
             <h1 className="mt-4 text-hero text-ink lg:max-w-[760px]">Every program for foster youth in the East Bay, in plain words.</h1>
             <p className="mt-4 max-w-[620px] text-[17px] leading-relaxed text-ink-soft lg:text-[18px]">
               Housing, money for school, food, health, legal help, a job. Search it, save it, or turn it into a plan — you don&rsquo;t have to tell us who you are.

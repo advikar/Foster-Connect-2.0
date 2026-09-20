@@ -5,7 +5,7 @@ so a non-engineer can follow the "you" steps and hand the "engineer" steps to
 whoever is helping.
 
 **Chosen setup (2026-09-14, public preview):** frontend on GitHub Pages at
-https://advikar.github.io/foster-connect/ (built from this private repo by
+https://fosterguide.org (GitHub Pages custom domain; also https://advikar.github.io/foster-connect/) (built from this private repo by
 `.github/workflows/deploy-site.yml` and pushed to the public repo
 `advikar/foster-connect`, which holds compiled files only), API on Render
 (`render.yaml`), database on Turso. The site carries a noindex tag and the

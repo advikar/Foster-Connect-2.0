@@ -1,6 +1,6 @@
-# Foster Connect 2.0
+# Foster Guide (formerly Foster Connect 2.0)
 
-An isolated redesign of Foster Connect focused on trustworthy resource navigation,
+An isolated redesign of Foster Guide focused on trustworthy resource navigation,
 trauma-informed planning, community verification, and an encouraging journey
 timeline. The original `FosterConnect/` project is not modified.
 

@@ -222,3 +222,13 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Decisions / remaining uncertainty:
 - Exact next action:
 - Ownership released: yes/no
+
+## 2026-09-20 — Rebrand to Foster Guide (fosterguide.org)
+
+- Task: user bought fosterguide.org (fosterconnect domain taken). Rename every "Foster Connect" on the site to "Foster Guide", add a "your guide to…" tagline, prepare deploy for the custom domain. Owner: Claude Code (Fable 5.1).
+- Files: frontend/index.html, AppLayout.tsx, HomePage.tsx, ResourceRow.tsx, ErrorFallback.tsx, PasscodeCard.tsx, InsightsPage.tsx, PartnerPages.tsx, api.ts, backend prompts.ts, ai.service.ts, server.ts, safety.ts, crisis.ts, partners.ts, render.yaml, deploy-site.yml, README, DEPLOY.md.
+- Next checkpoint: type-check + backend tests, then commit.
+- Done: all user-facing and prompt text says Foster Guide; header subtitle and Home eyebrow now "Your guide to what you qualify for"; page title/og:title carry the tagline; README retitled. `deploy-site.yml` builds with `VITE_BASE=/` and writes `CNAME` = fosterguide.org; `render.yaml` CORS_ORIGINS adds https://fosterguide.org and www. Browser storage keys and the `foster-connect` repo/Render service names unchanged on purpose.
+- Checks: frontend type-check pass; backend 73/73; local Home at 1280 shows new brand + tagline.
+- Not done by the agent (user's accounts): DNS records at the registrar, Pages custom-domain setting on advikar/foster-connect, CORS_ORIGINS value in Render dashboard (blueprint change syncs only if Render re-syncs the blueprint).
+- Ownership released: yes.

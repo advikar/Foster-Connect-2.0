@@ -94,12 +94,12 @@ const FINGERS = "M17.4 16.5 L19.1 22.0 M19.2 15.26 L21.4 19.1 M21.0 14.0 L23.1 1
 /** The far hand's knuckles, scalloping the lower-left edge, with the notches between them. */
 const KNUCKLES: [number, number][] = [[7.6, 17.7], [9.45, 19.9], [11.3, 22.1], [13.1, 24.3]];
 const NOTCHES = "M7.58 19.57 L9.73 17.78 M9.48 21.77 L11.63 19.98 M11.28 23.97 L13.43 22.18 M13.08 26.07 L15.23 24.28";
-export function Brand({ subtitle = "Alameda & Contra Costa County", to = "/" }: { subtitle?: string; to?: string }) {
+export function Brand({ subtitle = "Your guide to what you qualify for", to = "/" }: { subtitle?: string; to?: string }) {
   return (
-    <Link to={to} className="flex items-center gap-2.5" aria-label="Foster Connect home">
+    <Link to={to} className="flex items-center gap-2.5" aria-label="Foster Guide home">
       <Mark className="size-7 lg:size-[30px]" />
       <span className="flex flex-col leading-none">
-        <span className="font-display text-[17px] font-bold tracking-[-0.015em] text-ink lg:text-[19px]">Foster Connect</span>
+        <span className="font-display text-[17px] font-bold tracking-[-0.015em] text-ink lg:text-[19px]">Foster Guide</span>
         <span className="mt-0.5 hidden text-[12px] text-ink-faint sm:block">{subtitle}</span>
       </span>
     </Link>

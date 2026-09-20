@@ -1112,7 +1112,7 @@ app.post("/api/session/restore", asyncRoute(async (req, res) => {
  * Self sign-up for partner users (R11). Contributor accounts only: everything
  * a contributor does (new listings, proposed changes) waits for a reviewer, so
  * an unvetted account cannot put anything in front of a young person.
- * Reviewer accounts are still created by Foster Connect.
+ * Reviewer accounts are still created by Foster Guide.
  */
 app.use("/api/partner/register", rateLimit({ windowMs: 60 * 60_000, limit: 5, standardHeaders: "draft-7", legacyHeaders: false }));
 app.post("/api/partner/register", asyncRoute(async (req, res) => {
@@ -1577,7 +1577,7 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 initDb().then(() => {
-  app.listen(PORT, process.env.HOST || "0.0.0.0", () => console.log(`Foster Connect 2.0 API running at http://localhost:${PORT}`));
+  app.listen(PORT, process.env.HOST || "0.0.0.0", () => console.log(`Foster Guide API running at http://localhost:${PORT}`));
 }).catch(error => {
   console.error("Database initialization failed", error);
   process.exit(1);
