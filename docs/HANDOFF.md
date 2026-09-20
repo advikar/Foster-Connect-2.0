@@ -249,3 +249,10 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Exact next action: user can review the local preview; publish the reviewed branch when requested. Ongoing source maintenance and youth/partner tone feedback remain necessary.
 - Ownership released: yes.
 - Backup status: committed locally on codex/warm-homepage-identity. Push to origin was blocked by automatic approval review: remote destination ownership/authorization for private source egress not verified. No remote synchronization or deployment occurred. Ask the user for explicit authorization before retrying that push.
+
+## 2026-09-20 — Authorized GitHub backup
+
+- Task / owner: user explicitly authorized pushing the reviewed changes; Codex. Intended file: this handoff only; checkpoint: successful push and remote tracking verification.
+- Completed: pushed implementation commit 8dc3d3c to origin/codex/warm-homepage-identity in advikar/Foster-Connect-2.0. The earlier approval blocker is resolved. No application changes or new tests; prior validation remains as recorded above.
+- This branch does not trigger the main-branch site deployment. Live site unchanged.
+- Next action: review/publish when requested. Ownership released: yes.
