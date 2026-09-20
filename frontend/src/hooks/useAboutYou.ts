@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 /**
  * Optional "About you" context: an age band, a county and a care status.
  *
- * Stored in localStorage on this device only and never sent to the server.
+ * Preferences are stored in localStorage. Age/county filters derived from
+ * them are sent in resource requests.
  * It shapes the home page (deadlines, nearby listings) and pre-fills the
  * directory's age filter. Skipping is the default; skipping means unknown.
  */

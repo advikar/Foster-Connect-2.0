@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Chip } from "@/components/primitives/Chip";
 import { AGE_LABELS, CARE_LABELS, useAboutYou, type AboutCounty, type AgeBand, type CareStatus } from "@/hooks/useAboutYou";
 
@@ -9,8 +10,8 @@ const COUNTIES: { id: AboutCounty; label: string }[] = [
 const CARE: CareStatus[] = ["in_care", "former", "unsure"];
 
 /**
- * "Want this page to fit you?" — three optional taps, stored on this device.
- * Never sent anywhere. Once saved, the card collapses to one line with Change.
+ * "Your preferences" — three optional taps, stored on this device.
+ * Filters may be used in resource requests. The form is collapsed by default.
  */
 export function AboutYouCard() {
   const { about, save, clear } = useAboutYou();
@@ -19,15 +20,25 @@ export function AboutYouCard() {
   const [county, setCounty] = useState<AboutCounty | "">(about?.county ?? "");
   const [care, setCare] = useState<CareStatus | "">(about?.care ?? "");
 
+  if (!about && !editing) {
+    return (
+      <section className="rounded-xl border border-rule bg-sand-soft p-5">
+        <p className="font-semibold text-ink">Make this page relevant to you</p>
+        <p className="mt-1 text-[15px] text-ink-soft">Choose an age range or county to focus what you see. This is optional.</p>
+        <button type="button" onClick={() => setEditing(true)} aria-expanded={false} className="mt-3 min-h-11 font-semibold text-brand hover:underline">Choose preferences →</button>
+      </section>
+    );
+  }
+
   if (about && !editing) {
     return (
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-y border-rule py-3">
         <p className="text-eyebrow text-ink-faint">
-          You said: {AGE_LABELS[about.age]}{about.county ? ` · ${about.county === "elsewhere" ? "Outside the two counties" : about.county}` : ""}{about.care ? ` · ${CARE_LABELS[about.care]}` : ""}
+          Your preferences: {about.age === "unsaid" ? "Age not specified" : AGE_LABELS[about.age]}{about.county ? ` · ${about.county === "elsewhere" ? "Outside the two counties" : about.county}` : ""}{about.care ? ` · ${CARE_LABELS[about.care]}` : ""}
         </p>
         <div className="flex gap-4 text-[13px]">
           <button type="button" onClick={() => setEditing(true)} className="text-brand hover:underline">Change</button>
-          <button type="button" onClick={() => { clear(); setAge(""); setCounty(""); setCare(""); }} className="text-ink-faint hover:underline">Forget</button>
+          <button type="button" onClick={() => { clear(); setAge(""); setCounty(""); setCare(""); }} className="text-ink-faint hover:underline">Clear</button>
         </div>
       </div>
     );
@@ -36,10 +47,10 @@ export function AboutYouCard() {
   return (
     <section aria-labelledby="about-you-heading" className="flex flex-col gap-4 rounded-md bg-sand-soft p-5 lg:p-6">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 id="about-you-heading" className="font-display text-[22px] font-bold text-ink">Want this page to fit you?</h2>
-        {about && <button type="button" onClick={() => setEditing(false)} className="text-[13px] text-brand hover:underline">Cancel</button>}
+        <h2 id="about-you-heading" className="font-display text-[22px] font-bold text-ink">Your preferences</h2>
+        <button type="button" onClick={() => setEditing(false)} className="min-h-11 text-[13px] text-brand hover:underline">Cancel</button>
       </div>
-      <p className="text-[15px] leading-relaxed text-ink-soft">Three taps. Stays on this device only — never sent anywhere, and you can forget it any time.</p>
+      <p className="text-[15px] leading-relaxed text-ink-soft">Your choices are saved in this browser. Age and county filters may be sent when loading resources. You can clear your choices here. <Link to="/privacy" className="text-brand underline">Privacy details</Link></p>
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-[13px] font-semibold text-ink-soft">How old are you?</legend>
@@ -62,8 +73,7 @@ export function AboutYouCard() {
 
       <button
         type="button"
-        disabled={!age}
-        onClick={() => { if (age) { save({ age, county, care }); setEditing(false); } }}
+        onClick={() => { save({ age: age || "unsaid", county, care }); setEditing(false); }}
         className="inline-flex min-h-11 items-center self-start rounded-md border border-ink px-4 text-[15px] font-semibold text-ink hover:bg-surface disabled:opacity-40"
       >
         Save on this device

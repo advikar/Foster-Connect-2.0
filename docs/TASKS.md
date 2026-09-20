@@ -58,3 +58,8 @@ Remaining slices, each independently reviewable: CI running root `npm test`; upt
 Status: after blockers above.
 Suggested technical review: whichever provider did not implement the relevant slice.
 Acceptance: verify both personas end to end with synthetic test accounts; inaccessible/empty/loading/error states; mobile and assistive navigation; session expiry and data deletion; partner isolation; realistic AI evaluations. Record unresolved issues. Paid youth and qualified partner review is a separate human step; no model may claim it occurred.
+
+## FC-09 — Warm homepage, identity and respectful copy
+
+Status: implemented 2026-09-20 (Codex). Scope: header mark/favicon, homepage search/categories, optional preferences, partner entry point, homepage/privacy/metadata copy. Tone principles and official sources in UI-DIRECTION.md.
+Checks: frontend type-check, focused ESLint, production build; desktop and 390px browser review; preference save/clear, county-only save, 18–20 former-care guidance and search URL verified. Local API offline: loading and failure/retry presentation observed; successful listing/plan flows not retested. No backend behavior changed. No assertion that all directory records or generated answers are correct. Saved to a review branch; public publication remains separate.

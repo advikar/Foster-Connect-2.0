@@ -56,3 +56,14 @@ Implement youth shell and home as one coherent visual slice, then directory/resu
 ## Verification this session
 
 Live Git remote fetched; sibling Git/readme state inspected; backend process working directory matches 2.0; frontend started on loopback 5173; homepage visibly rendered in browser. No application code edited and no application regression suite rerun. Research does not certify external template accessibility or backend readiness.
+
+## Accepted direction — 2026-09-20
+
+Audience: older foster youth and community partners. Warmth comes from useful choices, clear language and respect for agency. Avoid infantilizing encouragement, assumptions about trauma or knowledge, pressure about deadlines, blanket promises of accuracy, and implied eligibility decisions. Prefer “explore options”, “you may be eligible”, specific conditions, and links to the responsible provider. Do not imply all resources are verified or exhaustive. Do not claim nothing leaves the device when filters are sent with requests. AI output can contain mistakes.
+
+Homepage source review (2026-09-20):
+- CDSS Extended Foster Care: https://www.cdss.ca.gov/inforesources/foster-care/extended-foster-care-ab-12 — eligible participants, participation criteria and return before 21. Removed invented six-month single-form/payment guarantee and “decide before 18” ultimatum.
+- CDSS Transitional Housing: https://www.cdss.ca.gov/inforesources/foster-care/transitional-housing-programs — THP-Plus is not universally an apply-before-21 program. County details require confirmation; no hard-coded availability or age cutoff in the homepage summary.
+- CSAC Foster Youth: https://csac.ca.gov/foster-youth — separate Chafee application plus FAFSA/CADAA. Removed guaranteed liaison filing, universal October 1 opening date, and age-21 framing. Search result from the official source retrieved; full page returned 405. No award amount or specific age qualification asserted in revised copy.
+
+The revised homepage does not certify the underlying directory, AI answers, or every service claim. Program source summaries need ongoing maintenance and youth/partner feedback on tone. Keep the existing GitHub Pages/Render architecture; no Sites migration.
