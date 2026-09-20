@@ -64,17 +64,18 @@ export function AppLayout() {
   );
 }
 
-/** Outline handshake: the hands form the heart, with space for the clasp. */
+/** Each hand has four finger contours and a thumb forming the central clasp. */
 export function Mark({ className = "size-10" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 100 92" className={cn("shrink-0 text-brand", className)} aria-hidden focusable="false" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 100 108" className={cn("shrink-0 text-brand", className)} aria-hidden focusable="false" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 57C-4 39 5 7 28 5C37 4 44 8 50 12C73-7 96 9 96 30C96 41 91 50 85 56" />
       <path d="M50 12L35 27C24 37 34 46 43 38L55 27L65 22M55 27C65 38 71 40 82 35" />
-      <path d="M60 33L84 56C96 67 84 76 76 68L61 53M61 53L76 68C82 77 72 85 65 78L52 65M52 65L65 78C69 86 60 91 54 85L43 74" />
+      <path d="M60 33L84 56C96 67 84 76 76 68L61 53M76 68C82 77 72 85 65 78L52 65M65 78C71 86 61 94 54 87L44 77M54 87C65 94 56 104 48 97L40 89" />
       <g fill="var(--color-ground, #f7f6f2)">
         <rect x="16" y="46" width="13" height="24" rx="6.5" transform="rotate(43 22.5 58)" />
         <rect x="24" y="55" width="13" height="24" rx="6.5" transform="rotate(43 30.5 67)" />
         <rect x="32" y="64" width="13" height="24" rx="6.5" transform="rotate(43 38.5 76)" />
+        <rect x="40" y="73" width="13" height="22" rx="6.5" transform="rotate(43 46.5 84)" />
       </g>
     </svg>
   );

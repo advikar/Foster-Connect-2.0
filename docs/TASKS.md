@@ -63,3 +63,5 @@ Acceptance: verify both personas end to end with synthetic test accounts; inacce
 
 Status: implemented 2026-09-20 (Codex). Scope: header mark/favicon, homepage search/categories, optional preferences, partner entry point, homepage/privacy/metadata copy. Tone principles and official sources in UI-DIRECTION.md.
 Checks: frontend type-check, focused ESLint, production build; desktop and 390px browser review; preference save/clear, county-only save, 18–20 former-care guidance and search URL verified. Local API offline: loading and failure/retry presentation observed; successful listing/plan flows not retested. No backend behavior changed. No assertion that all directory records or generated answers are correct. Saved to a review branch; public publication remains separate.
+
+FC-09 follow-up (2026-09-20): corrected handshake to four fingers plus a thumb per hand, matching favicon; enlarged and header-size browser checks, frontend type-check, lint and build passed. Review branch only; not published.

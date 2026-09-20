@@ -256,3 +256,11 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Completed: pushed implementation commit 8dc3d3c to origin/codex/warm-homepage-identity in advikar/Foster-Connect-2.0. The earlier approval blocker is resolved. No application changes or new tests; prior validation remains as recorded above.
 - This branch does not trigger the main-branch site deployment. Live site unchanged.
 - Next action: review/publish when requested. Ownership released: yes.
+
+## 2026-09-20 — Five-finger handshake correction
+
+- Task / owner: user requested five fingers in the logo and instructions for website publication; Codex.
+- Intended files: AppLayout.tsx, favicon.svg, HANDOFF.md and FC-09 status. Next checkpoint: four finger contours plus a thumb for each hand, enlarged and header-size visual check, frontend validation, push to the existing authorized review branch. Publication is not requested by the how-to question.
+- Ownership released: no.
+- Completed: each hand now has four finger contours plus its thumb; expanded the lower contour to avoid clipping, and favicon uses the same geometry. Visually inspected enlarged SVG and desktop/mobile header sizes. Frontend type-check, focused ESLint, build and whitespace checks passed. No backend changes/tests.
+- Next action: merge codex/warm-homepage-identity into main to trigger Deploy site when publication is requested. This turn updates the review branch only. Ownership released: yes.
