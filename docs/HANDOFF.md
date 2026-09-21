@@ -1,5 +1,14 @@
 # Current handoff
 
+## 2026-09-21 — Tagline, email provider, reviewer sign-in, Quick exit removed (checkpoint 1)
+
+- Task (user): header tagline "Your guide for the next step"; add an email provider; reviewer cannot sign in; remove Quick exit. Owner: Claude Code (Fable 5.1).
+- Files: AppLayout.tsx, safety/QuickExit.tsx (deleted), IntakeConversation.tsx (comment), InsightsPage.tsx; backend services/mail.ts (+ test), server.ts, .env.example; render.yaml; docs/DEPLOY.md.
+- Done: Brand subtitle "Your guide for the next step"; Quick exit button and component removed (crisis button and footer numbers unchanged); `services/mail.ts` (Resend HTTP API, no SDK; `mailConfigured`, `sendMail`, `resetEmail`, `newAccountEmail`), `/api/partner/reset-request` emails the link directly when mail is configured (row issued_by 'email'), register notifies `NOTIFY_EMAIL`, `/api/health.mailConfigured`; render.yaml + .env.example env keys (RESEND_API_KEY, MAIL_FROM, SITE_URL, NOTIFY_EMAIL); DEPLOY.md "Email" and "If a reviewer is locked out"; `scripts/issue-reset-link.sh <email>` inserts a token hash in Turso and prints a one-time link.
+- Reviewer sign-in: Turso shows advika.richhariya@gmail.com is an active reviewer (id 1, last login 2026-09-15), so the sign-in problem is the password, not the account. The agent's attempt to insert a reset token into Turso was blocked by the tool's permission classifier; the user runs the script instead. Also on Turso: sabine.lemmo@fosteringwishes.org registered as a contributor on 2026-09-15.
+- Checks: backend 76/76 (3 new mail tests); frontend type-check, ESLint, build. Not verified: a real Resend send (needs the user's key and DNS); Quick exit removal in the browser.
+- Ownership released: yes.
+
 ## 2026-09-20 — Live audit round 3: wording, disclaimer, accounts, Fostering Wishes (checkpoint 1)
 
 - Task: user's audit list for fosterguide.org — remove inaccurate/isolating copy ("Every program", "Turning 21 soon?", "Three taps", "what a 19-year-old gets", they/them line), Health → health & mental health, "Need a place to stay", document subtext, legal disclaimer, scholarship/trade emphasis, Fostering Wishes listings, sort by organization, Nova always shows directory matches, staff guide answers "who runs X / how to start X" from listings, partner accounts: show password, forgot/reset password, reviewer Accounts page listing registered emails. Owner: Claude Code (Fable 5.1).

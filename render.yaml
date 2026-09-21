@@ -32,3 +32,13 @@ services:
         value: openai/gpt-oss-120b
       - key: LLM_API_KEY
         sync: false
+      # Email (docs/DEPLOY.md "Email"). Leave RESEND_API_KEY empty to keep the
+      # manual, reviewer-issued reset flow.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        value: Foster Guide <noreply@fosterguide.org>
+      - key: SITE_URL
+        value: https://fosterguide.org
+      - key: NOTIFY_EMAIL
+        sync: false

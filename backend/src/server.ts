@@ -18,6 +18,7 @@ import {
 } from "./services/ai.service";
 import { assessSafety, assessFields, type SafetyAssessment } from "./services/safety";
 import { buildAllowList, sanitiseReply, signHistory, verifyHistory, type SignedMessage } from "./services/grounding";
+import { mailConfigured, newAccountEmail, resetEmail, sendMail, siteUrl } from "./services/mail";
 import { canReview, hashPassword, hashToken, newSessionToken, normaliseEmail, passwordProblem, verifyPassword, type Partner } from "./services/partners";
 import { contactsFor, CRISIS_CONTACTS, CRISIS_REPLIES, CONCERN_NOTE, type CrisisCategory } from "./config/crisis";
 import { audit, executeSerialised, persistRoadmap, publishSubmission } from "./services/persistence";
@@ -666,6 +667,7 @@ app.get("/api/crisis", (_req, res) => res.json({ contacts: CRISIS_CONTACTS }));
 app.get("/api/health", (_req, res) => res.json({
   status: "ok",
   aiConfigured: Boolean(process.env.LLM_API_KEY && process.env.LLM_API_KEY !== "your_api_key_here"),
+  mailConfigured: mailConfigured(),
 }));
 
 app.get("/api/resources", asyncRoute(async (req, res) => {
@@ -1152,6 +1154,11 @@ app.post("/api/partner/register", asyncRoute(async (req, res) => {
   await db.execute({ sql: "INSERT INTO partner_sessions(token_hash, partner_id, expires_at) VALUES (?, ?, ?)", args: [tokenHash, id, expiresAt] });
   await db.execute({ sql: "UPDATE partners SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", args: [id] });
   await executeSerialised(db, audit(partner, "partner.register", "partner", id, JSON.stringify({ organisation: input.organisation })));
+  // Tell the team (when mail is set up). Failure here must not fail the sign-up.
+  if (process.env.NOTIFY_EMAIL) {
+    const note = newAccountEmail({ name: input.name, email, organisation: input.organisation });
+    void sendMail(process.env.NOTIFY_EMAIL, note.subject, note.text);
+  }
   res.status(201).json({ token, expiresAt, partner: { name: partner.name, email, organisation: partner.organisation, role: "contributor" } });
 }));
 
@@ -1490,7 +1497,19 @@ app.post("/api/partner/guide", requirePartner, asyncRoute(async (req: PartnerReq
 app.use("/api/partner/reset-request", rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: "draft-7", legacyHeaders: false }));
 app.post("/api/partner/reset-request", asyncRoute(async (req, res) => {
   const input = z.object({ email: z.string().trim().email().max(200) }).parse(req.body);
-  const row = (await db.execute({ sql: "SELECT id FROM partners WHERE email = ? AND active = 1", args: [normaliseEmail(input.email)] })).rows[0];
+  const row = (await db.execute({ sql: "SELECT id, email FROM partners WHERE email = ? AND active = 1", args: [normaliseEmail(input.email)] })).rows[0];
+  // With a mail provider the link goes straight to the address on file; the
+  // request is recorded as issued by "email" so the Accounts page shows it.
+  if (row && mailConfigured()) {
+    const token = crypto.randomBytes(32).toString("base64url");
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const mail = resetEmail(`${siteUrl()}/partners/reset?token=${encodeURIComponent(token)}`);
+    if (await sendMail(String(row.email), mail.subject, mail.text)) {
+      await db.execute({ sql: "INSERT INTO partner_password_resets(partner_id, token_hash, issued_by, issued_at, expires_at) VALUES (?, ?, 'email', CURRENT_TIMESTAMP, ?)", args: [Number(row.id), hashToken(token), expiresAt] });
+      res.status(202).json({ message: "If that address has an account, a reset link is on its way to it. Check spam if it has not arrived in a few minutes; it works once and expires in 48 hours." });
+      return;
+    }
+  }
   if (row) {
     const open = await db.execute({ sql: "SELECT id FROM partner_password_resets WHERE partner_id = ? AND used_at IS NULL AND token_hash IS NULL", args: [Number(row.id)] });
     if (!open.rows[0]) await db.execute({ sql: "INSERT INTO partner_password_resets(partner_id) VALUES (?)", args: [Number(row.id)] });

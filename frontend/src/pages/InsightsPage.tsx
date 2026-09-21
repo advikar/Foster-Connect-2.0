@@ -359,7 +359,7 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
     return (
       <form onSubmit={ask} className="max-w-[420px] rounded-md border border-rule bg-surface p-6 sm:p-8">
         <h2 className="font-display text-[26px] font-bold text-ink">Forgot your password?</h2>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">Enter the email you signed up with. A Foster Guide reviewer will send a one-time reset link to that address. A person does this, so it can take up to a day.</p>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">Enter the email you signed up with and we&rsquo;ll get a one-time reset link to that address.</p>
         {forgotNote ? (
           <p role="status" className="mt-5 rounded-md bg-sand-soft px-4 py-3 text-[14px] text-ink">{forgotNote}</p>
         ) : (

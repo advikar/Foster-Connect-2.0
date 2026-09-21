@@ -4,7 +4,6 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Bookmark, Home, ListChecks, MessageCircle, Search } from "lucide-react";
 import { NovaProvider } from "@/contexts/NovaContext";
 import { CrisisButton } from "@/components/safety/CrisisBar";
-import { QuickExit } from "@/components/safety/QuickExit";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -18,10 +17,11 @@ const tabs = [
 /**
  * Youth shell (September 2026 redesign).
  *
- *   Phone   — 56px header (brand, Need help now, Quick exit), five-tab bar.
+ *   Phone   — 56px header (brand, Need help now), five-tab bar.
  *   Desktop — 64px header with underline navigation, utilities on the right.
  *
- * Quick exit and Need help now are always visible and never behind a menu.
+ * Need help now is always visible and never behind a menu (Quick exit was
+ * removed 2026-09-21 at the founder's request).
  * The crisis numbers are also printed as plain text in the footer of every
  * page, from compiled-in constants, so they survive every failure mode.
  */
@@ -80,7 +80,7 @@ export function Mark({ className = "size-10" }: { className?: string }) {
     </svg>
   );
 }
-export function Brand({ subtitle = "Support for your next step", to = "/" }: { subtitle?: string; to?: string }) {
+export function Brand({ subtitle = "Your guide for the next step", to = "/" }: { subtitle?: string; to?: string }) {
   return (
     <Link to={to} className="flex items-center gap-2.5" aria-label="Foster Guide home">
       <Mark className="size-8 lg:size-10" />
@@ -119,7 +119,6 @@ function TopBar() {
         <div className="flex items-center gap-1.5 lg:gap-3">
           <Link to="/partners" className="hidden text-[13px] text-ink-faint hover:text-ink xl:inline-flex">Community partners</Link>
           <CrisisButton />
-          <QuickExit />
         </div>
       </div>
     </header>

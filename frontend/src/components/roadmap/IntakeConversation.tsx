@@ -328,7 +328,7 @@ export function IntakeConversation({
         <div className="mt-7">{current.body}</div>
       </div>
 
-      {/* Sits above Quick exit and the tab bar, both of which are fixed. */}
+      {/* Sits above the fixed tab bar on phones. */}
       <div className="sticky bottom-[80px] mt-10 bg-ground pt-4 lg:static lg:mt-12 lg:max-w-[320px]">
         <Button
           type="button"

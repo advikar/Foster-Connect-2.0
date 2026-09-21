@@ -153,3 +153,17 @@ Sign in as a reviewer and open **Accounts** (`/partners/accounts`): every partne
 ## Adding listings after launch
 
 Additive listing SQL lives in `data/updates/<date>-<name>.sql` and ends with an FTS rebuild. Apply with `turso db shell foster-connect < data/updates/<file>.sql` (the 2026-09-20 Fostering Wishes file is the first).
+
+## Email (Resend)
+
+Password-reset links and "new partner account" notices are sent through [Resend](https://resend.com) when `RESEND_API_KEY` is set; otherwise resets stay manual (a reviewer issues the link on Accounts). Setup, once:
+
+1. Create a Resend account, add the domain `fosterguide.org` and add the DNS records it shows (SPF/DKIM TXT records) at your registrar. Wait for "Verified".
+2. Create an API key (sending only). In Render → foster-connect-api → Environment set `RESEND_API_KEY`, `NOTIFY_EMAIL` (your address for new-account notices); `MAIL_FROM` and `SITE_URL` come from `render.yaml`. Redeploy.
+3. Check `GET /api/health` shows `"mailConfigured": true`, then use "Forgot your password?" on the sign-in page with your own address.
+
+Free tier is 3,000 emails a month, far more than this flow needs. Nothing about young people is ever emailed; only partner accounts have addresses.
+
+## If a reviewer is locked out
+
+Run `scripts/issue-reset-link.sh <email>` from a terminal signed in to Turso. It inserts only a hash and prints a one-time link (48 hours); open it to set a new password. The password never passes through anyone else.
