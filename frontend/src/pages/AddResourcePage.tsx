@@ -7,12 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { submitResource, submitPartnerResource } from "@/lib/api";
 
-const categories = [
-  "Housing", "Education", "Scholarships", "Employment", "Financial Support", "Healthcare",
-  "Mental Health", "Legal Support", "Food Assistance", "Clothing Assistance", "Transportation",
-  "Community Support", "Life Skills and Mentoring", "Technology", "Other",
-]; // must match data/build_resources.py's canonical category list (see ResourcesPage.tsx)
-const counties = ["Alameda", "Contra Costa", "Bay Area", "California", "National"];
+import { CATEGORY_OPTIONS as categories, COUNTY_OPTIONS as counties } from "@/lib/listingOptions";
 const EMPTY = { title: "", organization: "", description: "", category: "", county: "", website: "", contact: "", sourceUrl: "", relationship: "", submitterName: "", kind: "service" };
 
 /**

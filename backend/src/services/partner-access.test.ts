@@ -13,8 +13,11 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
   const db = createClient({ url: `file:${dbPath}` });
   // The columns the partner analytics endpoint reads; the real table comes from the import script.
   await db.execute(`CREATE TABLE resources(id INTEGER PRIMARY KEY, title TEXT, organization TEXT, category TEXT, county TEXT,
-    cost TEXT DEFAULT '', description TEXT DEFAULT '', eligibility TEXT DEFAULT '', phone TEXT, website TEXT, hours TEXT, address TEXT, languages TEXT, source_url TEXT,
-    age_min INTEGER, age_max INTEGER, is_crisis INTEGER DEFAULT 0, verified_at TEXT, status TEXT DEFAULT 'verified')`);
+    service_area TEXT DEFAULT '', description TEXT DEFAULT '', eligibility TEXT DEFAULT '', application_steps TEXT DEFAULT '', what_to_bring TEXT DEFAULT '',
+    cost TEXT DEFAULT '', phone TEXT, website TEXT, hours TEXT, address TEXT, languages TEXT, accessibility TEXT, delivery_mode TEXT DEFAULT '', urgency_level TEXT DEFAULT 'Standard',
+    source_url TEXT, age_min INTEGER, age_max INTEGER, is_crisis INTEGER DEFAULT 0, verified_at TEXT, verified_by TEXT DEFAULT '', status TEXT DEFAULT 'verified', tags TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)`);
+  await db.execute(`CREATE VIRTUAL TABLE resources_fts USING fts5(title, organization, description, category, county, service_area, eligibility, application_steps, tags, content='resources', content_rowid='id')`);
   const child = spawn(process.execPath, [path.resolve(__dirname, "../server.js")], {
     env: { ...process.env, PORT: "4497", HOST: "127.0.0.1", NODE_ENV: "test", DB_PATH: dbPath, DATABASE_URL: "", DATABASE_AUTH_TOKEN: "", LLM_API_KEY: "" },
     stdio: ["ignore", "pipe", "pipe"],
@@ -56,6 +59,8 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     assert.ok(stats.freshness && stats.completeness);
     // Round 4: youth reports can be resolved by a reviewer only, and disappear from analytics once resolved.
     await db.execute("INSERT INTO resources(id,title,organization,category,county,verified_at) VALUES (900,'Duffel bag program','Test org','Basic Needs','Alameda','2026-09-01')");
+    // External-content FTS must be told about the row, as the import script does; a 'delete' for an unindexed row corrupts the index.
+    await db.execute("INSERT INTO resources_fts(rowid,title,organization,description,category,county,service_area,eligibility,application_steps,tags) SELECT id,title,organization,description,category,county,service_area,eligibility,application_steps,tags FROM resources WHERE id=900");
     await db.execute("INSERT INTO resource_reports(resource_id,session_id,reason) VALUES (900,'test-session','Phone number is wrong')");
     const withReport = await (await request("/analytics", 3)).json() as { reports: { id: number }[] };
     assert.equal(withReport.reports.length, 1);
@@ -69,6 +74,26 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     assert.ok(byCategory.some(item => item.id === 900));
     const byId = await (await request("/resources?q=900", 1)).json() as { id: number }[];
     assert.ok(byId.some(item => item.id === 900));
+    // Round 5: reviewers can change name, category and one or more regions; the region list is normalised and searchable per county.
+    assert.equal((await request("/resources/900/changes", 3, "POST", { changes: { county: "Mars" } })).status, 400);
+    const edit = await request("/resources/900/changes", 3, "POST", { changes: { title: "Duffel bags for placements", category: "Community Support", county: "contra costa, Alameda" } });
+    assert.equal(edit.status, 200);
+    const edited = await (await request("/resources/900", 3)).json() as { title: string; category: string; county: string };
+    assert.deepEqual([edited.title, edited.category, edited.county], ["Duffel bags for placements", "Community Support", "Alameda, Contra Costa"]);
+    const inAlameda = await (await request("/resources?county=Alameda", 1)).json() as { id: number }[];
+    const inContraCosta = await (await request("/resources?county=Contra%20Costa", 1)).json() as { id: number }[];
+    assert.ok(inAlameda.some(item => item.id === 900) && inContraCosta.some(item => item.id === 900));
+    const publicAlameda = await (await fetch("http://127.0.0.1:4497/api/resources?county=Alameda&limit=100")).json() as { items?: { id: number }[] } | { id: number }[];
+    const publicItems = Array.isArray(publicAlameda) ? publicAlameda : publicAlameda.items ?? [];
+    assert.ok(publicItems.some(item => item.id === 900), "youth county search finds a two-county listing");
+    // Reviewers remove access (not their own); the removed partner's session stops working; access can be restored.
+    assert.equal((await request("/accounts/2/access", 1, "POST", { active: false })).status, 403);
+    assert.equal((await request("/accounts/3/access", 3, "POST", { active: false })).status, 400);
+    assert.equal((await request("/accounts/2/access", 3, "POST", { active: false })).status, 204);
+    assert.equal((await request("/my-submissions", 2)).status, 401);
+    const removed = await (await request("/accounts", 3)).json() as { id: number; active: boolean }[];
+    assert.equal(removed.find(account => account.id === 2)?.active, false);
+    assert.equal((await request("/accounts/2/access", 3, "POST", { active: true })).status, 204);
     // Accounts and password reset (A1/A2)
     assert.equal((await request("/accounts", 1)).status, 403);
     const accounts = await request("/accounts", 3);

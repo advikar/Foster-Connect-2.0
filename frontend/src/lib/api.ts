@@ -442,6 +442,8 @@ export interface ResourceChanges {
   title?: string; organization?: string; description?: string; eligibility?: string; cost?: string;
   applicationSteps?: string; whatToBring?: string; website?: string; phone?: string; address?: string;
   hours?: string; languages?: string; accessibility?: string; serviceArea?: string;
+  /** Round 5: category and one or more regions ("Alameda, Contra Costa"). */
+  category?: string; county?: string;
   ageMin?: number | null; ageMax?: number | null;
   fieldsNa?: MissingField[];
   recheckAt?: string | null;
@@ -487,6 +489,8 @@ export interface PartnerAccount {
   createdAt: string; lastLoginAt: string | null; submissions: number; resetRequested: boolean; resetIssuedAt: string | null;
 }
 export function fetchPartnerAccounts() { return partnerRequest<PartnerAccount[]>("/api/partner/accounts"); }
+/** Reviewer removes (active=false) or restores a partner's access. Their submissions and edits stay on record. */
+export function setPartnerAccess(id: number, active: boolean) { return partnerRequest<void>(`/api/partner/accounts/${id}/access`, { method: "POST", body: JSON.stringify({ active }) }); }
 export function issueResetLink(id: number) { return partnerRequest<{ token: string; expiresAt: string; email: string }>(`/api/partner/accounts/${id}/reset-link`, { method: "POST" }); }
 export function askPartnerGuide(message: string, history: ChatMessageInput[] = [], historyToken?: string) {
   return partnerRequest<GuideResponse>("/api/partner/guide", { method: "POST", body: JSON.stringify({ message, history, historyToken }) });

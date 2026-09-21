@@ -174,7 +174,7 @@ function SiteFooter() {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link to="/add-resource" className="text-brand hover:underline">Tell us about a program we&rsquo;re missing</Link>
           <Link to="/partners" className="text-brand hover:underline">Community partners</Link>
-          <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand hover:underline">Contact us</a>
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand hover:underline">Contact us <span className="text-ink-faint">(questions about the site, not emergencies)</span></a>
           {(import.meta.env.DEV || import.meta.env.VITE_PREVIEW) && <AccentToggle />}
         </div>
       </div>

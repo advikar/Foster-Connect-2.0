@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, BookOpen, ChartNoAxesCombined, Copy, FilePlus2, Loader2, Mail, Plus, Search, ShieldCheck } from "lucide-react";
 import { usePartner } from "@/contexts/PartnerContext";
-import { askPartnerGuide, fetchMySubmissions, fetchPartnerAccounts, fetchPartnerAnalytics, fetchPartnerResources, issueResetLink, resetPassword, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type PartnerAccount, type ResourceItem, type Submission } from "@/lib/api";
+import { askPartnerGuide, fetchMySubmissions, fetchPartnerAccounts, fetchPartnerAnalytics, fetchPartnerResources, issueResetLink, resetPassword, setPartnerAccess, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type PartnerAccount, type ResourceItem, type Submission } from "@/lib/api";
 import { ListingDrawer, type DrawerFilter } from "@/components/partners/ListingDrawer";
 import { PartnerListingButton } from "@/components/partners/ReportsPanel";
 import { Coverage, Gaps, Queue, SignIn } from "./InsightsPage";
@@ -581,9 +581,24 @@ export function PartnerAccounts() {
 
 function Accounts() {
   const queryClient = useQueryClient();
+  const { partner } = usePartner();
   const { data, isPending, isError } = useQuery({ queryKey: ["partner-accounts"], queryFn: fetchPartnerAccounts });
   const [links, setLinks] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState<number | null>(null);
+  // Removing access: three checks — a button, a plain warning, then typing the email.
+  const [removing, setRemoving] = useState<{ id: number; step: 1 | 2; typed: string } | null>(null);
+
+  const setAccess = async (account: PartnerAccount, active: boolean) => {
+    setBusy(account.id);
+    try {
+      await setPartnerAccess(account.id, active);
+      toast.success(active ? `${account.name} can sign in again.` : `${account.name} no longer has access. Their past submissions stay on record.`);
+      setRemoving(null);
+      await queryClient.invalidateQueries({ queryKey: ["partner-accounts"] });
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "Could not change that account.");
+    } finally { setBusy(null); }
+  };
 
   const issue = async (account: PartnerAccount) => {
     setBusy(account.id);
@@ -618,7 +633,7 @@ function Accounts() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p className="text-[16px] font-semibold text-ink">{account.name}</p>
-                <span className="text-eyebrow text-ink-faint">{account.role === "reviewer" ? "Reviewer" : "Contributor"}{!account.active && " · deactivated"}</span>
+                <span className="text-eyebrow text-ink-faint">{account.role === "reviewer" ? "Reviewer" : "Contributor"}{!account.active && " · access removed"}</span>
                 {account.resetRequested && <span className="text-eyebrow text-crisis">Reset requested</span>}
               </div>
               <p className="mt-0.5 break-all text-[14px] text-ink-body">{account.email}{account.organisation && ` · ${account.organisation}`}</p>
@@ -631,11 +646,40 @@ function Accounts() {
               )}
               {!links[account.id] && account.resetIssuedAt && <p className="mt-2 text-[13px] text-ink-faint">A link was issued {ago(account.resetIssuedAt)} and has not been used. Issuing another replaces nothing; both stay valid until they expire.</p>}
             </div>
-            {account.active && (
-              <div className="flex items-start">
+            {account.active ? (
+              <div className="flex flex-wrap items-start gap-2">
                 <Button type="button" disabled={busy === account.id} onClick={() => void issue(account)} className="h-10 rounded-md border border-ink bg-surface px-4 text-[14px] font-semibold text-ink hover:bg-sand-soft">
                   {busy === account.id && <Loader2 className="size-4 animate-spin" />}{links[account.id] ? "New reset link" : "Issue reset link"}
                 </Button>
+                {account.email !== partner?.email && removing?.id !== account.id && (
+                  <button type="button" onClick={() => setRemoving({ id: account.id, step: 1, typed: "" })} className="inline-flex h-10 items-center rounded-md px-3 text-[14px] text-crisis hover:underline">Remove access</button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-start">
+                <button type="button" disabled={busy === account.id} onClick={() => void setAccess(account, true)} className="inline-flex h-10 items-center rounded-md border border-rule px-4 text-[14px] font-semibold text-ink hover:border-ink disabled:opacity-50">Restore access</button>
+              </div>
+            )}
+            {removing?.id === account.id && (
+              <div className="rounded-md border border-crisis/30 bg-crisis-soft p-4 lg:col-span-2">
+                {removing.step === 1 ? (
+                  <>
+                    <p className="text-[14px] text-ink"><span className="font-semibold">Remove {account.name}&rsquo;s access?</span> They are signed out everywhere and cannot sign in or reset their password. Listings and edits they made stay published and keep their name on the audit record. You can restore access later.</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button type="button" onClick={() => setRemoving({ ...removing, step: 2 })} className="h-10 rounded-md border border-crisis/40 bg-surface px-4 text-[14px] font-semibold text-crisis hover:bg-crisis/5">Yes, continue</Button>
+                      <Button type="button" onClick={() => setRemoving(null)} className="h-10 rounded-md border border-rule bg-surface px-4 text-[14px] text-ink">Never mind</Button>
+                    </div>
+                  </>
+                ) : (
+                  <form onSubmit={event => { event.preventDefault(); if (removing.typed.trim().toLowerCase() === account.email.toLowerCase()) void setAccess(account, false); }} className="flex flex-col gap-2">
+                    <label htmlFor={`remove-${account.id}`} className="text-[14px] text-ink">Last check. Type their email address <span className="font-semibold">{account.email}</span> to confirm.</label>
+                    <Input id={`remove-${account.id}`} value={removing.typed} onChange={event => setRemoving({ ...removing, typed: event.target.value })} autoComplete="off" className="h-10 max-w-[420px] rounded-md border-rule bg-surface text-[14px]" />
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="submit" disabled={busy === account.id || removing.typed.trim().toLowerCase() !== account.email.toLowerCase()} className="h-10 rounded-md bg-crisis px-4 text-[14px] font-semibold text-white hover:opacity-90">{busy === account.id && <Loader2 className="size-4 animate-spin" />} Remove access</Button>
+                      <Button type="button" onClick={() => setRemoving(null)} className="h-10 rounded-md border border-rule bg-surface px-4 text-[14px] text-ink">Never mind</Button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
           </li>

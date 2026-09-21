@@ -8,6 +8,7 @@ import { usePartner } from "@/contexts/PartnerContext";
 import { NA_FIELDS, proposeResourceChange, type MissingField, type ResourceChanges, type ResourceItem } from "@/lib/api";
 import { describeChecked } from "@/lib/checked";
 import { cn } from "@/lib/utils";
+import { CATEGORY_OPTIONS, COUNTY_OPTIONS, splitCounties } from "@/lib/listingOptions";
 import { toast } from "sonner";
 
 const NA_LABEL: Record<MissingField, string> = {
@@ -21,6 +22,8 @@ const NA_LABEL: Record<MissingField, string> = {
 };
 
 const TEXT_FIELDS: { key: keyof ResourceChanges; label: string; long?: boolean; na?: MissingField }[] = [
+  { key: "title", label: "Listing name" },
+  { key: "organization", label: "Organization" },
   { key: "description", label: "What it offers, in plain words", long: true },
   { key: "eligibility", label: "Who it helps" },
   { key: "applicationSteps", label: "How to start", long: true },
@@ -59,6 +62,10 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
   const [na, setNa] = useState<Set<MissingField>>(new Set((resource.fieldsNa ?? []) as MissingField[]));
   const [recheckAt, setRecheckAt] = useState(resource.recheckAt ?? "");
   const [kind, setKind] = useState<"service" | "information">(resource.kind ?? "service");
+  const [category, setCategory] = useState(resource.category);
+  const [counties, setCounties] = useState<string[]>(() => splitCounties(resource.county));
+  const countyValue = COUNTY_OPTIONS.filter(option => counties.includes(option)).join(", ");
+  const toggleCounty = (option: string) => setCounties(previous => (previous.includes(option) ? previous.filter(item => item !== option) : [...previous, option]));
   const [checkedBy, setCheckedBy] = useState<"online" | "phone">("online");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -86,11 +93,13 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
     if (naNow !== naBefore) out.fieldsNa = [...na];
     if ((recheckAt || null) !== (resource.recheckAt ?? null)) out.recheckAt = recheckAt || null;
     if (kind !== (resource.kind ?? "service")) out.kind = kind;
+    if (category !== resource.category) out.category = category;
+    if (countyValue && countyValue !== resource.county) out.county = countyValue;
     if (reviewer && checkedBy === "phone") out.checkedBy = "phone";
     return out;
   };
   const pending = changes();
-  const hasChanges = Object.keys(pending).some(key => key !== "checkedBy");
+  const hasChanges = Object.keys(pending).some(key => key !== "checkedBy") && counties.length > 0;
 
   const submit = async () => {
     setBusy(true);
@@ -98,6 +107,8 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
       const result = await proposeResourceChange(resource.id, pending, note);
       await queryClient.invalidateQueries({ queryKey: ["partner-analytics"] });
       await queryClient.invalidateQueries({ queryKey: ["partner-resources"] });
+      await queryClient.invalidateQueries({ queryKey: ["partner-directory"] });
+      await queryClient.invalidateQueries({ queryKey: ["partner-resource"] });
       await queryClient.invalidateQueries({ queryKey: ["partner-changes"] });
       toast.success(result.status === "approved" ? "Saved. Young people see this now." : "Sent to a reviewer. Thank you — it shows once they approve it.");
       onSaved?.(result);
@@ -130,6 +141,26 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
       </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor={`${id}-category`} className="text-[13px] font-semibold text-ink-soft">Category</label>
+          <select id={`${id}-category`} value={category} onChange={event => setCategory(event.target.value)} className="mt-1.5 h-11 w-full rounded-md border border-rule bg-surface px-3 text-[15px] text-ink">
+            {!CATEGORY_OPTIONS.includes(category) && <option value={category}>{category}</option>}
+            {CATEGORY_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </div>
+        <fieldset>
+          <legend className="text-[13px] font-semibold text-ink-soft">Region served <span className="font-normal text-ink-faint">(pick every one that applies)</span></legend>
+          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5 text-[14px]">
+            {COUNTY_OPTIONS.map(option => (
+              <label key={option} className="inline-flex cursor-pointer items-center gap-1.5">
+                <input type="checkbox" checked={counties.includes(option)} onChange={() => toggleCounty(option)} className="size-3.5 accent-[var(--brand)]" />
+                {option}
+              </label>
+            ))}
+          </div>
+          {counties.length === 0 && <p className="mt-1 text-[12px] text-crisis">Choose at least one region.</p>}
+          {counties.length > 1 && <p className="mt-1 text-[12px] text-ink-faint">Shows in searches for each region and reads &ldquo;{countyValue}&rdquo; on the listing.</p>}
+        </fieldset>
         {TEXT_FIELDS.map(field => {
           const isNa = field.na ? na.has(field.na) : false;
           const highlighted = focus && field.na === focus;

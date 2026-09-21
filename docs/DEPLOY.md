@@ -172,6 +172,11 @@ Free tier is 3,000 emails a month, far more than this flow needs. Nothing about 
 - Youth privacy page: **Clear from this device** removes only the browser's session id and Nova chats (prompts to set a passcode first if none); **Delete everything** deletes server rows and the passcode after two confirmations and typing DELETE. **Download PDF** builds the plan and saved programs in the browser with jsPDF (loaded on demand); the JSON export remains as a small link.
 - Nova sends the person's own earlier messages from past chats on the device (`recall`, max 12 × 300 chars) so a new chat does not start from zero. Deleting past chats ends that.
 
+## Editing basics, multi-county listings, removing partners (round 5)
+
+- The listing editor also changes the name, organization, category and region(s). `resources.county` is one region or a comma-separated list in canonical order ("Alameda, Contra Costa"); every county filter matches per county (`countyMatch` in server.ts), so a two-county listing appears in both county searches and in Coverage under its combined label. Apply via the editor, or SQL as in `data/updates/2026-09-21-fostering-wishes-regions.sql` (rebuild FTS afterwards).
+- Reviewers remove a partner's access from Accounts (three checks: button, warning, typed email). `POST /api/partner/accounts/:id/access {active:false}` sets `partners.active=0`, deletes sessions and open reset links; submissions and edits stay on record. "Restore access" reverses it. Nobody can remove their own access.
+
 ## If a reviewer is locked out
 
 Run `scripts/issue-reset-link.sh <email>` from a terminal signed in to Turso. It inserts only a hash and prints a one-time link (48 hours); open it to set a new password. The password never passes through anyone else.

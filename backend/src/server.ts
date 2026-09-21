@@ -269,6 +269,25 @@ function listParam(value?: string) {
 
 /** One place that decides which resources a query may return, so the list
  *  query and the count query can never drift apart. */
+/**
+ * A listing's county is one region or a comma-separated list ("Alameda, Contra Costa")
+ * when a program serves more than one. Matching pads both sides so "Alameda" never
+ * matches a hypothetical "Alameda North".
+ */
+function countyMatch(counties: string[]) {
+  return `(${counties.map(() => "(', ' || r.county || ', ') LIKE ?").join(" OR ")})`;
+}
+function countyArg(county: string) { return `%, ${county}, %`; }
+const COUNTY_OPTIONS = ["Alameda", "Contra Costa", "Bay Area", "California", "National"] as const;
+/** Normalise "contra costa,Alameda" → "Alameda, Contra Costa"; null when any part is unknown. */
+function normaliseCounty(value: string): string | null {
+  const parts = [...new Set(value.split(",").map(part => part.trim()).filter(Boolean))];
+  if (!parts.length) return null;
+  const known = parts.map(part => COUNTY_OPTIONS.find(option => option.toLowerCase() === part.toLowerCase()));
+  if (known.some(part => !part)) return null;
+  return (known as string[]).sort((a, b) => COUNTY_OPTIONS.indexOf(a as typeof COUNTY_OPTIONS[number]) - COUNTY_OPTIONS.indexOf(b as typeof COUNTY_OPTIONS[number])).join(", ");
+}
+
 function buildResourceFilters(options: {
   county?: string; category?: string; urgency?: string; age?: number;
 }) {
@@ -279,8 +298,8 @@ function buildResourceFilters(options: {
   if (counties.length) {
     // Regional records ("Bay Area") and statewide/national records must surface
     // for a county search, or they become unreachable entirely (audit D-02).
-    filters.push(`(r.county IN (${counties.map(() => "?").join(",")}) OR r.county IN ('California', 'National', 'Bay Area'))`);
-    args.push(...counties);
+    filters.push(`(${countyMatch(counties)} OR r.county IN ('California', 'National', 'Bay Area'))`);
+    args.push(...counties.map(countyArg));
   }
   const categories = listParam(options.category);
   if (categories.length) {
@@ -1303,7 +1322,7 @@ app.get("/api/partner/resources", requirePartner, asyncRoute(async (req, res) =>
   const { filters, args } = buildResourceFilters({ county: query.county, category: query.category });
   // Partners see exact-county lists (no regional fold-in), otherwise a county bar's list would not match its count.
   const counties = listParam(query.county);
-  if (counties.length) { filters.shift(); filters.shift(); filters.unshift("r.status = 'verified'"); filters.push(`r.county IN (${counties.map(() => "?").join(",")})`); args.splice(0, counties.length); args.push(...counties); }
+  if (counties.length) { filters.shift(); filters.shift(); filters.unshift("r.status = 'verified'"); filters.push(countyMatch(counties)); args.splice(0, counties.length); args.push(...counties.map(countyArg)); }
   if (query.missing) filters.push(MISSING_FILTERS[query.missing]);
   if (query.stale) filters.push(STALE_FILTER);
   if (query.q) {
@@ -1335,6 +1354,7 @@ const EDITABLE_FIELDS = {
   title: "title", organization: "organization", description: "description", eligibility: "eligibility", cost: "cost",
   applicationSteps: "application_steps", whatToBring: "what_to_bring", website: "website", phone: "phone",
   address: "address", hours: "hours", languages: "languages", accessibility: "accessibility", serviceArea: "service_area",
+  category: "category", county: "county",
 } as const;
 const NA_FIELDS = ["phone", "website", "hours", "address", "languages", "cost", "age"] as const;
 
@@ -1363,6 +1383,13 @@ const changeSchema = z.object({
     /** Service vs guide/PDF (Y11); reviewers can re-file a listing (R13). */
     kind: z.enum(["service", "information"]).optional(),
     checkedBy: z.enum(["phone", "online"]).optional(),
+    /** Round 5: the basics are editable too — name, organization, category, and one or more regions. */
+    category: z.string().trim().min(2).max(80).optional(),
+    county: z.string().trim().min(2).max(200).transform((value, ctx) => {
+      const normalised = normaliseCounty(value);
+      if (!normalised) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Region must be one or more of: ${COUNTY_OPTIONS.join(", ")}` });
+      return normalised ?? value;
+    }).optional(),
   }).refine(value => Object.keys(value).length > 0, { message: "Nothing to change" }),
   note: z.string().trim().max(1000).optional().default(""),
 });
@@ -1577,6 +1604,28 @@ app.get("/api/partner/accounts", requirePartner, requireReviewer, asyncRoute(asy
 }));
 
 /** Issue a one-time reset link (valid 48 hours). Returned once; the reviewer sends it to the partner's email themselves. */
+/**
+ * Reviewer removes a partner's access (or restores it). The row stays, so their
+ * submissions and edits keep their audit trail; sessions and open reset links go.
+ * A reviewer cannot remove their own access.
+ */
+app.post("/api/partner/accounts/:id/access", requirePartner, requireReviewer, asyncRoute(async (req: PartnerRequest, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const { active } = z.object({ active: z.boolean() }).parse(req.body);
+  if (id === req.partner!.id) { res.status(400).json({ error: "You cannot remove your own access. Ask another reviewer." }); return; }
+  const target = (await db.execute({ sql: "SELECT id FROM partners WHERE id = ?", args: [id] })).rows[0];
+  if (!target) { res.status(404).json({ error: "Account not found" }); return; }
+  await db.batch([
+    { sql: "UPDATE partners SET active = ? WHERE id = ?", args: [active ? 1 : 0, id] },
+    ...(active ? [] : [
+      { sql: "DELETE FROM partner_sessions WHERE partner_id = ?", args: [id] },
+      { sql: "DELETE FROM partner_password_resets WHERE partner_id = ? AND used_at IS NULL", args: [id] },
+    ]),
+  ], "write");
+  console.info(active ? "Partner access restored" : "Partner access removed", { id, by: req.partner!.email });
+  res.status(204).send();
+}));
+
 app.post("/api/partner/accounts/:id/reset-link", requirePartner, requireReviewer, asyncRoute(async (req: PartnerRequest, res) => {
   const id = z.coerce.number().int().positive().parse(req.params.id);
   const target = (await db.execute({ sql: "SELECT id, email FROM partners WHERE id = ? AND active = 1", args: [id] })).rows[0];
