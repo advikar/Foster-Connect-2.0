@@ -8,7 +8,7 @@ import { toast } from "sonner";
 /**
  * Your data.
  *
- * Written to be read by a nervous 19-year-old, not a lawyer. Every claim
+ * Written for young people and community partners. Every claim
  * here has to stay true — if the storage model changes, this page changes
  * with it.
  *
@@ -39,7 +39,7 @@ export function PrivacyPage() {
     setBusy(true);
     try {
       await deleteSessionData();
-      toast.success("Deleted. Nothing of yours is left on this device.");
+      toast.success("Your session data and saved conversations have been deleted.");
       window.location.assign(import.meta.env.BASE_URL);
     } catch {
       toast.error("Couldn't delete that just now. Try again in a moment.");
@@ -51,8 +51,8 @@ export function PrivacyPage() {
     <div className="container-wide"><div className="max-w-[760px] pb-16 pt-8 lg:pt-12">
       <h1 className="text-display text-ink">Your data</h1>
       <p className="mt-3 text-[16px] leading-relaxed text-ink-soft">
-        Short version: there&apos;s no account, we never asked for your name, and you can
-        delete everything from this page in two taps.
+        You can browse without an account. This page explains how plans, preferences and
+        conversations are handled, and how to download or delete your session data.
       </p>
 
       <section className="mt-9">
@@ -65,20 +65,22 @@ export function PrivacyPage() {
           <li className="flex gap-3">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
             <span>
-              All of it is attached to a random ID kept in this browser — not to you. We can&apos;t
-              tell who you are, and we can&apos;t get your plan back if you clear your browser — unless you
-              saved it with a passcode (below), which opens the same plan on another device. The passcode is
-              never stored where anyone could read it, so it can&apos;t be reset either.
+              Plans and saved resources are stored on our server under a random session ID kept in this browser.
+              Information you enter may identify you, even without an account. If you clear your browser,
+              you may lose access unless you set a recovery passcode (below).
             </span>
           </li>
           <li className="flex gap-3">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
             <span>
-              What you type to Nova is sent to an AI company to generate a reply. Don&apos;t put
-              anything in there you wouldn&apos;t want leaving this app. The conversation itself is
-              kept only in this browser so Nova can follow the thread; &ldquo;Clear this
-              conversation&rdquo; on the Ask page or the delete button below removes it.
+              Messages to Nova are sent through our server to an AI provider to generate replies.
+              Saved conversations are kept in this browser. Deleting them here does not establish that
+              the AI provider has deleted its records. Avoid including names, addresses or other identifying details.
             </span>
+          </li>
+          <li className="flex gap-3">
+            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
+            <span>Homepage preferences are saved in this browser. Age and county filters may be sent in resource requests. Clear these choices using “Clear” in the homepage preferences; deleting session data below does not clear them.</span>
           </li>
         </ul>
       </section>
@@ -90,8 +92,9 @@ export function PrivacyPage() {
           On a library or shared computer?
         </h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
-          Closing the tab isn&apos;t enough — your plan would still be here for whoever uses this
-          computer next. Delete it below before you go. You can always start a new one.
+          Closing the tab does not remove saved access from this browser. Someone using the same
+          browser profile may be able to open your plan or conversations. Review the deletion options below
+          and clear your homepage preferences before leaving a shared computer.
         </p>
       </section>
 
@@ -108,16 +111,16 @@ export function PrivacyPage() {
         </div>
 
         <div className="rounded-md border border-crisis/25 bg-crisis-soft p-6">
-          <h2 className="font-display text-[20px] font-bold text-ink">Delete everything</h2>
+          <h2 className="font-display text-[20px] font-bold text-ink">Delete session data</h2>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            Wipes your plan, notes, and saved resources from this device and from our database.
+            Deletes your plan, notes and saved resources from our database, and removes this browser’s session ID and saved conversations. Homepage preferences are separate.
             This can&apos;t be undone.
           </p>
           {confirming ? (
             <div className="mt-4 flex flex-wrap gap-2">
               <Button onClick={remove} disabled={busy} className="h-11 rounded-md bg-crisis px-5 text-white hover:opacity-90">
                 <Trash2 className="size-4" />
-                {busy ? "Deleting" : "Yes, delete it all"}
+                {busy ? "Deleting" : "Yes, delete session data"}
               </Button>
               <Button onClick={() => setConfirming(false)} variant="outline" className="h-11 rounded-md border-rule px-5">
                 Never mind

@@ -64,40 +64,26 @@ export function AppLayout() {
   );
 }
 
-/**
- * The mark (U2, redrawn in round 2): two hands clasped into a heart, on the
- * brand circle. Built the way the reference is: a white heart silhouette,
- * the near hand's thumb outlined over the far arm's seam, three finger gaps
- * fanning to the lower right, and the far hand's knuckles scalloping the
- * lower-left edge. Strokes take the accent colour, so it follows the token.
- */
-export function Mark({ className = "size-[30px]" }: { className?: string }) {
+/** Each hand has four finger contours and a thumb forming the central clasp. */
+export function Mark({ className = "size-10" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={cn("shrink-0", className)} aria-hidden focusable="false">
-      <circle cx="16" cy="16" r="16" fill="var(--brand)" />
-      <path d={HEART} fill="#FFFFFF" />
-      {KNUCKLES.map(([cx, cy]) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="2" fill="#FFFFFF" />)}
-      <g fill="none" stroke="var(--brand)" strokeLinecap="round" strokeLinejoin="round">
-        <path d={THUMB_AND_SEAM} strokeWidth="2.2" />
-        <path d={FINGERS} strokeWidth="1.9" />
-        <path d={NOTCHES} strokeWidth="1.3" />
+    <svg viewBox="0 0 100 108" className={cn("shrink-0 text-brand", className)} aria-hidden focusable="false" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 57C-4 39 5 7 28 5C37 4 44 8 50 12C73-7 96 9 96 30C96 41 91 50 85 56" />
+      <path d="M50 12L35 27C24 37 34 46 43 38L55 27L65 22M55 27C65 38 71 40 82 35" />
+      <path d="M60 33L84 56C96 67 84 76 76 68L61 53M76 68C82 77 72 85 65 78L52 65M65 78C71 86 61 94 54 87L44 77M54 87C65 94 56 104 48 97L40 89" />
+      <g fill="var(--color-ground, #f7f6f2)">
+        <rect x="16" y="46" width="13" height="24" rx="6.5" transform="rotate(43 22.5 58)" />
+        <rect x="24" y="55" width="13" height="24" rx="6.5" transform="rotate(43 30.5 67)" />
+        <rect x="32" y="64" width="13" height="24" rx="6.5" transform="rotate(43 38.5 76)" />
+        <rect x="40" y="73" width="13" height="22" rx="6.5" transform="rotate(43 46.5 84)" />
       </g>
     </svg>
   );
 }
-/** Heart silhouette, 32×32 box. */
-const HEART = "M16 27 C 12.2 23.8, 6 19.5, 6 13.8 C 6 10.4, 8.5 8.3, 11.3 8.3 C 13.3 8.3, 15 9.4, 16 11 C 17 9.4, 18.7 8.3, 20.7 8.3 C 23.5 8.3, 26 10.4, 26 13.8 C 26 19.5, 19.8 23.8, 16 27 Z";
-/** From the right edge along the far arm's lower seam to the thumb base, up the thumb, round its tip and back down its lower edge. */
-const THUMB_AND_SEAM = "M24.6 11.5 L17.6 16.4 L14.0 12.95 C 12.85 11.85, 11.05 13.7, 12.2 14.8 L15.8 18.3";
-/** Three gaps between the near hand's four fingers, fanning toward the lower right. */
-const FINGERS = "M17.4 16.5 L19.1 22.0 M19.2 15.26 L21.4 19.1 M21.0 14.0 L23.1 16.8";
-/** The far hand's knuckles, scalloping the lower-left edge, with the notches between them. */
-const KNUCKLES: [number, number][] = [[7.6, 17.7], [9.45, 19.9], [11.3, 22.1], [13.1, 24.3]];
-const NOTCHES = "M7.58 19.57 L9.73 17.78 M9.48 21.77 L11.63 19.98 M11.28 23.97 L13.43 22.18 M13.08 26.07 L15.23 24.28";
-export function Brand({ subtitle = "Your guide to what you qualify for", to = "/" }: { subtitle?: string; to?: string }) {
+export function Brand({ subtitle = "Support for your next step", to = "/" }: { subtitle?: string; to?: string }) {
   return (
     <Link to={to} className="flex items-center gap-2.5" aria-label="Foster Guide home">
-      <Mark className="size-7 lg:size-[30px]" />
+      <Mark className="size-8 lg:size-10" />
       <span className="flex flex-col leading-none">
         <span className="font-display text-[17px] font-bold tracking-[-0.015em] text-ink lg:text-[19px]">Foster Guide</span>
         <span className="mt-0.5 hidden text-[12px] text-ink-faint sm:block">{subtitle}</span>
@@ -112,7 +98,7 @@ function TopBar() {
       <div className="container-wide flex h-14 items-center justify-between gap-3 lg:h-16">
         <Brand />
 
-        <nav aria-label="Main" className="hidden h-full items-center gap-7 lg:flex">
+        <nav aria-label="Main" className="hidden h-full items-center gap-5 lg:flex">
           {tabs.map(tab => (
             <NavLink
               key={tab.path}
@@ -131,7 +117,7 @@ function TopBar() {
         </nav>
 
         <div className="flex items-center gap-1.5 lg:gap-3">
-          <Link to="/partners" className="hidden text-[13px] text-ink-faint hover:text-ink xl:inline-flex">About &amp; partners</Link>
+          <Link to="/partners" className="hidden text-[13px] text-ink-faint hover:text-ink xl:inline-flex">Community partners</Link>
           <CrisisButton />
           <QuickExit />
         </div>
@@ -172,17 +158,17 @@ function SiteFooter() {
             <CrisisLine href="tel:18007862929" number="1-800-786-2929" label="National Runaway Safeline" />
             <CrisisLine href="tel:911" number="911" label="Immediate danger" />
           </div>
-          <p className="text-[13px] text-on-deep-soft">Free, confidential, no name needed.</p>
+          <p className="text-[13px] text-on-deep-soft">For immediate support, contact a crisis service. Each service has its own privacy practices.</p>
         </div>
       </div>
       <div className="container-wide flex flex-col gap-3 py-5 text-[14px] text-ink-faint sm:flex-row sm:items-center sm:justify-between">
         <p>
-          No account. Nothing you type is tied to your name.{" "}
+          Browse without an account.{" "}
           <Link to="/privacy" className="text-brand hover:underline">How your information is handled</Link>
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link to="/add-resource" className="text-brand hover:underline">Tell us about a program we&rsquo;re missing</Link>
-          <Link to="/partners" className="text-brand hover:underline">About &amp; partners</Link>
+          <Link to="/partners" className="text-brand hover:underline">Community partners</Link>
           {(import.meta.env.DEV || import.meta.env.VITE_PREVIEW) && <AccentToggle />}
         </div>
       </div>

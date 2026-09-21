@@ -232,3 +232,35 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Checks: frontend type-check pass; backend 73/73; local Home at 1280 shows new brand + tagline.
 - Not done by the agent (user's accounts): DNS records at the registrar, Pages custom-domain setting on advikar/foster-connect, CORS_ORIGINS value in Render dashboard (blueprint change syncs only if Render re-syncs the blueprint).
 - Ownership released: yes.
+
+## 2026-09-20 — Warm, respectful homepage and identity (Codex)
+
+- Task: approved logo/header/home search hierarchy pass; older foster youth and community partners; respectful copy without unsupported eligibility, completeness or privacy promises.
+- Owner: Codex, active in FosterConnect2.0. Existing checkout clean; previous owner released.
+- Intended files: HomePage.tsx, AboutYouCard.tsx, AppLayout.tsx, favicon.svg, index.html; focused copy/source notes in docs/UI-DIRECTION.md and TASKS.md.
+- Next checkpoint: redraw vector identity, search/category hierarchy, compact optional preferences; replace inaccurate age-21 framing using CDSS/CSAC sources; frontend checks and responsive browser review per project instructions.
+- Ownership released: no.
+- Checkpoint 1: vector handshake replaced compressed badge; homepage now search + six categories, optional collapsed preferences, explicit partner route. Fixed misleading 21 cutoff framing, unsupported completeness/AI/privacy copy, and recent-listing error state. Sources and enduring tone rules recorded in UI-DIRECTION.md.
+- Initial checks: frontend type-check, ESLint, production build passed. Desktop 1096px and phone 390px visibly reviewed; no horizontal category clipping. Local API is offline, so recent-listing failure + retry displayed correctly. Preference/search interactions and final checks next.
+- Scope adjustment: PrivacyPage.tsx copy and useAboutYou.ts comment also need correction so the linked privacy explanation agrees with the homepage. Read deleteSessionData: it removes session/chat keys, but does not clear homepage preferences; copy must not promise “nothing ... left”. No deletion behavior changes.
+- Final checkpoint: frontend type-check, focused ESLint and build passed after final copy edits; diff whitespace check clean. Browser: 1096px/390px layouts, saved 18–20 + Alameda + former-care guidance, preference clear, county-only save with no age guidance, search “bus pass” → encoded resource query. Removed test preferences. Temporary viewport reset.
+- Limitations: local API offline; successful recent listings, existing-plan states, backend/AI and partner account flows not retested. No real accounts/data changed. Under-18 ILP/document links preserved with conditional, non-guaranteed copy. Existing saved plans are not rewritten.
+- Delivery: reviewed local changes to a codex review branch, not main (main frontend pushes automatically publish). Existing GitHub Pages/Render hosting retained. No website publication in this turn.
+- Exact next action: user can review the local preview; publish the reviewed branch when requested. Ongoing source maintenance and youth/partner tone feedback remain necessary.
+- Ownership released: yes.
+- Backup status: committed locally on codex/warm-homepage-identity. Push to origin was blocked by automatic approval review: remote destination ownership/authorization for private source egress not verified. No remote synchronization or deployment occurred. Ask the user for explicit authorization before retrying that push.
+
+## 2026-09-20 — Authorized GitHub backup
+
+- Task / owner: user explicitly authorized pushing the reviewed changes; Codex. Intended file: this handoff only; checkpoint: successful push and remote tracking verification.
+- Completed: pushed implementation commit 8dc3d3c to origin/codex/warm-homepage-identity in advikar/Foster-Connect-2.0. The earlier approval blocker is resolved. No application changes or new tests; prior validation remains as recorded above.
+- This branch does not trigger the main-branch site deployment. Live site unchanged.
+- Next action: review/publish when requested. Ownership released: yes.
+
+## 2026-09-20 — Five-finger handshake correction
+
+- Task / owner: user requested five fingers in the logo and instructions for website publication; Codex.
+- Intended files: AppLayout.tsx, favicon.svg, HANDOFF.md and FC-09 status. Next checkpoint: four finger contours plus a thumb for each hand, enlarged and header-size visual check, frontend validation, push to the existing authorized review branch. Publication is not requested by the how-to question.
+- Ownership released: no.
+- Completed: each hand now has four finger contours plus its thumb; expanded the lower contour to avoid clipping, and favicon uses the same geometry. Visually inspected enlarged SVG and desktop/mobile header sizes. Frontend type-check, focused ESLint, build and whitespace checks passed. No backend changes/tests.
+- Next action: merge codex/warm-homepage-identity into main to trigger Deploy site when publication is requested. This turn updates the review branch only. Ownership released: yes.
