@@ -6,10 +6,15 @@
  *
  * Env: RESEND_API_KEY, MAIL_FROM ("Foster Guide <noreply@fosterguide.org>", a
  * domain verified in Resend), SITE_URL (https://fosterguide.org), and
- * NOTIFY_EMAIL (where new-account notices go).
+ * NOTIFY_EMAIL (where new-account notices go), and MAIL_REPLY_TO (the inbox a
+ * reply lands in; defaults to NOTIFY_EMAIL, so the FosterGuide Gmail gets replies).
  */
 export function mailConfigured() {
   return Boolean(process.env.RESEND_API_KEY && process.env.MAIL_FROM);
+}
+
+export function replyTo() {
+  return process.env.MAIL_REPLY_TO || process.env.NOTIFY_EMAIL || "";
 }
 
 export function siteUrl() {
@@ -22,7 +27,7 @@ export async function sendMail(to: string, subject: string, text: string, fetchI
     const response = await fetchImpl("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: process.env.MAIL_FROM, to: [to], subject, text }),
+      body: JSON.stringify({ from: process.env.MAIL_FROM, to: [to], subject, text, ...(replyTo() ? { reply_to: replyTo() } : {}) }),
     });
     if (!response.ok) {
       console.error("Mail provider refused the message", { status: response.status, body: (await response.text()).slice(0, 300) });
@@ -38,7 +43,7 @@ export async function sendMail(to: string, subject: string, text: string, fetchI
 export function resetEmail(link: string) {
   return {
     subject: "Reset your Foster Guide partner password",
-    text: `Someone asked to reset the password for this Foster Guide partner account.\n\nOpen this link to choose a new password (it works once and expires in 48 hours):\n${link}\n\nIf you did not ask for this, ignore this message; nothing changes.\n\nFoster Guide is a directory, not legal advice. ${siteUrl()}`,
+    text: `Someone asked to reset the password for this Foster Guide partner account.\n\nOpen this link to choose a new password (it works once and expires in 48 hours):\n${link}\n\nIf you did not ask for this, ignore this message; nothing changes. Questions: reply to this email.\n\nFoster Guide is a directory, not legal advice. ${siteUrl()}`,
   };
 }
 

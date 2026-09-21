@@ -11,6 +11,7 @@ test("mail is off without a key and every send is a quiet false", async () => {
 test("a configured send posts to Resend with the from address, and reports refusals as false", async () => {
   process.env.RESEND_API_KEY = "re_test";
   process.env.MAIL_FROM = "Foster Guide <noreply@example.org>";
+  process.env.NOTIFY_EMAIL = "inbox@example.org";
   const calls: { url: string; body: Record<string, unknown> }[] = [];
   const ok = await sendMail("a@example.org", "Subject", "Body", (async (url: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: String(url), body: JSON.parse(String(init?.body)) });
@@ -18,10 +19,10 @@ test("a configured send posts to Resend with the from address, and reports refus
   }) as typeof fetch);
   assert.equal(ok, true);
   assert.equal(calls[0].url, "https://api.resend.com/emails");
-  assert.deepEqual(calls[0].body, { from: "Foster Guide <noreply@example.org>", to: ["a@example.org"], subject: "Subject", text: "Body" });
+  assert.deepEqual(calls[0].body, { from: "Foster Guide <noreply@example.org>", to: ["a@example.org"], subject: "Subject", text: "Body", reply_to: "inbox@example.org" });
   const refused = await sendMail("a@example.org", "s", "t", (async () => new Response("nope", { status: 403 })) as typeof fetch);
   assert.equal(refused, false);
-  delete process.env.RESEND_API_KEY; delete process.env.MAIL_FROM;
+  delete process.env.RESEND_API_KEY; delete process.env.MAIL_FROM; delete process.env.NOTIFY_EMAIL;
 });
 
 test("reset and new-account emails carry the link and the account", () => {

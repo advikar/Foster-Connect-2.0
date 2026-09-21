@@ -159,7 +159,7 @@ Additive listing SQL lives in `data/updates/<date>-<name>.sql` and ends with an 
 Password-reset links and "new partner account" notices are sent through [Resend](https://resend.com) when `RESEND_API_KEY` is set; otherwise resets stay manual (a reviewer issues the link on Accounts). Setup, once:
 
 1. Create a Resend account, add the domain `fosterguide.org` and add the DNS records it shows (SPF/DKIM TXT records) at your registrar. Wait for "Verified".
-2. Create an API key (sending only). In Render → foster-connect-api → Environment set `RESEND_API_KEY`, `NOTIFY_EMAIL` (your address for new-account notices); `MAIL_FROM` and `SITE_URL` come from `render.yaml`. Redeploy.
+2. Create an API key (sending only). In Render → foster-connect-api → Environment set `RESEND_API_KEY` and `NOTIFY_EMAIL` (the FosterGuide Gmail: it receives new-account notices and, by default, every reply to a sent email). `MAIL_FROM` and `SITE_URL` come from `render.yaml`; `MAIL_REPLY_TO` only if replies should go somewhere other than `NOTIFY_EMAIL`. Redeploy.
 3. Check `GET /api/health` shows `"mailConfigured": true`, then use "Forgot your password?" on the sign-in page with your own address.
 
 Free tier is 3,000 emails a month, far more than this flow needs. Nothing about young people is ever emailed; only partner accounts have addresses.

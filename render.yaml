@@ -42,3 +42,6 @@ services:
         value: https://fosterguide.org
       - key: NOTIFY_EMAIL
         sync: false
+      # Replies to any email land here. Defaults to NOTIFY_EMAIL when empty.
+      - key: MAIL_REPLY_TO
+        sync: false
