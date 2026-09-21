@@ -301,3 +301,17 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Checks: backend 77/77; frontend tsc, eslint 0 errors, build. Browser (local, throwaway accounts 9007/9008 deleted afterwards): editor shows Category select + Region checkboxes, ticked Alameda on #426 and saved as reviewer → DB "Alameda, Contra Costa", youth `/api/resources?county=Alameda` returns it; Accounts: Remove access → warning → typed email → "access removed" + Restore access button; reviewer's own row has no Remove button.
 - Not tested: live editor against Render after deploy (route shape unchanged except new fields), Coverage county bar with the combined label.
 - Ownership released: yes (after push).
+
+## 2026-09-21 — Complete fosterguide.org audit (Codex)
+
+- Task: audit the live website and corresponding source for journeys, accessibility, content/data trust, privacy/security, SEO and operational readiness; report evidence and prioritized fixes.
+- Owner: Codex. Prior editor released ownership; checkout clean at start.
+- Intended files: docs/AUDIT-2026-09-21.md and this handoff only. No application edits or production data changes.
+- Next checkpoint: live public journeys and focused source checks, then reproducible findings and verification limits.
+- Ownership released: no.
+- Completed checkpoint: docs/AUDIT-2026-09-21.md records 20 prioritized findings (9 P1, 11 P2), reproduction evidence, remedies, coverage and explicit limits. Key live failures: text-only contacts rendered as calls; Food-only plan rejected at final step; age bands mapped to a single age; crisis modal focus remains outside; crisis SMS data conflicts with current official sources. Additional source risks: non-atomic listing edits/reset consumption, skipped documents treated as missing, misleading verification/privacy claims.
+- Checks: all 403 public listings analyzed; 64 priority provider links checked (60 HTTP 200, 3 HTTP 403, 1 connection reset; latter four inconclusive). Desktop + 390px journeys and 320px homepage observed. Live scholarship chat returned three directory cards. Synthetic Food-only plan failed before persistence; no real accounts/listings/reports altered, no calls/texts sent.
+- Local checks: backend build + 76/77 tests initially passed (integration blocked by sandbox localhost binding); isolated integration rerun with localhost permission passed, yielding 77/77 across runs. Frontend type-check/build passed; frontend tests 3 skipped, 0 active. Production dependency audits: frontend 5 affected packages, backend 3; exploitability not established. Whitespace check passed.
+- Limits: no live authenticated partner review, successful plan/PDF roundtrip, email delivery, credential/deletion changes, real screen reader, clinical review, performance score, or restore drill. Audit only; application untouched.
+- Next action: repair audit A01–A09 first in separately claimed implementation checkpoints, with independent review for safety/auth/data-integrity changes. Keep preview designation until launch checks are met.
+- Ownership released: yes. Documentation backup to a separate codex audit branch next; no deployment requested.
