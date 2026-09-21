@@ -9,6 +9,8 @@
 - Not verified: Enter-to-send on the sign-in form via the browser tool (same synthetic-Return limitation as before); live site until deployed; Turso apply of the seed SQL (see below).
 - Merge note: Codex's PR #2 (homepage identity + respectful copy, merged 2026-09-20) landed while this was in progress and covered the same "Every program" / "Turning 21 soon?" / "Three taps" items with its own hedged copy, a new mark and the header subtitle "Support for your next step" (replacing the tagline "Your guide to what you qualify for" from the morning's rebrand). Rebased onto it: Codex's HomePage/AboutYouCard kept; re-applied only the Scholarships kind, "School & training", "Health & mental health" (both categories) and the hero mention of scholarships/trade school. User to confirm which header subtitle they want.
 - Known data gap: most listings have organization = title, so "By organization" often equals A–Z until organizations are filled in.
+- Live after push: Render served `sort=organization` (200) and Turso returned both Fostering Wishes listings; Pages run 35562028199 was in progress when the session ended.
+- Ownership released: yes.
 
 ## 2026-09-15 — Nova, handshake mark, under-18 deadlines (checkpoint 4)
 
