@@ -164,6 +164,14 @@ Password-reset links and "new partner account" notices are sent through [Resend]
 
 Free tier is 3,000 emails a month, far more than this flow needs. Nothing about young people is ever emailed; only partner accounts have addresses.
 
+## Youth reports, directory search, data controls (round 4)
+
+- A report from a listing's "something is wrong" link shows on the partner Overview (Needs attention), on Coverage, and in the reviewer's Review queue. Tapping it opens the listing in the editor. A reviewer's **Mark handled** sets `resource_reports.resolved_at/resolved_by`; the row stays for the audit trail but leaves every list.
+- `/partners/resources` ("Search listings") searches title, organization, category, description, eligibility or a listing number; every result, and every listing the Staff guide cites, opens in the editor.
+- Contact address for the site is `frontend/src/lib/contact.ts` (fosterguide.contact@gmail.com): partner sidebar, partner footer, partner landing, youth footer "Contact us".
+- Youth privacy page: **Clear from this device** removes only the browser's session id and Nova chats (prompts to set a passcode first if none); **Delete everything** deletes server rows and the passcode after two confirmations and typing DELETE. **Download PDF** builds the plan and saved programs in the browser with jsPDF (loaded on demand); the JSON export remains as a small link.
+- Nova sends the person's own earlier messages from past chats on the device (`recall`, max 12 × 300 chars) so a new chat does not start from zero. Deleting past chats ends that.
+
 ## If a reviewer is locked out
 
 Run `scripts/issue-reset-link.sh <email>` from a terminal signed in to Turso. It inserts only a hash and prints a one-time link (48 hours); open it to set a new password. The password never passes through anyone else.

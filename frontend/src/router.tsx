@@ -12,6 +12,7 @@ const PartnerSubmissions = lazy(() => import("./pages/PartnerPages").then(module
 const PartnerAddResource = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerAddResource })));
 const PartnerCoverage = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerCoverage })));
 const PartnerGaps = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerGaps })));
+const PartnerDirectory = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerDirectory })));
 const PartnerReview = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerReview })));
 const PartnerGuide = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerGuide })));
 const PartnerAccounts = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerAccounts })));
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([{
     { path: "add-resource", element: page(<PartnerAddResource />) },
     { path: "coverage", element: page(<PartnerCoverage />) },
     { path: "gaps", element: page(<PartnerGaps />) },
+    { path: "resources", element: page(<PartnerDirectory />) },
     { path: "review", element: page(<PartnerReview />) },
     { path: "guide", element: page(<PartnerGuide />) },
     { path: "accounts", element: page(<PartnerAccounts />) },

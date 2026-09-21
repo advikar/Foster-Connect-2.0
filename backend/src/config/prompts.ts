@@ -47,6 +47,10 @@ RESOURCE_CONTEXT
 CURRENT_PLAN
 {{planText}}
 
+EARLIER_CHATS
+Things the person said in earlier conversations on this device (their words, possibly out of date). Use them to avoid asking again, and check quietly if something may have changed. Never quote them back as facts about programs.
+{{recallText}}
+
 Return only JSON with this exact structure:
 {
   "reply": "string",

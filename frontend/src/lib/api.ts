@@ -233,12 +233,12 @@ export function deleteTask(id: number) {
 export function sendChat(
   message: string,
   history: ChatMessageInput[],
-  context?: { county?: string; age?: number; historyToken?: string },
+  context?: { county?: string; age?: number; historyToken?: string; recall?: string[] },
 ) {
-  const { historyToken, ...rest } = context || {};
+  const { historyToken, recall, ...rest } = context || {};
   return request<ChatResponse>(
     "/api/chat",
-    { method: "POST", body: JSON.stringify({ message, history, historyToken, ...rest }) },
+    { method: "POST", body: JSON.stringify({ message, history, historyToken, recall: recall?.length ? recall : undefined, ...rest }) },
     true,
   );
 }
@@ -273,12 +273,17 @@ export function adoptSession(sessionId: string) {
   localStorage.removeItem(MAYA_CONVERSATION_KEY);
   localStorage.removeItem(MAYA_ARCHIVE_KEY);
 }
-export async function deleteSessionData() {
-  await request<void>("/api/session", { method: "DELETE" }, true);
+/** Forget this browser only: session id and Nova chats go, the plan stays on the server (a passcode brings it back). */
+export function clearDeviceData() {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(MAYA_CONVERSATION_KEY);
   localStorage.removeItem(MAYA_ARCHIVE_KEY);
   try { sessionStorage.removeItem("fc-maya-messages"); } catch { /* older key */ }
+}
+/** Delete everything: server rows (plan, notes, saved, reports, passcode) and this browser's copy. Nothing can bring it back. */
+export async function deleteSessionData() {
+  await request<void>("/api/session", { method: "DELETE" }, true);
+  clearDeviceData();
 }
 
 /* ── Partner moderation ──────────────────────────────────────────────────── */
@@ -414,6 +419,8 @@ export interface PartnerAnalytics {
   generatedAt: string;
 }
 export function fetchPartnerAnalytics() { return partnerRequest<PartnerAnalytics>("/api/partner/analytics"); }
+/** Reviewer marks a youth report handled; it leaves Needs attention and the queue. */
+export function resolveReport(id: number) { return partnerRequest<void>(`/api/partner/reports/${id}/resolve`, { method: "POST" }); }
 
 /* ── Listings behind a Coverage bar, and edits to them (P4–P7) ─────────── */
 

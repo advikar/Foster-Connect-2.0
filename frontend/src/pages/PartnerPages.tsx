@@ -3,16 +3,19 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, BookOpen, ChartNoAxesCombined, Copy, FilePlus2, Loader2, Plus, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpen, ChartNoAxesCombined, Copy, FilePlus2, Loader2, Mail, Plus, Search, ShieldCheck } from "lucide-react";
 import { usePartner } from "@/contexts/PartnerContext";
-import { askPartnerGuide, fetchMySubmissions, fetchPartnerAccounts, fetchPartnerAnalytics, issueResetLink, resetPassword, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type PartnerAccount, type ResourceItem, type Submission } from "@/lib/api";
+import { askPartnerGuide, fetchMySubmissions, fetchPartnerAccounts, fetchPartnerAnalytics, fetchPartnerResources, issueResetLink, resetPassword, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type PartnerAccount, type ResourceItem, type Submission } from "@/lib/api";
+import { ListingDrawer, type DrawerFilter } from "@/components/partners/ListingDrawer";
+import { PartnerListingButton } from "@/components/partners/ReportsPanel";
 import { Coverage, Gaps, Queue, SignIn } from "./InsightsPage";
 import { AddResourcePage } from "./AddResourcePage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Chip } from "@/components/primitives/Chip";
-import { ResourceRow, Tag } from "@/components/resources/ResourceRow";
+import { Tag } from "@/components/resources/ResourceRow";
 import { cn } from "@/lib/utils";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 export function Heading({ eyebrow, title, children, action }: { eyebrow: string; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
@@ -75,9 +78,10 @@ function OverviewBody({ reviewer }: { reviewer?: boolean }) {
   const myPublished = mine.data?.filter(item => item.status === "approved").length ?? 0;
   const myPending = mine.data?.filter(item => item.status === "pending").length ?? 0;
   const reports = analytics.data?.reports ?? [];
+  const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
   const attention = [
-    ...(mine.data ?? []).filter(item => item.status === "pending").slice(0, 3).map(item => ({ key: `s${item.id}`, title: item.title, detail: `Submitted by you · ${ago(item.created_at)}`, status: "pending" as const, to: "/partners/submissions" })),
-    ...reports.slice(0, 3).map(report => ({ key: `r${report.id}`, title: report.title, detail: `Youth report: “${report.reason.slice(0, 80)}${report.reason.length > 80 ? "…" : ""}” · ${ago(report.created_at)}`, status: "report" as const, to: "/partners/coverage#reports" })),
+    ...(mine.data ?? []).filter(item => item.status === "pending").slice(0, 3).map(item => ({ key: `s${item.id}`, title: item.title, detail: `Submitted by you · ${ago(item.created_at)}`, status: "pending" as const, to: "/partners/submissions", open: undefined as (() => void) | undefined })),
+    ...reports.slice(0, 5).map(report => ({ key: `r${report.id}`, title: report.title, detail: `Youth report: “${report.reason.slice(0, 80)}${report.reason.length > 80 ? "…" : ""}” · ${ago(report.created_at)} · tap to open and edit`, status: "report" as const, to: "/partners/review", open: () => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id }) })),
   ];
 
   return (
@@ -100,7 +104,9 @@ function OverviewBody({ reviewer }: { reviewer?: boolean }) {
             <ul className="mt-3 divide-y divide-rule border-t border-rule">
               {attention.map(item => (
                 <li key={item.key} className="row-hover -mx-2 flex items-center justify-between gap-4 rounded px-2 py-3.5">
-                  <Link to={item.to} className="min-w-0"><p className="truncate font-semibold text-ink">{item.title}</p><p className="text-[13px] text-ink-faint">{item.detail}</p></Link>
+                  {item.open
+                    ? <button type="button" onClick={item.open} className="min-w-0 text-left"><p className="truncate font-semibold text-ink">{item.title}</p><p className="text-[13px] text-ink-faint">{item.detail}</p></button>
+                    : <Link to={item.to} className="min-w-0"><p className="truncate font-semibold text-ink">{item.title}</p><p className="text-[13px] text-ink-faint">{item.detail}</p></Link>}
                   {item.status === "pending" ? <StatusTag status="pending" /> : <Tag tone="rust">Needs re-check</Tag>}
                 </li>
               ))}
@@ -116,9 +122,83 @@ function OverviewBody({ reviewer }: { reviewer?: boolean }) {
             ))}
           </ol>
           <Link to="/partners/add-resource" className="mt-1 inline-flex min-h-11 items-center gap-2 self-start rounded-md border border-ink px-4 text-[15px] font-semibold text-ink hover:bg-surface"><Plus className="size-4" /> Add a resource</Link>
+          <Link to="/partners/resources" className="inline-flex min-h-11 items-center gap-2 self-start text-[15px] font-semibold text-brand hover:underline"><Search className="size-4" /> Search and edit listings</Link>
         </aside>
       </div>
+      <ListingDrawer filter={drawer} onClose={() => setDrawer(null)} />
     </>
+  );
+}
+
+/** Directory (round 4): search every published listing and open it in the editor. */
+export function PartnerDirectory() {
+  return (
+    <div className="flex flex-col gap-8">
+      <Heading eyebrow="Directory" title="Search and edit listings">
+        Every published listing, searchable by name, organization, category, description or listing number. Open one to correct it: reviewers&rsquo; edits go live, contributors&rsquo; edits go to the review queue.
+      </Heading>
+      <Access><Directory /></Access>
+    </div>
+  );
+}
+
+const DIRECTORY_COUNTIES = ["", "Alameda", "Contra Costa", "Bay Area", "California", "National"];
+
+function Directory() {
+  const [params, setParams] = useSearchParams();
+  const q = params.get("q") ?? "";
+  const county = params.get("county") ?? "";
+  const [typed, setTyped] = useState(q);
+  const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
+  const active = q.trim().length > 0 || county !== "";
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["partner-directory", q, county],
+    queryFn: () => fetchPartnerResources({ q: q.trim() || undefined, county: county || undefined, limit: 300 }),
+    enabled: active,
+  });
+  const apply = (nextQ: string, nextCounty = county) => {
+    const next = new URLSearchParams();
+    if (nextQ.trim()) next.set("q", nextQ.trim());
+    if (nextCounty) next.set("county", nextCounty);
+    setParams(next, { replace: true });
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <form onSubmit={event => { event.preventDefault(); apply(typed); }} className="flex flex-col gap-3">
+        <label htmlFor="directory-q" className="text-[13px] font-semibold text-ink-soft">Search listings</label>
+        <div className="flex flex-wrap gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
+            <Input id="directory-q" value={typed} onChange={event => setTyped(event.target.value)} placeholder="Program name, organization, “trade school”, or a listing number" className="h-12 rounded-md border-rule bg-surface pl-10 text-[15px]" />
+          </div>
+          <Button type="submit" className="h-12 rounded-md bg-brand px-5 font-semibold text-white hover:bg-brand-deep">Search</Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {DIRECTORY_COUNTIES.map(option => (
+            <Chip key={option || "all"} selected={county === option} onClick={() => apply(typed, option)}>{option || "Any region"}</Chip>
+          ))}
+        </div>
+      </form>
+
+      {!active ? (
+        <p className="rounded-md border border-dashed border-rule p-6 text-[15px] text-ink-soft">Type a word or two, or pick a region, to list matching listings. Tap a result to open it in the editor.</p>
+      ) : isPending ? (
+        <p className="flex items-center gap-2 text-ink-soft"><Loader2 className="size-4 animate-spin" /> Searching…</p>
+      ) : isError ? (
+        <p role="alert" className="text-crisis">Could not search just now. Try again in a moment.</p>
+      ) : !data?.length ? (
+        <p className="rounded-md border border-dashed border-rule p-6 text-[15px] text-ink-soft">No published listing matches that. If the program should be here, <Link to="/partners/add-resource" className="text-brand hover:underline">add it</Link>.</p>
+      ) : (
+        <div>
+          <p className="text-[13px] text-ink-faint">{data.length} {data.length === 1 ? "listing" : "listings"}{data.length >= 300 ? " (showing the first 300, narrow the search)" : ""}. Tap one to edit.</p>
+          <ul className="mt-2 divide-y divide-rule border-t border-rule">
+            {data.map(resource => <li key={resource.id}><PartnerListingButton resource={resource} onOpen={item => setDrawer({ title: item.title, detail: `${item.organization} · ${item.county}`, resourceId: item.id })} /></li>)}
+          </ul>
+        </div>
+      )}
+      <ListingDrawer filter={drawer} onClose={() => setDrawer(null)} />
+    </div>
   );
 }
 
@@ -283,6 +363,7 @@ function Guide() {
   const [thread, setThread] = useState<GuideThread>(loadGuideThread);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const started = thread.turns.length > 0;
@@ -329,9 +410,9 @@ function Guide() {
                   {turn.content}
                   {turn.resources && turn.resources.length > 0 && (
                     <div className="mt-4 border-t border-rule pt-3">
-                      <p className="text-eyebrow text-ink-faint">From the directory</p>
+                      <p className="text-eyebrow text-ink-faint">From the directory · tap to edit</p>
                       <div className="divide-y divide-rule">
-                        {turn.resources.map(resource => <ResourceRow key={resource.id} resource={resource} dense />)}
+                        {turn.resources.map(resource => <PartnerListingButton key={resource.id} resource={resource} onOpen={item => setDrawer({ title: item.title, detail: `${item.organization} · ${item.county}`, resourceId: item.id })} />)}
                       </div>
                     </div>
                   )}
@@ -376,6 +457,7 @@ function Guide() {
         <p className="font-semibold text-ink">How this differs from Nova</p>
         <p className="mt-1.5">Nova talks to young people and only answers from published listings. This guide is for staff. It remembers this thread while you are signed in on this tab, and forgets it when you sign out or start over.</p>
       </aside>
+      <ListingDrawer filter={drawer} onClose={() => setDrawer(null)} />
     </div>
   );
 }
@@ -468,6 +550,14 @@ export function PartnerLanding() {
         </p>
         <Link to="/partners/sign-in?as=reviewer" className="mt-3 inline-flex min-h-10 items-center text-[14px] font-semibold text-brand hover:underline">Reviewer sign-in →</Link>
       </section>
+
+      <section id="contact" className="max-w-[720px] rounded-md border border-rule bg-surface p-6">
+        <h2 className="inline-flex items-center gap-2 font-display text-[22px] font-bold text-ink"><Mail className="size-5 text-brand" /> Contact</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
+          Questions about a listing, a correction, a program you run, or partnering with Foster Guide: write to us and a person will reply.
+        </p>
+        <a href={`mailto:${CONTACT_EMAIL}`} className="mt-3 inline-flex min-h-10 items-center break-all text-[15px] font-semibold text-brand hover:underline">{CONTACT_EMAIL}</a>
+      </section>
     </div>
   );
 }
@@ -475,8 +565,8 @@ export function PartnerLanding() {
 
 /**
  * Accounts (A2), reviewers only: who has registered, and password resets.
- * There is no mail provider, so the reviewer copies the one-time link and sends
- * it to the partner's address themselves.
+ * When email is configured the partner gets the link themselves; the reviewer
+ * can also copy a one-time link here and send it by hand.
  */
 export function PartnerAccounts() {
   return (

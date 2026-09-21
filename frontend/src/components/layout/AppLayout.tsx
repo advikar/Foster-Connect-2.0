@@ -5,6 +5,7 @@ import { Bookmark, Home, ListChecks, MessageCircle, Search } from "lucide-react"
 import { NovaProvider } from "@/contexts/NovaContext";
 import { CrisisButton } from "@/components/safety/CrisisBar";
 import { cn } from "@/lib/utils";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 const tabs = [
   { path: "/", label: "Home", icon: Home },
@@ -117,7 +118,7 @@ function TopBar() {
         </nav>
 
         <div className="flex items-center gap-1.5 lg:gap-3">
-          <Link to="/partners" className="hidden text-[13px] text-ink-faint hover:text-ink xl:inline-flex">Community partners</Link>
+          <Link to="/partners" className="hidden whitespace-nowrap text-[13px] text-ink-faint hover:text-ink md:inline-flex">Community partners</Link>
           <CrisisButton />
         </div>
       </div>
@@ -173,6 +174,7 @@ function SiteFooter() {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link to="/add-resource" className="text-brand hover:underline">Tell us about a program we&rsquo;re missing</Link>
           <Link to="/partners" className="text-brand hover:underline">Community partners</Link>
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand hover:underline">Contact us</a>
           {(import.meta.env.DEV || import.meta.env.VITE_PREVIEW) && <AccentToggle />}
         </div>
       </div>

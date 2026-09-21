@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  generateGroundedRoadmap, groundRoadmapDraft, getNavigatorResponse, getPartnerGuideResponse,
+  generateGroundedRoadmap, groundRoadmapDraft, getNavigatorResponse, getPartnerGuideResponse, recallToContext,
   type GroundedResource, type RoadmapInput, type RoadmapDraft,
 } from "./ai.service";
 
@@ -344,3 +344,11 @@ test("plan suggestions are empty when the model returns none", withProvider(
     assert.deepEqual(result.planSuggestions, []);
   },
 ));
+
+test("recall context lists the person's own earlier words and caps the count", () => {
+  assert.equal(recallToContext([]), "(none)");
+  const lines = recallToContext(["  I'm in   Alameda ", ...Array.from({ length: 15 }, (_, i) => `msg ${i}`)]).split("\n");
+  assert.equal(lines.length, 12);
+  assert.ok(!lines.join("\n").includes("Alameda"), "oldest lines drop first");
+  assert.equal(recallToContext(["a  b"]), '- "a b"');
+});

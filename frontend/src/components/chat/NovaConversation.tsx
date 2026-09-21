@@ -53,6 +53,16 @@ function saveArchive(items: ArchivedConversation[]) {
     else window.localStorage.removeItem(MAYA_ARCHIVE_KEY);
   } catch { /* fine */ }
 }
+/** The person's messages (never Nova's) from archived chats, most recent 12, oldest first. */
+function recallFrom(archive: ArchivedConversation[]): string[] {
+  const lines: string[] = [];
+  for (const item of [...archive].reverse()) {
+    for (const message of item.messages) {
+      if (message.role === "user" && message.content.trim()) lines.push(message.content.trim().slice(0, 300));
+    }
+  }
+  return lines.slice(-12);
+}
 function titleOf(conversation: StoredConversation) {
   const first = conversation.messages.find(message => message.role === "user")?.content ?? "Chat";
   return first.length > 60 ? `${first.slice(0, 57)}…` : first;
@@ -139,7 +149,9 @@ export function NovaConversation({ className }: { className?: string }) {
     setInput("");
     setLoading(true);
     try {
-      const response = await sendChat(message, history, { historyToken });
+      // Their own words from past chats on this device, oldest first, so Nova
+      // does not start from zero after "New chat". Cleared with the past chats.
+      const response = await sendChat(message, history, { historyToken, recall: recallFrom(archive) });
       setConversation(previous => ({
         messages: [
           ...previous.messages,
@@ -268,7 +280,7 @@ export function NovaConversation({ className }: { className?: string }) {
             ))}
           </ul>
           {confirming === "past" ? (
-            <p className="mt-2 flex flex-wrap items-center gap-3 text-[13px]"><span className="text-ink-soft">Delete all past chats? Nova will forget everything in them.</span><button type="button" onClick={forgetPast} className="font-semibold text-crisis hover:underline">Yes, delete them</button><button type="button" onClick={() => setConfirming(null)} className="text-ink-soft hover:underline">Keep them</button></p>
+            <p className="mt-2 flex flex-wrap items-center gap-3 text-[13px]"><span className="text-ink-soft">Delete all past chats? Nova will forget everything in them, including what you told it there.</span><button type="button" onClick={forgetPast} className="font-semibold text-crisis hover:underline">Yes, delete them</button><button type="button" onClick={() => setConfirming(null)} className="text-ink-soft hover:underline">Keep them</button></p>
           ) : (
             <button type="button" onClick={() => setConfirming("past")} className="mt-2 text-[13px] text-ink-faint hover:text-crisis hover:underline">Delete all past chats</button>
           )}

@@ -13,7 +13,7 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
   const db = createClient({ url: `file:${dbPath}` });
   // The columns the partner analytics endpoint reads; the real table comes from the import script.
   await db.execute(`CREATE TABLE resources(id INTEGER PRIMARY KEY, title TEXT, organization TEXT, category TEXT, county TEXT,
-    cost TEXT DEFAULT '', phone TEXT, website TEXT, hours TEXT, address TEXT, languages TEXT, source_url TEXT,
+    cost TEXT DEFAULT '', description TEXT DEFAULT '', eligibility TEXT DEFAULT '', phone TEXT, website TEXT, hours TEXT, address TEXT, languages TEXT, source_url TEXT,
     age_min INTEGER, age_max INTEGER, is_crisis INTEGER DEFAULT 0, verified_at TEXT, status TEXT DEFAULT 'verified')`);
   const child = spawn(process.execPath, [path.resolve(__dirname, "../server.js")], {
     env: { ...process.env, PORT: "4497", HOST: "127.0.0.1", NODE_ENV: "test", DB_PATH: dbPath, DATABASE_URL: "", DATABASE_AUTH_TOKEN: "", LLM_API_KEY: "" },
@@ -54,6 +54,21 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     assert.equal(Number(stats.pipeline.pending), 0);
     assert.ok(Array.isArray(stats.byCategory) && Array.isArray(stats.reports));
     assert.ok(stats.freshness && stats.completeness);
+    // Round 4: youth reports can be resolved by a reviewer only, and disappear from analytics once resolved.
+    await db.execute("INSERT INTO resources(id,title,organization,category,county,verified_at) VALUES (900,'Duffel bag program','Test org','Basic Needs','Alameda','2026-09-01')");
+    await db.execute("INSERT INTO resource_reports(resource_id,session_id,reason) VALUES (900,'test-session','Phone number is wrong')");
+    const withReport = await (await request("/analytics", 3)).json() as { reports: { id: number }[] };
+    assert.equal(withReport.reports.length, 1);
+    assert.equal((await request(`/reports/${withReport.reports[0].id}/resolve`, 1, "POST")).status, 403);
+    assert.equal((await request(`/reports/${withReport.reports[0].id}/resolve`, 3, "POST")).status, 204);
+    assert.equal((await request(`/reports/${withReport.reports[0].id}/resolve`, 3, "POST")).status, 404);
+    const afterResolve = await (await request("/analytics", 3)).json() as { reports: unknown[] };
+    assert.equal(afterResolve.reports.length, 0);
+    // Partner directory search matches category text and ids, not only titles.
+    const byCategory = await (await request("/resources?q=basic%20needs", 1)).json() as { id: number }[];
+    assert.ok(byCategory.some(item => item.id === 900));
+    const byId = await (await request("/resources?q=900", 1)).json() as { id: number }[];
+    assert.ok(byId.some(item => item.id === 900));
     // Accounts and password reset (A1/A2)
     assert.equal((await request("/accounts", 1)).status, 403);
     const accounts = await request("/accounts", 3);

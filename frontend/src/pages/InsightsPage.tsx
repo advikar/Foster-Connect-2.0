@@ -7,6 +7,8 @@ import {
   type ApprovalDetail, type PartnerIdentity, type ResourceChange, type Submission,
 } from "@/lib/api";
 import { ListingDrawer, type DrawerFilter } from "@/components/partners/ListingDrawer";
+import { ReportsPanel } from "@/components/partners/ReportsPanel";
+import { usePartner } from "@/contexts/PartnerContext";
 import { describeChecked } from "@/lib/checked";
 import { Stat, ago } from "./PartnerPages";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,8 @@ import { toast } from "sonner";
  * Every number describes listings, never open beds or eligibility.
  */
 export function Coverage() {
+  const { partner } = usePartner();
+  const reviewer = partner?.role === "reviewer";
   const { data, isPending, isError, refetch } = useQuery({ queryKey: ["partner-analytics"], queryFn: fetchPartnerAnalytics, retry: 1 });
   // Multi-select regions (P4): empty = all.
   const [selected, setSelected] = useState<string[]>([]);
@@ -153,19 +157,8 @@ export function Coverage() {
 
         <section id="reports">
           <h2 className="font-display text-[22px] font-bold text-ink">Flagged by young people</h2>
-          <p className="mt-1 text-[14px] text-ink-faint">Reports sent from a listing&rsquo;s &ldquo;something is wrong&rdquo; link. Treat the text as a lead, not a verified fact.</p>
-          {data.reports.length === 0 ? (
-            <p className="mt-3 rounded-md border border-dashed border-rule p-5 text-[14px] text-ink-soft">No reports yet.</p>
-          ) : (
-            <ul className="mt-3 divide-y divide-rule border-t border-rule">
-              {data.reports.map(report => (
-                <li key={report.id} className="py-3">
-                  <div className="flex items-baseline justify-between gap-3"><p className="truncate text-[15px] font-semibold text-ink">{report.title}</p><span className="text-stamp shrink-0">{ago(report.created_at)}</span></div>
-                  <p className="mt-1 text-[14px] text-ink-soft">&ldquo;{report.reason}&rdquo;</p>
-                </li>
-              ))}
-            </ul>
-          )}
+          <p className="mt-1 text-[14px] text-ink-faint">Reports sent from a listing&rsquo;s &ldquo;something is wrong&rdquo; link. Treat the text as a lead, not a verified fact. Open the listing to re-check and correct it.</p>
+          <ReportsPanel reports={data.reports} reviewer={reviewer} onOpen={report => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id })} />
         </section>
       </div>
 
@@ -455,6 +448,10 @@ export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
     queryFn: fetchSubmissions,
     retry: 1,
   });
+  // Youth reports belong in the queue too: they are work waiting on a reviewer.
+  const analytics = useQuery({ queryKey: ["partner-analytics"], queryFn: fetchPartnerAnalytics, retry: 1 });
+  const reports = analytics.data?.reports ?? [];
+  const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
 
   if (isPending) {
     return <div className="rounded-md border border-rule bg-surface p-10 text-center text-ink-soft">Loading the queue…</div>;
@@ -474,8 +471,16 @@ export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
   return (
     <div>
       <h2 className="font-display text-[22px] font-bold text-ink">
-        {pending.length} waiting on you
+        {pending.length + reports.length} waiting on you
       </h2>
+      <p className="mt-1 text-[14px] text-ink-faint">{pending.length} new {pending.length === 1 ? "listing" : "listings"} · {reports.length} {reports.length === 1 ? "report" : "reports"} from young people · proposed edits below</p>
+
+      <section className="mt-8">
+        <h3 className="font-display text-[20px] font-bold text-ink">Flagged by young people</h3>
+        <ReportsPanel reports={reports} reviewer onOpen={report => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id })} />
+      </section>
+
+      <h3 className="mt-10 font-display text-[20px] font-bold text-ink">New listings</h3>
 
       {pending.length === 0 ? (
         <p className="mt-4 rounded-md border border-dashed border-rule bg-surface p-10 text-center text-[14.5px] text-ink-soft">
@@ -490,6 +495,7 @@ export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
       )}
 
       <ChangeQueue />
+      <ListingDrawer filter={drawer} onClose={() => setDrawer(null)} />
 
       {reviewed.length > 0 && (
         <section className="mt-12">

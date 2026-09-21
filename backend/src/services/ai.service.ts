@@ -74,6 +74,13 @@ const navigatorResponseSchema = z.object({
   planSuggestions: z.array(planSuggestionSchema).max(4).default([]),
 });
 
+/** What the person said in earlier chats on this device — their words only, so it can inform but never be cited as a source. */
+export function recallToContext(recall: string[]) {
+  const lines = recall.map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean).slice(-12);
+  if (!lines.length) return "(none)";
+  return lines.map(line => `- "${line}"`).join("\n");
+}
+
 function planToContext(plan?: PlanContext | null) {
   if (!plan) return "no plan yet — the person can start one from My plan; you may still suggest \"add\" steps.";
   if (!plan.tasks.length) return "a plan with no steps yet.";
@@ -255,12 +262,14 @@ export async function getNavigatorResponse(
   history: HistoryMessage[],
   resources: GroundedResource[],
   plan?: PlanContext | null,
+  recall: string[] = [],
 ) {
   if (!hasValidApiKey()) throw new Error("AI service is not configured");
   const allowed = new Set(resources.map(resource => resource.id));
   const systemPrompt = SYSTEM_PROMPTS.NAVIGATOR
     .replace("{{contextText}}", resourcesToContext(resources))
-    .replace("{{planText}}", planToContext(plan));
+    .replace("{{planText}}", planToContext(plan))
+    .replace("{{recallText}}", recallToContext(recall));
   const result = await callLLM(
     [
       { role: "system", content: systemPrompt },

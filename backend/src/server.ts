@@ -619,6 +619,9 @@ async function initDb() {
     // and an optional date after which it should be checked again (a summer scholarship, a pilot).
     ["resources", "fields_na", "TEXT NOT NULL DEFAULT '[]'"],
     ["resources", "recheck_at", "TEXT"],
+    // Round 4: a reviewer marks a youth report handled once the listing was re-checked or fixed.
+    ["resource_reports", "resolved_at", "TEXT"],
+    ["resource_reports", "resolved_by", "TEXT"],
   ]) {
     const columns = await db.execute(`PRAGMA table_info(${table})`);
     if (!columns.rows.some(row => row.name === column)) {
@@ -779,6 +782,12 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
      * source rules. See services/grounding.ts.
      */
     historyToken: z.string().max(200).optional(),
+    /**
+     * The person's own earlier messages from past chats kept on their device
+     * (never Nova's replies, which could be forged). Lets Nova recall what they
+     * said last week until they clear those chats.
+     */
+    recall: z.array(z.string().trim().min(1).max(300)).max(12).default([]),
   }).parse(req.body);
 
   const assessment = assessSafety(input.message);
@@ -809,7 +818,7 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
   try {
     const grounded = await groundedForConversation(input.message, history, { county: input.county, age: input.age });
     const plan = await currentPlanFor(req.sessionId!);
-    const result = await getNavigatorResponse(input.message, history.map(({ role, content }) => ({ role, content })) as HistoryMessage[], grounded, plan);
+    const result = await getNavigatorResponse(input.message, history.map(({ role, content }) => ({ role, content })) as HistoryMessage[], grounded, plan, input.recall);
 
     // Resource IDs were already filtered. This checks the prose itself: any
     // phone number or link the model invented is removed before it is shown.
@@ -1249,7 +1258,8 @@ app.get("/api/partner/analytics", requirePartner, asyncRoute(async (_req, res) =
       FROM resource_submissions`),
     db.execute(`SELECT rr.id, rr.resource_id, r.title, r.organization, rr.reason, rr.created_at
       FROM resource_reports rr JOIN resources r ON r.id = rr.resource_id
-      ORDER BY rr.created_at DESC LIMIT 20`),
+      WHERE rr.resolved_at IS NULL
+      ORDER BY rr.created_at DESC LIMIT 50`),
     db.execute(`SELECT COUNT(*) AS count FROM resource_submissions WHERE status='approved' AND date(reviewed_at) >= date('now','-30 days')`),
   ]);
   const pendingChanges = await db.execute("SELECT COUNT(*) AS count FROM resource_changes WHERE status='pending'");
@@ -1296,9 +1306,21 @@ app.get("/api/partner/resources", requirePartner, asyncRoute(async (req, res) =>
   if (counties.length) { filters.shift(); filters.shift(); filters.unshift("r.status = 'verified'"); filters.push(`r.county IN (${counties.map(() => "?").join(",")})`); args.splice(0, counties.length); args.push(...counties); }
   if (query.missing) filters.push(MISSING_FILTERS[query.missing]);
   if (query.stale) filters.push(STALE_FILTER);
-  if (query.q) { filters.push("(lower(r.title) LIKE ? OR lower(r.organization) LIKE ?)"); const like = `%${query.q.toLowerCase()}%`; args.push(like, like); }
+  if (query.q) {
+    // Title, organization, category, description and eligibility — a reviewer looking for "duffel" or "trade school" finds it.
+    filters.push("(lower(r.title) LIKE ? OR lower(r.organization) LIKE ? OR lower(r.category) LIKE ? OR lower(r.description) LIKE ? OR lower(r.eligibility) LIKE ? OR CAST(r.id AS TEXT) = ?)");
+    const like = `%${query.q.trim().toLowerCase()}%`; args.push(like, like, like, like, like, query.q.trim());
+  }
   const result = await db.execute({ sql: `SELECT r.* FROM resources r WHERE ${filters.join(" AND ")} ORDER BY r.title ASC LIMIT ?`, args: [...args, query.limit] });
   res.json(result.rows.map(mapResource));
+}));
+
+/** Reviewer marks a youth report handled (listing re-checked or corrected). The row is kept for the audit trail. */
+app.post("/api/partner/reports/:id/resolve", requirePartner, requireReviewer, asyncRoute(async (req: PartnerRequest, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const result = await db.execute({ sql: "UPDATE resource_reports SET resolved_at = CURRENT_TIMESTAMP, resolved_by = ? WHERE id = ? AND resolved_at IS NULL", args: [req.partner!.email, id] });
+  if (!result.rowsAffected) { res.status(404).json({ error: "That report was not found or is already resolved." }); return; }
+  res.status(204).send();
 }));
 
 app.get("/api/partner/resources/:id", requirePartner, asyncRoute(async (req, res) => {

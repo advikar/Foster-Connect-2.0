@@ -1,14 +1,16 @@
 import { useEffect, useRef } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, ChartNoAxesCombined, FilePlus2, Inbox, LayoutGrid, ListChecks, ShieldCheck, UserRound, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, ChartNoAxesCombined, FilePlus2, Inbox, LayoutGrid, ListChecks, Mail, Search, ShieldCheck, UserRound, Users } from "lucide-react";
 import { PartnerProvider, usePartner } from "@/contexts/PartnerContext";
 import { Brand } from "./AppLayout";
 import { cn } from "@/lib/utils";
+import { CONTACT_EMAIL } from "@/lib/contact";
 
 const links = [
   { to: "/partners/overview", label: "Overview", icon: LayoutGrid },
   { to: "/partners/submissions", label: "My submissions", icon: Inbox },
   { to: "/partners/add-resource", label: "Add a resource", icon: FilePlus2 },
+  { to: "/partners/resources", label: "Search listings", icon: Search },
   { to: "/partners/coverage", label: "Coverage", icon: ChartNoAxesCombined },
   { to: "/partners/gaps", label: "Fill the gaps", icon: ListChecks },
   { to: "/partners/guide", label: "Staff guide", icon: BookOpen },
@@ -81,14 +83,21 @@ function Shell() {
                 <SideLink to="/partners/accounts" label="Accounts" icon={Users} />
               </>
             )}
-            <p className="mt-auto px-3 pt-6 text-[12px] leading-relaxed text-ink-faint">Youth plans, chats and saved lists are never visible here.</p>
+            <div className="mt-auto px-3 pt-6 text-[12px] leading-relaxed text-ink-faint">
+              <p className="inline-flex items-center gap-1.5 font-semibold text-ink-soft"><Mail className="size-3.5" /> Contact</p>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="mt-0.5 block break-all text-brand hover:underline">{CONTACT_EMAIL}</a>
+              <p className="mt-3">Youth plans, chats and saved lists are never visible here.</p>
+            </div>
           </aside>
         </>
       )}
 
       <main ref={main} tabIndex={-1} id="partner-main" className={cn("min-w-0 px-5 py-8 outline-none", workspace ? "lg:max-w-[1088px] lg:px-12 lg:py-10" : "mx-auto w-full max-w-[1088px] lg:px-12 lg:py-10")}>
         <Outlet />
-        <p className="mt-12 max-w-[720px] border-t border-rule pt-4 text-[12px] leading-relaxed text-ink-faint">Foster Guide is a directory, not legal advice. Nobody on the team is an attorney; listings are checked against public information. Verify details with the program before acting on them.</p>
+        <div className="mt-12 max-w-[720px] border-t border-rule pt-4 text-[12px] leading-relaxed text-ink-faint">
+          <p>Foster Guide is a directory, not legal advice. Nobody on the team is an attorney; listings are checked against public information. Verify details with the program before acting on them.</p>
+          <p className="mt-2">Questions, corrections or partnership ideas: <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand hover:underline">{CONTACT_EMAIL}</a></p>
+        </div>
       </main>
     </div>
   );

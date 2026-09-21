@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ChevronDown, Loader2, PencilLine, Phone, Plus } from "lucide-react";
+import { ChevronDown, FileText, Loader2, PencilLine, Phone, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StepCard } from "@/components/primitives/StepCard";
 import { PasscodeCard } from "@/components/safety/PasscodeCard";
@@ -281,7 +281,8 @@ function JourneyPlan({ roadmap, onNew }: { roadmap: Roadmap; onNew: () => void }
           <p>This plan is kept for this browser only unless you save it with a passcode. Clearing your browser data removes it here.</p>
           <div className="mt-1 flex flex-wrap gap-4">
             <button type="button" onClick={onNew} className="inline-flex min-h-9 items-center gap-1 text-brand hover:underline"><PencilLine className="size-3.5" /> Start a new plan</button>
-            <Link to="/privacy" className="inline-flex min-h-9 items-center text-brand hover:underline">Download or delete my data</Link>
+            <button type="button" onClick={() => { void import("@/lib/planPdf").then(module => module.downloadPlanPdf(roadmap)).catch(() => toast.error("Couldn't build the PDF just now.")); }} className="inline-flex min-h-9 items-center gap-1 text-brand hover:underline"><FileText className="size-3.5" /> Download this plan (PDF)</button>
+            <Link to="/privacy" className="inline-flex min-h-9 items-center text-brand hover:underline">Clear or delete my data</Link>
           </div>
         </div>
       </aside>
