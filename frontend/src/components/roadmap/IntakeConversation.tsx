@@ -24,12 +24,12 @@ const NEEDS = [
   "Healthcare", "Mental Health", "Food Assistance", "Transportation",
 ];
 const NEED_LABELS: Record<string, string> = {
-  Housing: "Nowhere stable to stay",
+  Housing: "Need a place to stay",
   "Financial Support": "Money's tight",
   Education: "School or training",
   Employment: "Work",
-  Healthcare: "Health stuff",
-  "Mental Health": "Someone to talk to",
+  Healthcare: "Health care",
+  "Mental Health": "Mental health / someone to talk to",
   "Food Assistance": "Food",
   Transportation: "Getting around",
 };
@@ -43,16 +43,16 @@ const HOUSING: { id: HousingStatus; label: string }[] = [
   { id: "unstable", label: "It changes a lot" },
 ];
 
-const DOCUMENTS: { id: DocumentId; label: string }[] = [
-  { id: "state_id", label: "State ID or license" },
-  { id: "birth_certificate", label: "Birth certificate" },
-  { id: "ssn_card", label: "Social Security card" },
-  { id: "bank_account", label: "Bank account" },
-  { id: "phone_plan", label: "Phone plan in my name" },
+const DOCUMENTS: { id: DocumentId; label: string; detail: string }[] = [
+  { id: "state_id", label: "State ID or license", detail: "A California ID card or driver's license that hasn't expired." },
+  { id: "birth_certificate", label: "Birth certificate", detail: "The official (certified) copy from the county or state where you were born, not a photo of it. If you're in care, your worker is supposed to help you get one." },
+  { id: "ssn_card", label: "Social Security card", detail: "The paper card itself. Replacements are free from the Social Security office." },
+  { id: "bank_account", label: "Bank account", detail: "A checking or savings account in your own name." },
+  { id: "phone_plan", label: "Phone plan in my name", detail: "A phone number you'll still have next month, so programs can reach you." },
 ];
 
 const DEADLINES = [
-  "Turning 21 / aging out", "A court date", "A school deadline", "My lease ending",
+  "Extended Foster Care ending", "A court date", "A school deadline", "My lease ending",
 ];
 
 const COUNTIES: RoadmapIntake["county"][] = ["Alameda", "Contra Costa", "Bay Area", "California", "National"];
@@ -141,7 +141,7 @@ export function IntakeConversation({
     },
     {
       question: "Which of these do you have?",
-      hint: "Almost every program asks for these. Whatever you're missing, I'll put getting it early in the plan.",
+      hint: "Most programs ask for one or more of these. Whatever you're missing, I'll put getting it early in the plan.",
       valid: true,
       body: (
         <div className="space-y-2">
@@ -153,7 +153,7 @@ export function IntakeConversation({
                 type="button"
                 aria-pressed={has}
                 onClick={() => set("documents", toggle(answers.documents, document.id))}
-                className={`flex min-h-[52px] w-full items-center gap-3 rounded-md border px-4 text-left text-[16px] font-medium transition-colors ${
+                className={`flex min-h-[52px] w-full items-center gap-3 rounded-md border px-4 py-2.5 text-left text-[16px] font-medium transition-colors ${
                   has ? "border-ink bg-sand-soft text-ink" : "border-rule bg-surface text-ink-soft"
                 }`}
               >
@@ -165,7 +165,10 @@ export function IntakeConversation({
                 >
                   {has && <Check className="size-3.5" strokeWidth={3} />}
                 </span>
-                {document.label}
+                <span className="flex flex-col gap-0.5">
+                  <span>{document.label}</span>
+                  <span className="text-[13px] font-normal leading-snug text-ink-faint">{document.detail}</span>
+                </span>
               </button>
             );
           })}

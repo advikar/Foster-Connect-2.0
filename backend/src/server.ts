@@ -307,12 +307,12 @@ async function listVerifiedResources(options: {
   limit?: number;
   offset?: number;
   /** "relevance" (default with a query), "checked" (most recently checked first) or "name". */
-  sort?: "relevance" | "checked" | "name";
+  sort?: "relevance" | "checked" | "name" | "organization";
 }) {
   const { filters, args } = buildResourceFilters(options);
 
   const terms = options.query ? searchTerms(options.query) : [];
-  const explicitOrder = options.sort === "checked" ? "r.verified_at DESC, r.title ASC" : options.sort === "name" ? "r.title ASC" : null;
+  const explicitOrder = options.sort === "checked" ? "r.verified_at DESC, r.title ASC" : options.sort === "name" ? "r.title ASC" : options.sort === "organization" ? "r.organization COLLATE NOCASE ASC, r.title ASC" : null;
   let sql: string;
   if (terms.length) {
     // Column weights: a word in the title or category says far more about a
@@ -641,6 +641,19 @@ async function initDb() {
     reviewed_at TEXT
   )`);
   await db.execute("CREATE INDEX IF NOT EXISTS idx_changes_status ON resource_changes(status, created_at)");
+  // Password resets (A1). A partner asks from the sign-in page; a reviewer issues
+  // a one-time link from the Accounts page and sends it themselves (the API has
+  // no mail provider). The raw token is never stored, only its hash.
+  await db.execute(`CREATE TABLE IF NOT EXISTS partner_password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    partner_id INTEGER NOT NULL REFERENCES partners(id) ON DELETE CASCADE,
+    requested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    token_hash TEXT UNIQUE,
+    issued_by TEXT,
+    issued_at TEXT,
+    expires_at TEXT,
+    used_at TEXT
+  )`);
 }
 
 /**
@@ -662,7 +675,7 @@ app.get("/api/resources", asyncRoute(async (req, res) => {
     age: z.coerce.number().int().min(0).max(99).optional(),
     limit: z.coerce.number().int().min(1).max(100).optional().default(25),
     offset: z.coerce.number().int().min(0).max(5000).optional().default(0),
-    sort: z.enum(["relevance", "checked", "name"]).optional(),
+    sort: z.enum(["relevance", "checked", "name", "organization"]).optional(),
   }).parse(req.query);
 
   const filters = {
@@ -823,7 +836,9 @@ app.post("/api/chat", requireSession, asyncRoute(async (req, res) => {
       ...result,
       reply,
       planSuggestions,
-      resources: await resourcesByIds(result.resourceIds),
+      // The model names the listings it used; when it names none, the person
+      // still sees what the directory search found for their words (U-R3).
+      resources: result.resourceIds.length ? await resourcesByIds(result.resourceIds) : grounded.filter(resource => !resource.isCrisis).slice(0, 3),
       safetyMode: false,
       crisisContacts: assessment.level === "concern" ? contactsFor(["general"]) : [],
       history: nextHistory,
@@ -1462,7 +1477,79 @@ app.post("/api/partner/guide", requirePartner, asyncRoute(async (req: PartnerReq
     { role: "user" as const, content: input.message },
     { role: "assistant" as const, content: reply, resourceIds: resources.slice(0, 8).map(resource => resource.id) },
   ].slice(-20);
-  res.json({ reply, history: nextHistory, historyToken: signHistory(signer, nextHistory) });
+  // Staff see the listings the answer drew on, so "who else runs this kind of
+  // program" is answered by the directory itself, not only by prose.
+  res.json({ reply, resources: resources.filter(resource => !resource.isCrisis).slice(0, 6), history: nextHistory, historyToken: signHistory(signer, nextHistory) });
+}));
+
+/**
+ * Password reset, step 1 (A1): anyone can ask. The reply never says whether the
+ * address has an account. Nothing is emailed: a reviewer sees the request on
+ * the Accounts page and issues the link.
+ */
+app.use("/api/partner/reset-request", rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: "draft-7", legacyHeaders: false }));
+app.post("/api/partner/reset-request", asyncRoute(async (req, res) => {
+  const input = z.object({ email: z.string().trim().email().max(200) }).parse(req.body);
+  const row = (await db.execute({ sql: "SELECT id FROM partners WHERE email = ? AND active = 1", args: [normaliseEmail(input.email)] })).rows[0];
+  if (row) {
+    const open = await db.execute({ sql: "SELECT id FROM partner_password_resets WHERE partner_id = ? AND used_at IS NULL AND token_hash IS NULL", args: [Number(row.id)] });
+    if (!open.rows[0]) await db.execute({ sql: "INSERT INTO partner_password_resets(partner_id) VALUES (?)", args: [Number(row.id)] });
+  }
+  res.status(202).json({ message: "If that address has an account, a Foster Guide reviewer will send a reset link to it. This is done by a person, so it can take a day." });
+}));
+
+/** Step 2: set a new password with a link a reviewer issued. Signs every device out. */
+app.post("/api/partner/reset", asyncRoute(async (req, res) => {
+  const input = z.object({ token: z.string().min(20).max(200), password: z.string().min(1).max(200) }).parse(req.body);
+  const problem = passwordProblem(input.password);
+  if (problem) { res.status(400).json({ error: problem }); return; }
+  const row = (await db.execute({
+    sql: "SELECT id, partner_id FROM partner_password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?",
+    args: [hashToken(input.token), new Date().toISOString()],
+  })).rows[0];
+  if (!row) { res.status(400).json({ error: "That reset link is not valid any more. Ask for a new one from the sign-in page." }); return; }
+  await db.execute({ sql: "UPDATE partners SET password_hash = ? WHERE id = ?", args: [await hashPassword(input.password), Number(row.partner_id)] });
+  await db.execute({ sql: "UPDATE partner_password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = ?", args: [Number(row.id)] });
+  await db.execute({ sql: "DELETE FROM partner_sessions WHERE partner_id = ?", args: [Number(row.partner_id)] });
+  res.status(204).end();
+}));
+
+/**
+ * Accounts (A2), reviewers only: every registered partner, when they joined
+ * and last signed in, how many listings they have submitted, and open reset
+ * requests. This is how the founder sees who has registered.
+ */
+app.get("/api/partner/accounts", requirePartner, requireReviewer, asyncRoute(async (_req, res) => {
+  const result = await db.execute(`
+    SELECT p.id, p.email, p.name, p.organisation, p.role, p.active, p.created_at, p.last_login_at,
+      (SELECT COUNT(*) FROM resource_submissions s WHERE s.partner_id = p.id) AS submissions,
+      (SELECT COUNT(*) FROM partner_password_resets r WHERE r.partner_id = p.id AND r.used_at IS NULL AND r.token_hash IS NULL) AS reset_requested,
+      (SELECT MAX(r.issued_at) FROM partner_password_resets r WHERE r.partner_id = p.id AND r.used_at IS NULL AND r.token_hash IS NOT NULL AND r.expires_at > CURRENT_TIMESTAMP) AS reset_issued_at
+    FROM partners p ORDER BY p.created_at DESC`);
+  res.json(result.rows.map(row => ({
+    id: Number(row.id), email: String(row.email), name: String(row.name), organisation: String(row.organisation || ""),
+    role: row.role === "reviewer" ? "reviewer" : "contributor", active: Boolean(Number(row.active)),
+    createdAt: String(row.created_at), lastLoginAt: row.last_login_at ? String(row.last_login_at) : null,
+    submissions: Number(row.submissions), resetRequested: Number(row.reset_requested) > 0,
+    resetIssuedAt: row.reset_issued_at ? String(row.reset_issued_at) : null,
+  })));
+}));
+
+/** Issue a one-time reset link (valid 48 hours). Returned once; the reviewer sends it to the partner's email themselves. */
+app.post("/api/partner/accounts/:id/reset-link", requirePartner, requireReviewer, asyncRoute(async (req: PartnerRequest, res) => {
+  const id = z.coerce.number().int().positive().parse(req.params.id);
+  const target = (await db.execute({ sql: "SELECT id, email FROM partners WHERE id = ? AND active = 1", args: [id] })).rows[0];
+  if (!target) { res.status(404).json({ error: "No active account with that id." }); return; }
+  const token = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const open = (await db.execute({ sql: "SELECT id FROM partner_password_resets WHERE partner_id = ? AND used_at IS NULL AND token_hash IS NULL", args: [id] })).rows[0];
+  if (open) {
+    await db.execute({ sql: "UPDATE partner_password_resets SET token_hash = ?, issued_by = ?, issued_at = CURRENT_TIMESTAMP, expires_at = ? WHERE id = ?", args: [hashToken(token), req.partner!.email, expiresAt, Number(open.id)] });
+  } else {
+    await db.execute({ sql: "INSERT INTO partner_password_resets(partner_id, token_hash, issued_by, issued_at, expires_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)", args: [id, hashToken(token), req.partner!.email, expiresAt] });
+  }
+  await executeSerialised(db, audit(req.partner!, "partner.reset_link", "partner", id, ""));
+  res.json({ token, expiresAt, email: String(target.email) });
 }));
 
 app.get("/api/partner/submissions", requirePartner, requireReviewer, asyncRoute(async (_req, res) => {

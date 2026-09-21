@@ -462,7 +462,25 @@ export function fetchMySubmissions() {
 export function submitPartnerResource(input: Parameters<typeof submitResource>[0]) {
   return partnerRequest("/api/partner/my-submissions", { method: "POST", body: JSON.stringify(input) });
 }
-export interface GuideResponse { reply: string; history: ChatMessageInput[]; historyToken: string }
+export interface GuideResponse { reply: string; resources?: ResourceItem[]; history: ChatMessageInput[]; historyToken: string }
+
+/** Ask for a password reset. The reply never says whether the address is known. */
+export async function requestPasswordReset(email: string) {
+  const response = await fetch(`${API_BASE_URL}/api/partner/reset-request`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Could not send that request");
+  return payload.message as string;
+}
+export async function resetPassword(token: string, password: string) {
+  const response = await fetch(`${API_BASE_URL}/api/partner/reset`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, password }) });
+  if (!response.ok) { const payload = await response.json().catch(() => ({})); throw new Error(payload.error || "Could not reset the password"); }
+}
+export interface PartnerAccount {
+  id: number; email: string; name: string; organisation: string; role: "contributor" | "reviewer"; active: boolean;
+  createdAt: string; lastLoginAt: string | null; submissions: number; resetRequested: boolean; resetIssuedAt: string | null;
+}
+export function fetchPartnerAccounts() { return partnerRequest<PartnerAccount[]>("/api/partner/accounts"); }
+export function issueResetLink(id: number) { return partnerRequest<{ token: string; expiresAt: string; email: string }>(`/api/partner/accounts/${id}/reset-link`, { method: "POST" }); }
 export function askPartnerGuide(message: string, history: ChatMessageInput[] = [], historyToken?: string) {
   return partnerRequest<GuideResponse>("/api/partner/guide", { method: "POST", body: JSON.stringify({ message, history, historyToken }) });
 }

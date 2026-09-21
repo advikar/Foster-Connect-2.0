@@ -161,6 +161,11 @@ function SiteFooter() {
           <p className="text-[13px] text-on-deep-soft">For immediate support, contact a crisis service. Each service has its own privacy practices.</p>
         </div>
       </div>
+      <div className="container-wide border-b border-rule py-5 text-[13px] leading-relaxed text-ink-faint">
+        <p>
+          Foster Guide is a directory, not legal, medical or financial advice. The people behind it are not attorneys or caseworkers. Listings are checked against public information and can change, so confirm details with the program before you rely on them. For a legal question, talk to a lawyer or a legal-aid program listed here.
+        </p>
+      </div>
       <div className="container-wide flex flex-col gap-3 py-5 text-[14px] text-ink-faint sm:flex-row sm:items-center sm:justify-between">
         <p>
           Browse without an account.{" "}

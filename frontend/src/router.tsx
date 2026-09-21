@@ -14,6 +14,8 @@ const PartnerCoverage = lazy(() => import("./pages/PartnerPages").then(module =>
 const PartnerGaps = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerGaps })));
 const PartnerReview = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerReview })));
 const PartnerGuide = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerGuide })));
+const PartnerAccounts = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerAccounts })));
+const PartnerReset = lazy(() => import("./pages/PartnerPages").then(module => ({ default: module.PartnerReset })));
 const HomePage = lazy(() => import("./pages/HomePage").then(module => ({ default: module.HomePage })));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage").then(module => ({ default: module.ResourcesPage })));
 const RoadmapPage = lazy(() => import("./pages/RoadmapPage").then(module => ({ default: module.RoadmapPage })));
@@ -52,6 +54,8 @@ export const router = createBrowserRouter([{
     { path: "gaps", element: page(<PartnerGaps />) },
     { path: "review", element: page(<PartnerReview />) },
     { path: "guide", element: page(<PartnerGuide />) },
+    { path: "accounts", element: page(<PartnerAccounts />) },
+    { path: "reset", element: page(<PartnerReset />) },
     { path: "*", element: <NotFoundPage /> },
   ],
 }], { basename: import.meta.env.BASE_URL });

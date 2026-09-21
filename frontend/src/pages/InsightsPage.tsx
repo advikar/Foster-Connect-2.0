@@ -1,9 +1,9 @@
 import { useId, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Check, ExternalLink, Loader2, X } from "lucide-react";
+import { AlertTriangle, Check, ExternalLink, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
-  fetchPartnerAnalytics, fetchResourceChanges, fetchSubmissions, partnerLogin, partnerRegister, reviewResourceChange, reviewSubmission,
+  fetchPartnerAnalytics, fetchResourceChanges, fetchSubmissions, partnerLogin, partnerRegister, requestPasswordReset, reviewResourceChange, reviewSubmission,
   type ApprovalDetail, type PartnerIdentity, type ResourceChange, type Submission,
 } from "@/lib/api";
 import { ListingDrawer, type DrawerFilter } from "@/components/partners/ListingDrawer";
@@ -331,6 +331,10 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
   const [organisation, setOrganisation] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  // "Forgot your password?" — no mail provider, so a reviewer issues the link (A1).
+  const [forgot, setForgot] = useState(false);
+  const [forgotNote, setForgotNote] = useState("");
   const ready = creating ? Boolean(email && password && name.trim().length >= 2 && organisation.trim().length >= 2) : Boolean(email && password);
 
   const submit = async (event: React.FormEvent) => {
@@ -345,6 +349,31 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
       setBusy(false);
     }
   };
+
+  if (forgot) {
+    const ask = async (event: React.FormEvent) => {
+      event.preventDefault();
+      setBusy(true); setError("");
+      try { setForgotNote(await requestPasswordReset(email)); } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not send that request"); } finally { setBusy(false); }
+    };
+    return (
+      <form onSubmit={ask} className="max-w-[420px] rounded-md border border-rule bg-surface p-6 sm:p-8">
+        <h2 className="font-display text-[26px] font-bold text-ink">Forgot your password?</h2>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">Enter the email you signed up with. A Foster Guide reviewer will send a one-time reset link to that address. A person does this, so it can take up to a day.</p>
+        {forgotNote ? (
+          <p role="status" className="mt-5 rounded-md bg-sand-soft px-4 py-3 text-[14px] text-ink">{forgotNote}</p>
+        ) : (
+          <div className="mt-5">
+            <label htmlFor={`${emailId}-forgot`} className="text-[13px] font-semibold text-ink-soft">Work email</label>
+            <Input id={`${emailId}-forgot`} type="email" autoComplete="username" value={email} onChange={event => setEmail(event.target.value)} className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base" />
+            {error && <p role="alert" className="mt-4 rounded-md bg-crisis-soft px-4 py-3 text-[14px] text-crisis">{error}</p>}
+            <Button type="submit" disabled={busy || !email} className="mt-5 h-12 w-full rounded-md bg-brand text-base font-semibold text-white hover:bg-brand-deep">{busy ? "Sending" : "Ask for a reset link"}</Button>
+          </div>
+        )}
+        <p className="mt-4 text-[13px] text-ink-faint"><button type="button" onClick={() => { setForgot(false); setError(""); setForgotNote(""); }} className="font-semibold text-brand hover:underline">Back to sign in</button></p>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={submit} className="max-w-[420px] rounded-md border border-rule bg-surface p-6 sm:p-8">
@@ -378,15 +407,21 @@ export function SignIn({ onSignedIn, reviewer = false }: { onSignedIn: (partner:
           />
         </div>
         <div>
-          <label htmlFor={passwordId} className="text-[13px] font-semibold text-ink-soft">Password</label>
+          <div className="flex items-baseline justify-between">
+            <label htmlFor={passwordId} className="text-[13px] font-semibold text-ink-soft">Password</label>
+            <button type="button" onClick={() => setShowPassword(value => !value)} aria-pressed={showPassword} className="inline-flex items-center gap-1 text-[13px] text-brand hover:underline">
+              {showPassword ? <EyeOff className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}{showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
           <Input
             id={passwordId}
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete={creating ? "new-password" : "current-password"}
             value={password}
             onChange={event => setPassword(event.target.value)}
             className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base"
           />
+          {!creating && <button type="button" onClick={() => { setForgot(true); setError(""); }} className="mt-2 text-[13px] text-brand hover:underline">Forgot your password?</button>}
         </div>
       </div>
 

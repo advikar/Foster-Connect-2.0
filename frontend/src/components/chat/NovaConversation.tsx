@@ -67,7 +67,7 @@ const STARTERS = [
   "Where can I sleep tonight?",
   "How do I get my birth certificate?",
   "Money for community college",
-  "I'm turning 21 soon. What closes?",
+  "Scholarships or money for trade school",
 ];
 
 const EMPTY: StoredConversation = { messages: [GREETING], history: [] };

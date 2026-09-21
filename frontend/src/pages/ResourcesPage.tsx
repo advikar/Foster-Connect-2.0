@@ -19,11 +19,11 @@ const CATEGORIES: { value: string; label: string }[] = [
   { value: "All", label: "Any" },
   { value: "Housing", label: "Housing" },
   { value: "Financial Support", label: "Money & benefits" },
-  { value: "Education", label: "School" },
+  { value: "Education", label: "School & training" },
   { value: "Scholarships", label: "Scholarships" },
   { value: "Employment", label: "Work" },
-  { value: "Healthcare", label: "Health" },
-  { value: "Mental Health", label: "Talk to someone" },
+  { value: "Healthcare", label: "Health care" },
+  { value: "Mental Health", label: "Mental health" },
   { value: "Food Assistance", label: "Food" },
   { value: "Legal Support", label: "Legal" },
   { value: "Transportation", label: "Getting around" },
@@ -61,9 +61,10 @@ const SORTS = [
   { value: "relevance", label: "Best match" },
   { value: "checked", label: "Recently checked" },
   { value: "name", label: "A to Z" },
+  { value: "organization", label: "By organization" },
 ];
 const PAGE_SIZE = 25;
-const QUICK = ["Housing", "Financial Support", "Education", "Employment", "Food Assistance", "Mental Health"];
+const QUICK = ["Housing", "Financial Support", "Scholarships", "Education", "Employment", "Food Assistance", "Mental Health"];
 
 export function ResourcesPage() {
   const [params, setParams] = useSearchParams();

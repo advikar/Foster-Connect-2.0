@@ -144,3 +144,12 @@ Nothing in the code is tied to Groq, Render or Turso's dashboard.
 ## Passcodes (Y6)
 
 `PASSCODE_SECRET` keys the passcode lookup (see `docs/PASSCODE.md`). If unset, `CHAT_SIGNING_SECRET` is used, so nothing extra is required; changing either secret invalidates every saved passcode.
+
+
+## Seeing who has registered (founder / reviewer)
+
+Sign in as a reviewer and open **Accounts** (`/partners/accounts`): every partner account with email, organization, role, join date, last sign-in, submission count and open password-reset requests. The API has no mail provider, so a reset works like this: the partner taps "Forgot your password?" → the request shows on Accounts → you press "Issue reset link" and email the one-time link (valid 48 hours) to the address on the account. Without the UI: `turso db shell foster-connect "SELECT email, name, organisation, role, created_at FROM partners ORDER BY created_at DESC"`.
+
+## Adding listings after launch
+
+Additive listing SQL lives in `data/updates/<date>-<name>.sql` and ends with an FTS rebuild. Apply with `turso db shell foster-connect < data/updates/<file>.sql` (the 2026-09-20 Fostering Wishes file is the first).

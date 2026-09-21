@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, GraduationCap, Home as HomeIcon, Landmark, MessageCircle, Plus, Search, Send, Stethoscope, Briefcase } from "lucide-react";
+import { ArrowRight, Award, Check, GraduationCap, Home as HomeIcon, Landmark, Plus, Search, Send, Stethoscope, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { AboutYouCard } from "@/components/home/AboutYouCard";
 import { ResourceRow } from "@/components/resources/ResourceRow";
@@ -12,10 +12,10 @@ import { addTask, fetchResources, fetchRoadmap, fetchRoadmaps, type RoadmapTask 
 const KINDS = [
   { label: "Housing", category: "Housing", icon: HomeIcon },
   { label: "Money", category: "Financial Support", icon: Landmark },
-  { label: "School", category: "Education", icon: GraduationCap },
+  { label: "School & training", category: "Education", icon: GraduationCap },
+  { label: "Scholarships", category: "Scholarships", icon: Award },
   { label: "Work", category: "Employment", icon: Briefcase },
-  { label: "Health", category: "Healthcare", icon: Stethoscope },
-  { label: "Talk to someone", category: "Mental Health", icon: MessageCircle },
+  { label: "Health & mental health", category: "Healthcare,Mental Health", icon: Stethoscope },
 ];
 
 /**
@@ -109,7 +109,7 @@ export function HomePage() {
             <p className="text-eyebrow text-brand">Foster Guide · Alameda & Contra Costa</p>
             <h1 className="mt-4 text-hero text-ink lg:max-w-[760px]">Find support. Take your next step.</h1>
             <p className="mt-4 max-w-[620px] text-[17px] leading-relaxed text-ink-soft lg:text-[18px]">
-              Explore housing, education, money and everyday support for current and former foster youth in the East Bay. Browse without an account.
+              Explore housing, scholarships and trade school money, education, and everyday support for current and former foster youth in the East Bay. Browse without an account.
             </p>
             <form
               role="search"

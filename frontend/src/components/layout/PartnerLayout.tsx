@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, ChartNoAxesCombined, FilePlus2, Inbox, LayoutGrid, ListChecks, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, BookOpen, ChartNoAxesCombined, FilePlus2, Inbox, LayoutGrid, ListChecks, ShieldCheck, UserRound, Users } from "lucide-react";
 import { PartnerProvider, usePartner } from "@/contexts/PartnerContext";
 import { Brand } from "./AppLayout";
 import { cn } from "@/lib/utils";
@@ -61,7 +61,7 @@ function Shell() {
         <>
           {/* Phone navigation: a scrolling chip row */}
           <nav aria-label="Partner navigation" className="flex gap-2 overflow-x-auto border-b border-rule bg-surface px-5 py-3 lg:hidden">
-            {[...links, ...(reviewer ? [{ to: "/partners/review", label: "Review queue", icon: ShieldCheck }] : [])].map(({ to, label }) => (
+            {[...links, ...(reviewer ? [{ to: "/partners/review", label: "Review queue", icon: ShieldCheck }, { to: "/partners/accounts", label: "Accounts", icon: Users }] : [])].map(({ to, label }) => (
               <NavLink key={to} to={to} className={({ isActive }) => cn("inline-flex min-h-9 shrink-0 items-center rounded-full border px-3.5 text-[14px] font-medium", isActive ? "border-brand-soft bg-brand-soft font-semibold text-ink" : "border-rule bg-surface text-ink-soft")}>
                 {label}
               </NavLink>
@@ -78,6 +78,7 @@ function Shell() {
               <>
                 <p className="text-eyebrow px-3 pb-2 pt-6 text-ink-faint">Reviewers</p>
                 <SideLink to="/partners/review" label="Review queue" icon={ShieldCheck} />
+                <SideLink to="/partners/accounts" label="Accounts" icon={Users} />
               </>
             )}
             <p className="mt-auto px-3 pt-6 text-[12px] leading-relaxed text-ink-faint">Youth plans, chats and saved lists are never visible here.</p>
@@ -87,6 +88,7 @@ function Shell() {
 
       <main ref={main} tabIndex={-1} id="partner-main" className={cn("min-w-0 px-5 py-8 outline-none", workspace ? "lg:max-w-[1088px] lg:px-12 lg:py-10" : "mx-auto w-full max-w-[1088px] lg:px-12 lg:py-10")}>
         <Outlet />
+        <p className="mt-12 max-w-[720px] border-t border-rule pt-4 text-[12px] leading-relaxed text-ink-faint">Foster Guide is a directory, not legal advice. Nobody on the team is an attorney; listings are checked against public information. Verify details with the program before acting on them.</p>
       </main>
     </div>
   );

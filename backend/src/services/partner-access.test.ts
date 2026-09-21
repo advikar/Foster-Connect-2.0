@@ -54,6 +54,29 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     assert.equal(Number(stats.pipeline.pending), 0);
     assert.ok(Array.isArray(stats.byCategory) && Array.isArray(stats.reports));
     assert.ok(stats.freshness && stats.completeness);
+    // Accounts and password reset (A1/A2)
+    assert.equal((await request("/accounts", 1)).status, 403);
+    const accounts = await request("/accounts", 3);
+    assert.equal(accounts.status, 200);
+    const list = await accounts.json() as { id: number; email: string; resetRequested: boolean; submissions: number }[];
+    assert.equal(list.length, 3);
+    assert.equal(list.find(a => a.id === 1)?.submissions, 1);
+    assert.equal((await request("/reset-request", undefined, "POST", { email: "test2@example.org" })).status, 202);
+    assert.equal((await request("/reset-request", undefined, "POST", { email: "nobody@example.org" })).status, 202);
+    const afterRequest = await (await request("/accounts", 3)).json() as { id: number; resetRequested: boolean }[];
+    assert.equal(afterRequest.find(a => a.id === 2)?.resetRequested, true);
+    assert.equal((await request("/accounts/2/reset-link", 1, "POST")).status, 403);
+    const issued = await request("/accounts/2/reset-link", 3, "POST");
+    assert.equal(issued.status, 200);
+    const { token } = await issued.json() as { token: string };
+    assert.ok(token.length > 20);
+    assert.equal((await request("/reset", undefined, "POST", { token, password: "short" })).status, 400);
+    assert.equal((await request("/reset", undefined, "POST", { token: "not-a-real-token-at-all", password: "blue-bicycle-harbor-2026" })).status, 400);
+    assert.equal((await request("/reset", undefined, "POST", { token, password: "blue-bicycle-harbor-2026" })).status, 204);
+    assert.equal((await request("/reset", undefined, "POST", { token, password: "blue-bicycle-harbor-2026" })).status, 400, "a link works once");
+    assert.equal((await request("/my-submissions", 2)).status, 401, "reset signs every device out");
+    const login = await request("/login", undefined, "POST", { email: "test2@example.org", password: "blue-bicycle-harbor-2026" });
+    assert.equal(login.status, 200);
     assert.equal((await request("/logout", 1, "POST")).status, 204);
     assert.equal((await request("/my-submissions", 1)).status, 401);
   } finally {

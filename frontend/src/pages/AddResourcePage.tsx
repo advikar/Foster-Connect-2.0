@@ -68,7 +68,7 @@ export function AddResourcePage({ partnerMode = false }: { partnerMode?: boolean
         </fieldset>
         <Field label={form.kind === "information" ? "Guide title" : "Program name"} value={form.title} set={v => update("title", v)} wide />
         <Field label="Organization" value={form.organization} set={v => update("organization", v)} wide />
-        <TextField label="What does it offer, and who is it for?" hint="Plain words. What a 19-year-old gets, and who can get it." value={form.description} onChange={v => update("description", v)} minHeight="min-h-28" wide />
+        <TextField label="What does it offer, and who is it for?" hint="Plain words. What a person gets from it, and who can get it." value={form.description} onChange={v => update("description", v)} minHeight="min-h-28" wide />
         <SelectField label="Kind of support" value={form.category} set={v => update("category", v)} options={categories} />
         <SelectField label="County or region" value={form.county} set={v => update("county", v)} options={counties} />
         <Field label={form.kind === "information" ? "Link to the guide or PDF" : "Program website"} value={form.website} set={v => update("website", v)} type="text" inputMode="url" placeholder="example.org/program" />

@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BookOpen, ChartNoAxesCombined, FilePlus2, Loader2, Plus, ShieldCheck } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, BookOpen, ChartNoAxesCombined, Copy, FilePlus2, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { usePartner } from "@/contexts/PartnerContext";
-import { askPartnerGuide, fetchMySubmissions, fetchPartnerAnalytics, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type Submission } from "@/lib/api";
+import { askPartnerGuide, fetchMySubmissions, fetchPartnerAccounts, fetchPartnerAnalytics, issueResetLink, resetPassword, GUIDE_CONVERSATION_KEY, type ChatMessageInput, type PartnerAccount, type ResourceItem, type Submission } from "@/lib/api";
 import { Coverage, Gaps, Queue, SignIn } from "./InsightsPage";
 import { AddResourcePage } from "./AddResourcePage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Chip } from "@/components/primitives/Chip";
-import { Tag } from "@/components/resources/ResourceRow";
+import { ResourceRow, Tag } from "@/components/resources/ResourceRow";
 import { cn } from "@/lib/utils";
 
 export function Heading({ eyebrow, title, children, action }: { eyebrow: string; title: string; children?: ReactNode; action?: ReactNode }) {
@@ -251,14 +253,14 @@ export function PartnerGuide() {
   return (
     <div className="flex flex-col gap-8">
       <Heading eyebrow="Staff guide · AI" title="A second set of questions.">
-        Get help drafting a service description or a verification checklist. Review every suggestion before using it. This guide can&rsquo;t publish anything and can&rsquo;t see youth plans or chats.
+        Get help drafting a service description or a verification checklist, see which organizations already run a kind of program, or think through starting one. Review every suggestion before using it. This guide can&rsquo;t publish anything and can&rsquo;t see youth plans or chats.
       </Heading>
       <Access><Guide /></Access>
     </div>
   );
 }
 
-interface GuideTurn { role: "user" | "assistant"; content: string; error?: boolean }
+interface GuideTurn { role: "user" | "assistant"; content: string; error?: boolean; resources?: ResourceItem[] }
 interface GuideThread { turns: GuideTurn[]; history: ChatMessageInput[]; historyToken?: string }
 const EMPTY_THREAD: GuideThread = { turns: [], history: [] };
 
@@ -301,7 +303,7 @@ function Guide() {
     setThread(previous => ({ ...previous, turns: [...previous.turns, { role: "user", content: question }] }));
     try {
       const response = await askPartnerGuide(question, thread.history, thread.historyToken);
-      setThread(previous => ({ turns: [...previous.turns, { role: "assistant", content: response.reply }], history: response.history, historyToken: response.historyToken }));
+      setThread(previous => ({ turns: [...previous.turns, { role: "assistant", content: response.reply, resources: response.resources }], history: response.history, historyToken: response.historyToken }));
     } catch (caught) {
       setThread(previous => ({ ...previous, turns: [...previous.turns, { role: "assistant", error: true, content: caught instanceof Error ? caught.message : "The guide is unavailable right now." }] }));
     } finally {
@@ -325,6 +327,14 @@ function Guide() {
                 )}>
                   {turn.role === "assistant" && !turn.error && <p className="text-eyebrow mb-2 text-brand">Draft · review before use</p>}
                   {turn.content}
+                  {turn.resources && turn.resources.length > 0 && (
+                    <div className="mt-4 border-t border-rule pt-3">
+                      <p className="text-eyebrow text-ink-faint">From the directory</p>
+                      <div className="divide-y divide-rule">
+                        {turn.resources.map(resource => <ResourceRow key={resource.id} resource={resource} dense />)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </li>
             ))}
@@ -334,7 +344,7 @@ function Guide() {
         )}
         {!started && (
           <div className="flex flex-wrap gap-2">
-            {["What should I verify before listing a housing program?", "Help me outline a new transportation resource.", "Questions a young person could ask a provider"].map(prompt => (
+            {["Which organizations offer trade-school scholarships?", "How would we start a duffel bag program for placements?", "What should I verify before listing a housing program?", "Help me outline a new transportation resource."].map(prompt => (
               <Chip key={prompt} onClick={() => void submit(prompt)}>{prompt}</Chip>
             ))}
           </div>
@@ -415,7 +425,7 @@ export function PartnerLanding() {
     <div className="flex flex-col gap-12 py-4 lg:py-10">
       <section className="max-w-[720px]">
         <p className="text-eyebrow text-brand">About Foster Guide · for partners</p>
-        <h1 className="mt-3 font-display text-[34px] font-bold leading-tight text-ink lg:text-[44px]">Every program for foster youth in the East Bay, checked by people who know them.</h1>
+        <h1 className="mt-3 font-display text-[34px] font-bold leading-tight text-ink lg:text-[44px]">Programs for foster youth in the East Bay, checked by a person before they&rsquo;re shown.</h1>
         <p className="mt-4 text-[17px] leading-relaxed text-ink-soft">
           Foster Guide is a free directory and AI guide for current and former foster youth in Alameda and Contra Costa counties. Young people search it, save listings, and turn them into a plan without giving their name. Everything they see was checked by a person first.
         </p>
@@ -458,6 +468,127 @@ export function PartnerLanding() {
         </p>
         <Link to="/partners/sign-in?as=reviewer" className="mt-3 inline-flex min-h-10 items-center text-[14px] font-semibold text-brand hover:underline">Reviewer sign-in →</Link>
       </section>
+    </div>
+  );
+}
+
+
+/**
+ * Accounts (A2), reviewers only: who has registered, and password resets.
+ * There is no mail provider, so the reviewer copies the one-time link and sends
+ * it to the partner's address themselves.
+ */
+export function PartnerAccounts() {
+  return (
+    <div>
+      <Heading eyebrow="Reviewers" title="Accounts">
+        Every partner account, newest first. When someone asks for a password reset it shows here: issue a link and email it to them yourself. Links work once and expire after 48 hours.
+      </Heading>
+      <Access reviewer><Accounts /></Access>
+    </div>
+  );
+}
+
+function Accounts() {
+  const queryClient = useQueryClient();
+  const { data, isPending, isError } = useQuery({ queryKey: ["partner-accounts"], queryFn: fetchPartnerAccounts });
+  const [links, setLinks] = useState<Record<number, string>>({});
+  const [busy, setBusy] = useState<number | null>(null);
+
+  const issue = async (account: PartnerAccount) => {
+    setBusy(account.id);
+    try {
+      const { token } = await issueResetLink(account.id);
+      const link = `${window.location.origin}/partners/reset?token=${encodeURIComponent(token)}`;
+      setLinks(previous => ({ ...previous, [account.id]: link }));
+      void queryClient.invalidateQueries({ queryKey: ["partner-accounts"] });
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "Could not create the link");
+    } finally { setBusy(null); }
+  };
+  const copy = async (text: string) => {
+    try { await navigator.clipboard.writeText(text); toast.success("Copied. Send it to the address on the account."); } catch { toast.error("Could not copy. Select the link and copy it."); }
+  };
+
+  if (isPending) return <p role="status" className="py-10 text-ink-soft">Loading accounts…</p>;
+  if (isError) return <p role="alert" className="py-10 text-crisis">Could not load accounts.</p>;
+  const requested = data.filter(account => account.resetRequested);
+  return (
+    <div className="mt-8 flex flex-col gap-8">
+      {requested.length > 0 && (
+        <section className="rounded-md border border-crisis/40 bg-crisis-soft p-5">
+          <p className="text-eyebrow text-crisis">Waiting on you</p>
+          <p className="mt-1 text-[15px] text-ink">{requested.length === 1 ? "One person has" : `${requested.length} people have`} asked for a password reset. Issue the link below and email it to them.</p>
+        </section>
+      )}
+      <p className="text-[14px] text-ink-faint">{data.length} {data.length === 1 ? "account" : "accounts"}. Emails here are for reaching partners about their listings only.</p>
+      <ul className="divide-y divide-rule border-y border-rule">
+        {data.map(account => (
+          <li key={account.id} className="grid gap-3 py-4 lg:grid-cols-[1fr_auto] lg:gap-8">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <p className="text-[16px] font-semibold text-ink">{account.name}</p>
+                <span className="text-eyebrow text-ink-faint">{account.role === "reviewer" ? "Reviewer" : "Contributor"}{!account.active && " · deactivated"}</span>
+                {account.resetRequested && <span className="text-eyebrow text-crisis">Reset requested</span>}
+              </div>
+              <p className="mt-0.5 break-all text-[14px] text-ink-body">{account.email}{account.organisation && ` · ${account.organisation}`}</p>
+              <p className="mt-1 text-[13px] text-ink-faint">Joined {ago(account.createdAt)} · {account.lastLoginAt ? `last signed in ${ago(account.lastLoginAt)}` : "never signed in"} · {account.submissions} {account.submissions === 1 ? "submission" : "submissions"}</p>
+              {links[account.id] && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md bg-sand-soft p-3">
+                  <code className="min-w-0 flex-1 break-all text-[12px] text-ink">{links[account.id]}</code>
+                  <Button type="button" onClick={() => void copy(links[account.id])} className="h-9 rounded-md bg-ink px-3 text-[13px] text-white"><Copy className="size-3.5" /> Copy</Button>
+                </div>
+              )}
+              {!links[account.id] && account.resetIssuedAt && <p className="mt-2 text-[13px] text-ink-faint">A link was issued {ago(account.resetIssuedAt)} and has not been used. Issuing another replaces nothing; both stay valid until they expire.</p>}
+            </div>
+            {account.active && (
+              <div className="flex items-start">
+                <Button type="button" disabled={busy === account.id} onClick={() => void issue(account)} className="h-10 rounded-md border border-ink bg-surface px-4 text-[14px] font-semibold text-ink hover:bg-sand-soft">
+                  {busy === account.id && <Loader2 className="size-4 animate-spin" />}{links[account.id] ? "New reset link" : "Issue reset link"}
+                </Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** The page a reset link opens (A1). Sets a new password; every device is signed out. */
+export function PartnerReset() {
+  const [params] = useSearchParams();
+  const token = params.get("token") || "";
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true); setError("");
+    try { await resetPassword(token, password); setDone(true); } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not reset the password"); } finally { setBusy(false); }
+  };
+  return (
+    <div className="mx-auto w-full max-w-[420px] py-6 lg:py-12">
+      <p className="text-eyebrow text-brand">Partner account</p>
+      <h1 className="mt-2 font-display text-[30px] font-bold text-ink">Choose a new password</h1>
+      {!token ? (
+        <p className="mt-4 text-[15px] text-ink-soft">This page needs the link a reviewer sent you. <Link to="/partners/sign-in" className="text-brand hover:underline">Back to sign in</Link></p>
+      ) : done ? (
+        <p role="status" className="mt-4 text-[15px] text-ink-soft">Done. Your password is changed and every device is signed out. <Link to="/partners/sign-in" className="font-semibold text-brand hover:underline">Sign in</Link></p>
+      ) : (
+        <form onSubmit={submit} className="mt-6 rounded-md border border-rule bg-surface p-6">
+          <div className="flex items-baseline justify-between">
+            <label htmlFor="reset-password" className="text-[13px] font-semibold text-ink-soft">New password</label>
+            <button type="button" onClick={() => setShow(value => !value)} className="text-[13px] text-brand hover:underline">{show ? "Hide" : "Show"}</button>
+          </div>
+          <Input id="reset-password" type={show ? "text" : "password"} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} className="mt-1.5 h-12 rounded-md border-rule bg-surface text-base" />
+          <p className="mt-2 text-[13px] text-ink-faint">At least 12 characters.</p>
+          {error && <p role="alert" className="mt-4 rounded-md bg-crisis-soft px-4 py-3 text-[14px] text-crisis">{error}</p>}
+          <Button type="submit" disabled={busy || password.length < 12} className="mt-5 h-12 w-full rounded-md bg-brand text-base font-semibold text-white hover:bg-brand-deep">{busy ? "Saving" : "Save new password"}</Button>
+        </form>
+      )}
     </div>
   );
 }
