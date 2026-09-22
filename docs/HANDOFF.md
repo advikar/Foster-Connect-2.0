@@ -332,3 +332,9 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Checks: backend 77/77 (new: /api/ready 200 with count, duplicate group detected, deliveryMode edit); frontend tsc, eslint 0, vitest 4 passed, build; `npm audit --omit=dev` 0 in both. Browser: production build (vite preview, CSP meta present) rendered with no CSP console errors (CORS errors only, local API allows 5173 only); dev server: `/resources?listing=412` opened Crisis Text Line with Copy link and sms links, Escape cleared the URL; page title "Find support · Foster Guide". Restore drill: `turso db create … --from-db foster-connect` → counts 427/2/3/3 matched live; scratch destroyed; dump file deleted.
 - Not done: hosting move for 200 deep links and frame-ancestors (decision for launch); Vitest 3 upgrade; human data completeness pass.
 - Ownership released: yes (after push).
+
+## 2026-09-21 — Hosting: GitHub Pages → Render static site; noindex removed
+
+- Owner: Claude Code (Fable 5.1). render.yaml gains `foster-guide-site` (runtime static, rootDir frontend, SPA rewrite, CSP with frame-ancestors, X-Frame-Options, Referrer-Policy, nosniff, Permissions-Policy, HSTS, immutable cache for /assets); CORS_ORIGINS adds the onrender.com site origin. deploy-site.yml is manual-only and no longer sets VITE_PREVIEW (no noindex, no preview banner). robots.txt is plain allow + sitemap. DEPLOY.md has the founder's 7 steps (blueprint sync, custom domains, DNS swap, remove Pages domain).
+- Checks: render.yaml parses as YAML; frontend build without VITE_PREVIEW has no robots meta and no preview banner (checked in dist). Not verifiable by the agent: Render blueprint sync and DNS (founder's accounts).
+- Ownership released: yes (after push).

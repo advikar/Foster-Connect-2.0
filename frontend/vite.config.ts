@@ -8,9 +8,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // https://vitejs.dev/config/
-// VITE_BASE is "/foster-connect/" for the GitHub Pages build (see
-// .github/workflows/deploy-site.yml). VITE_PREVIEW marks a public preview:
-// search engines are told not to index it until launch blockers are cleared.
+// VITE_BASE is "/" on Render (render.yaml). VITE_PREVIEW, when set, marks a
+// throwaway preview build: search engines are told not to index it and the
+// preview banner shows. Production builds do not set it (launch 2026-09-21).
 const previewNoIndex = {
   name: "preview-noindex",
   transformIndexHtml: (html: string) => process.env.VITE_PREVIEW
@@ -18,10 +18,10 @@ const previewNoIndex = {
     : html,
 };
 
-// Audit A19: GitHub Pages sets no security headers, so the document carries
-// them as meta tags on production builds only (the dev server injects inline
-// scripts that a CSP would block). frame-ancestors cannot be expressed in a
-// meta tag; that one needs a hosting move.
+// Audit A19: the document carries CSP and referrer meta tags on production
+// builds as a fallback for any host that sends no headers (the dev server
+// injects inline scripts that a CSP would block). On Render the same policy,
+// plus frame-ancestors and HSTS, is sent as real headers (render.yaml).
 const documentSecurity = {
   name: "document-security",
   apply: "build" as const,

@@ -1,7 +1,56 @@
-# Render blueprint for the Foster Guide API.
-# Render dashboard → New → Blueprint → pick this repository.
+# Render blueprint for Foster Guide: the API (Node web service) and the site
+# (static). Render dashboard → Blueprints → this repository → Sync.
 # Secrets marked sync: false are typed into the dashboard, never committed.
 services:
+  # The youth + partner site. Replaces GitHub Pages (2026-09-21): a real
+  # rewrite gives every route HTTP 200 and the security headers below are
+  # sent by the server, so frame-ancestors and HSTS apply. After the first
+  # deploy, add the custom domains fosterguide.org and www.fosterguide.org in
+  # the dashboard and point DNS at the values Render shows (docs/DEPLOY.md).
+  - type: web
+    name: foster-guide-site
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_BASE
+        value: /
+      - key: VITE_API_URL
+        value: https://foster-connect-api.onrender.com
+    routes:
+      # Single-page app: unknown paths render the app, which shows its own
+      # not-found page for routes it does not know.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://foster-connect-api.onrender.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=(), payment=()"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=31536000; includeSubDomains"
+      - path: /assets/*
+        name: Cache-Control
+        value: "public, max-age=31536000, immutable"
+
   - type: web
     name: foster-connect-api
     runtime: node
@@ -17,7 +66,7 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: CORS_ORIGINS
-        value: https://fosterguide.org,https://www.fosterguide.org,https://advikar.github.io
+        value: https://fosterguide.org,https://www.fosterguide.org,https://foster-guide-site.onrender.com,https://advikar.github.io
       - key: CHAT_SIGNING_SECRET
         generateValue: true
       - key: DATABASE_URL

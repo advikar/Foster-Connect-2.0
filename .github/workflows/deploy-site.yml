@@ -1,6 +1,11 @@
+# LEGACY (2026-09-21): the site now deploys to Render as a static site
+# (render.yaml, service foster-guide-site). This workflow no longer runs on
+# push; it can still be dispatched by hand to refresh the GitHub Pages copy
+# if Render is ever unavailable. Delete it once DNS has moved and the Pages
+# custom domain has been removed.
+#
 # Builds the youth + partner frontend and publishes it to the public
-# advikar/foster-connect repository, which serves it on GitHub Pages at
-# https://fosterguide.org (custom domain; CNAME written at build time).
+# advikar/foster-connect repository (GitHub Pages).
 #
 # This repository stays private. Only the compiled static files are published.
 # The API runs on Render (render.yaml); its URL comes from the repository
@@ -9,9 +14,6 @@
 name: Deploy site
 
 on:
-  push:
-    branches: [main]
-    paths: ["frontend/**", ".github/workflows/deploy-site.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -47,7 +49,6 @@ jobs:
         env:
           VITE_BASE: /
           VITE_API_URL: ${{ vars.API_URL }}
-          VITE_PREVIEW: "1"
         run: |
           npm run build --prefix frontend
           # Pages has no SPA rewrites: serve the app for deep links too.

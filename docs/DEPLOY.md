@@ -181,11 +181,25 @@ Free tier is 3,000 emails a month, far more than this flow needs. Nothing about 
 
 - **CI** (`.github/workflows/ci.yml`): every push to main and every pull request runs backend build + tests and frontend type-check, lint, unit tests and production build. Deploy site still publishes on push; if CI is red, revert or fix before the next push.
 - **Monitor** (`.github/workflows/monitor.yml`): every 30 minutes hits `GET /api/ready` (a real database query; 503 when the database is unreachable or empty), a housing/Alameda search, and the site HTML. A red run means the site is degraded; GitHub emails the repository owner on the first failure. `GET /api/health` remains liveness only.
-- **Deep links on GitHub Pages**: Pages has no rewrites, so `/resources` returns HTTP 404 with the app's own HTML (`404.html` is a copy of `index.html`). Browsers render the page; crawlers see a 404. To return 200 for real routes, host the static build on Cloudflare Pages or Netlify with a SPA rewrite. Until then the `<meta name="robots" content="noindex">` (set by `VITE_PREVIEW=1` in deploy-site.yml) is the honest choice; remove `VITE_PREVIEW` only when launch is approved and hosting returns 200.
+- **Hosting (from 2026-09-21)**: the site is a Render static site, `foster-guide-site` in render.yaml, with a SPA rewrite (every route returns 200) and security headers including `frame-ancestors 'none'` and HSTS. `noindex` is gone; robots.txt allows crawling and points at the sitemap. GitHub Pages is legacy: `deploy-site.yml` runs only by hand. See "Moving the domain to Render" below.
 - **SEO/sharing**: per-route titles and descriptions (`frontend/src/hooks/usePageMeta.ts`), `public/sitemap.xml`, `public/robots.txt`, `public/social-card.jpg` (1200×630) referenced by `og:image`.
 - **Sharable listings**: `/resources?listing=ID` opens that listing directly; the listing sheet has a Copy link button.
 - **Document security**: the production build injects a Content-Security-Policy and referrer meta tag (`vite.config.ts`, `documentSecurity`). `frame-ancestors` cannot be set from a meta tag; that too waits for a host that sets headers.
 - **Dependencies**: `npm audit --omit=dev` reports 0 vulnerabilities in both packages after `npm audit fix`; frontend tooling now lives in `devDependencies`. Remaining advisories are dev-only (Vitest 3 major upgrade pending).
+
+## Moving the domain to Render (founder's steps)
+
+The code side is done. These steps need your Render and registrar logins.
+
+1. Render dashboard → **Blueprints** → the Foster Guide blueprint → **Sync** (or **New → Blueprint** and pick this repository if it is not linked). Render creates the static site `foster-guide-site` and builds it. Wait until it shows **Live**.
+2. Open `https://foster-guide-site.onrender.com/resources` in a browser. It should load the directory directly (HTTP 200, not 404). Open a listing and copy its link; it should reopen.
+3. In the `foster-guide-site` service → **Settings → Custom Domains** → add `fosterguide.org`, then add `www.fosterguide.org`. Render shows the DNS records it wants (an A or ALIAS record for the apex, a CNAME for www).
+4. At your registrar, **replace** the GitHub Pages records (the four `185.199.x.x` A records and the `advikar.github.io` CNAME) with the values Render showed. Leave the Resend TXT/MX records alone.
+5. Wait for Render's custom-domain page to say **Verified** with a certificate (minutes to an hour). Then `https://fosterguide.org/resources` should return 200: check with `curl -sI https://fosterguide.org/resources | head -1` and `curl -sI https://fosterguide.org/ | grep -i frame`.
+6. GitHub → the public repo `advikar/foster-connect` → **Settings → Pages** → remove the custom domain, or archive the repository. Later, delete `.github/workflows/deploy-site.yml` and drop `https://advikar.github.io` from CORS_ORIGINS.
+7. Optional: Google Search Console → add fosterguide.org → submit `https://fosterguide.org/sitemap.xml`.
+
+Until step 4 completes, fosterguide.org keeps serving the last GitHub Pages build (which still says noindex). Nothing breaks in between; the API accepts both origins.
 
 ## Backup restore drill
 
