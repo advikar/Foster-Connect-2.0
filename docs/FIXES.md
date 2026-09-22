@@ -67,6 +67,12 @@ Status key: `todo` · `doing` · `done <commit>` · `decide`
 | R13 | Change the format of existing resources (PDF listed as a service) | done | Resource editor has "What kind of listing is this?" (service / guide); reviewers apply it directly, contributors propose it. |
 | R14 | Oldest checks: click to verify on the spot | done | Each row opens that listing straight in the editor; saving records today's check under the reviewer's email. |
 
+## 2026-09-21
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| R15 | "The PDF does not look appealing at all" | done | Rebuilt the export (`lib/planPdfRender.ts`, pure and previewable offline). Set like the site: Source Serif title, Source Sans body (Latin subsets in `public/fonts`, fetched only for the download, OFL), same ink/brand/sand tokens, header with the mark, progress bar, timeframe sections with counts, real checkboxes (filled brand tick when done, rust outline when stuck), DONE/STUCK/BY-date tags, program cards on a soft panel with a brand bar and label/value rows (duplicate "who it helps" and filler "ask what to bring" rows dropped), a "help right now" panel, page footers. Falls back to Helvetica if the fonts fail to load. |
+
 ## Order of work
 
 Y1 → Y2 → U1 → U2 (interim) → Y7 → Y9 → Y10 → Y11 → Y4 → Y3 → P2 → P1 → P3 → P7 → P4 → P5 → P6.

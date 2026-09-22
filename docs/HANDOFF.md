@@ -233,6 +233,12 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Checkpoint 3 (Y6 passcode): `services/passcode.ts` + 3 unit tests (73/73), routes `GET/POST/DELETE /api/session/passcode`, `POST /api/session/restore` (8/15 min), table `session_passcodes`, `PasscodeCard` on My plan + Privacy, `docs/PASSCODE.md`. Browser: set → cleared local session → restore with different case/spacing → same session id back; wrong passcode refused. Test row deleted.
 - Frontend build OK. Committed and pushed; see the deploy run noted below in the recap to the user. Optional follow-up: none pending from the user's round-2 list; accent colour choice still open (U1).
 
+## 2026-09-21 — PDF export redesign (R15)
+
+- Owner: Claude Code (Fable 5.1). Files: `frontend/src/lib/planPdf.ts` (data + font loading), new `frontend/src/lib/planPdfRender.ts` (layout, pure), `frontend/public/fonts/` (Source Sans 3 Regular/Semibold, Source Serif 4 Bold, Latin subsets, OFL licence file).
+- Checks: sample render via esbuild+node with a real local plan (4 pages) reviewed as PNGs; frontend tsc, eslint, build; in the dev app "Download this plan (PDF)" fetched the three fonts (200) with no console errors. Not checked: the file on disk from the browser download (tool cannot open it) — the offline render uses the identical code path.
+- Ownership released: yes (after push).
+
 ## Active checkpoint template (replace when claiming a task)
 
 - Task / acceptance criteria:
