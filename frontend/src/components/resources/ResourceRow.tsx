@@ -1,5 +1,7 @@
 import { useId, useState } from "react";
-import { ArrowLeft, Bookmark, ExternalLink, MessageSquare, Phone, ShieldCheck, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Bookmark, ExternalLink, Link2, MessageSquare, Phone, ShieldCheck, X } from "lucide-react";
 import { BottomSheet } from "@/components/primitives/BottomSheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -17,8 +19,19 @@ import { toast } from "sonner";
  * then small tags for who it's for, where, how, and cost. Tap the row for
  * detail; Save is its own focusable button.
  */
+/** The query parameter that names an open listing, so a listing has a URL (audit A18). */
+export const LISTING_PARAM = "listing";
+
 export function ResourceRow({ resource, dense = false }: { resource: ResourceItem; dense?: boolean }) {
-  const [open, setOpen] = useState(false);
+  // Open state lives in the URL: Back closes the sheet, and the address can be shared.
+  const [params, setParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const setOpen = (next: boolean) => {
+    const following = new URLSearchParams(params);
+    if (next) { queryClient.setQueryData(["resource", resource.id], resource); following.set(LISTING_PARAM, String(resource.id)); }
+    else following.delete(LISTING_PARAM);
+    setParams(following, { replace: !next });
+  };
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
   const checked = describeChecked(resource.verifiedAt, resource.checkedHow, resource.recheckAt);
@@ -36,7 +49,7 @@ export function ResourceRow({ resource, dense = false }: { resource: ResourceIte
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {eligibilityTag(resource) && <Tag tone="teal">{eligibilityTag(resource)}</Tag>}
             <Tag>{resource.county}</Tag>
-            {resource.kind === "information" ? <Tag tone="sand">Guide</Tag> : !dense && resource.deliveryMode && <Tag>{resource.deliveryMode}</Tag>}
+            {resource.kind === "information" ? <Tag tone="sand">Guide</Tag> : !dense && showDelivery(resource.deliveryMode) && <Tag>{resource.deliveryMode}</Tag>}
             {resource.kind !== "information" && <CostTag cost={resource.cost} />}
           </div>
         </button>
@@ -54,7 +67,6 @@ export function ResourceRow({ resource, dense = false }: { resource: ResourceIte
           <span className="hidden sm:inline">{saved ? "Saved" : "Save"}</span>
         </button>
       </div>
-      <ResourceDetailSheet resource={resource} open={open} onOpenChange={setOpen} />
     </>
   );
 }
@@ -85,7 +97,21 @@ function eligibilityTag(resource: ResourceItem) {
   return null;
 }
 
-function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: ResourceItem; open: boolean; onOpenChange: (open: boolean) => void }) {
+/**
+ * "Online" was inferred by the importer from the presence of a website (audit
+ * A13), so a shelter could read "Online". Only show a mode a person set or a
+ * stronger signal produced; reviewers can set it in the editor.
+ */
+function showDelivery(mode: string) {
+  return mode === "In person" || mode === "Phone or text";
+}
+
+export function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: ResourceItem; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const shareUrl = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/resources?${LISTING_PARAM}=${resource.id}`;
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(shareUrl); toast.success("Link copied. It opens this listing directly."); }
+    catch { toast.error("Could not copy. The address bar has the same link."); }
+  };
   const [reporting, setReporting] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const checked = describeChecked(resource.verifiedAt, resource.checkedHow, resource.recheckAt);
@@ -112,9 +138,12 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
         <button type="button" onClick={() => onOpenChange(false)} className="inline-flex min-h-10 items-center gap-1.5 text-[14px] text-brand hover:underline">
           <ArrowLeft className="size-4" /> Back to results
         </button>
-        <button type="button" onClick={() => onOpenChange(false)} aria-label="Close" className="-mr-2 flex size-11 items-center justify-center rounded-md text-ink-faint hover:bg-sunk">
-          <X className="size-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => void copyLink()} className="inline-flex min-h-10 items-center gap-1.5 rounded-md px-2 text-[14px] text-ink-soft hover:bg-sunk hover:text-ink"><Link2 className="size-4" /> Copy link</button>
+          <button type="button" onClick={() => onOpenChange(false)} aria-label="Close" className="-mr-2 flex size-11 items-center justify-center rounded-md text-ink-faint hover:bg-sunk">
+            <X className="size-5" />
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-6 px-5 pb-28 pt-6 lg:px-8 lg:pb-10">

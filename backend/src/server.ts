@@ -701,6 +701,23 @@ app.get("/api/health", (_req, res) => res.json({
   mailConfigured: mailConfigured(),
 }));
 
+/**
+ * Readiness (audit A20): proves the database answers and holds published
+ * listings. /api/health is liveness only and stays green with the data gone.
+ * The scheduled monitor workflow calls this.
+ */
+app.get("/api/ready", asyncRoute(async (_req, res) => {
+  try {
+    const count = await db.execute("SELECT COUNT(*) AS n FROM resources WHERE status = 'verified'");
+    const n = Number(count.rows[0]?.n ?? 0);
+    if (n === 0) { res.status(503).json({ status: "empty", verifiedResources: 0 }); return; }
+    res.json({ status: "ready", verifiedResources: n });
+  } catch (error) {
+    console.error("Readiness check failed", error);
+    res.status(503).json({ status: "database_unavailable" });
+  }
+}));
+
 app.get("/api/resources", asyncRoute(async (req, res) => {
   const query = z.object({
     q: z.string().max(300).optional(), county: z.string().max(200).optional(),
@@ -1292,7 +1309,24 @@ app.get("/api/partner/analytics", requirePartner, asyncRoute(async (_req, res) =
     db.execute(`SELECT COUNT(*) AS count FROM resource_submissions WHERE status='approved' AND date(reviewed_at) >= date('now','-30 days')`),
   ]);
   const pendingChanges = await db.execute("SELECT COUNT(*) AS count FROM resource_changes WHERE status='pending'");
+  // Audit A13: listings that may describe one provider twice. Grouped by the
+  // first three words of the title, or by organization when it differs from
+  // the title. A lead for a reviewer to merge or clarify, not a verdict.
+  const duplicateRows = await db.execute(`
+    SELECT id, title, organization, category, county,
+      lower(CASE WHEN organization <> '' AND lower(organization) <> lower(title) THEN organization ELSE title END) AS grp_source
+    FROM resources WHERE status = 'verified'`);
+  const groups = new Map<string, { id: number; title: string; organization: string; category: string; county: string }[]>();
+  for (const row of duplicateRows.rows) {
+    const key = String(row.grp_source).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean).slice(0, 3).join(" ");
+    if (key.length < 6) continue;
+    const list = groups.get(key) ?? [];
+    list.push({ id: Number(row.id), title: String(row.title), organization: String(row.organization), category: String(row.category), county: String(row.county) });
+    groups.set(key, list);
+  }
+  const duplicateCandidates = [...groups.entries()].filter(([, list]) => list.length > 1).map(([key, list]) => ({ key, listings: list })).sort((a, b) => b.listings.length - a.listings.length).slice(0, 40);
   res.json({
+    duplicateCandidates,
     totals: { ...totals.rows[0], publishedLast30: Number(recentPublished.rows[0]?.count ?? 0) },
     changes: { pending: Number(pendingChanges.rows[0]?.count ?? 0) },
     byCategory: byCategory.rows,
@@ -1364,7 +1398,7 @@ const EDITABLE_FIELDS = {
   title: "title", organization: "organization", description: "description", eligibility: "eligibility", cost: "cost",
   applicationSteps: "application_steps", whatToBring: "what_to_bring", website: "website", phone: "phone",
   address: "address", hours: "hours", languages: "languages", accessibility: "accessibility", serviceArea: "service_area",
-  category: "category", county: "county",
+  category: "category", county: "county", deliveryMode: "delivery_mode",
 } as const;
 const NA_FIELDS = ["phone", "website", "hours", "address", "languages", "cost", "age"] as const;
 
@@ -1395,6 +1429,8 @@ const changeSchema = z.object({
     checkedBy: z.enum(["phone", "online"]).optional(),
     /** Round 5: the basics are editable too — name, organization, category, and one or more regions. */
     category: z.string().trim().min(2).max(80).optional(),
+    /** Audit A13: how the service is delivered, set by a person rather than inferred from a link. */
+    deliveryMode: z.enum(["In person", "Phone or text", "Online", "Remote", "Contact for details"]).optional(),
     county: z.string().trim().min(2).max(200).transform((value, ctx) => {
       const normalised = normaliseCounty(value);
       if (!normalised) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Region must be one or more of: ${COUNTY_OPTIONS.join(", ")}` });

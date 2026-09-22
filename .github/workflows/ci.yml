@@ -1,0 +1,44 @@
+# Audit A20: every push and pull request runs the backend tests and the
+# frontend type-check, lint, unit tests and production build. Deploy site
+# (deploy-site.yml) only builds; this is the gate that says the change is sound.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm run build --prefix backend
+      - name: Backend tests (crisis routing, grounding, partner access, mail, passcodes)
+        run: npm test --prefix backend
+        env:
+          NODE_ENV: test
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefix frontend
+      - run: npm run type-check --prefix frontend
+      - run: npx eslint src
+        working-directory: frontend
+      - run: npm test --prefix frontend
+      - run: npm run build --prefix frontend
+        env:
+          VITE_API_URL: https://foster-connect-api.onrender.com

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { Link, useSearchParams } from "react-router-dom";
 import { NovaConversation } from "@/components/chat/NovaConversation";
 import { useNova } from "@/contexts/NovaContext";
@@ -10,6 +11,7 @@ import { useNova } from "@/contexts/NovaContext";
  * conversation takes the middle. Phone: the conversation is the page.
  */
 export function AskPage() {
+  usePageMeta("Ask Nova", "Ask an AI guide that answers only from checked listings. No account needed.", "/ask");
   // Find's empty state links here with ?q=…; send it as the first message once.
   const [params, setParams] = useSearchParams();
   const { openNova } = useNova();

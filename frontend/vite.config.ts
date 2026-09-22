@@ -18,9 +18,33 @@ const previewNoIndex = {
     : html,
 };
 
+// Audit A19: GitHub Pages sets no security headers, so the document carries
+// them as meta tags on production builds only (the dev server injects inline
+// scripts that a CSP would block). frame-ancestors cannot be expressed in a
+// meta tag; that one needs a hosting move.
+const documentSecurity = {
+  name: "document-security",
+  apply: "build" as const,
+  transformIndexHtml: (html: string) => {
+    const api = process.env.VITE_API_URL || "http://localhost:4000";
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data:",
+      `connect-src 'self' ${api}`,
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+    ].join("; ");
+    return html.replace("<head>", `<head>\n    <meta http-equiv="Content-Security-Policy" content="${csp}" />\n    <meta name="referrer" content="strict-origin-when-cross-origin" />`);
+  },
+};
+
 export default defineConfig(() => ({
   base: process.env.VITE_BASE || "/",
-  plugins: [react(), tailwindcss(), previewNoIndex],
+  plugins: [react(), tailwindcss(), previewNoIndex, documentSecurity],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

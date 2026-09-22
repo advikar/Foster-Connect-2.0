@@ -1,0 +1,5 @@
+# Preview period: the page <meta name="robots"> says noindex until launch (deploy-site.yml VITE_PREVIEW).
+# Remove VITE_PREVIEW at launch; this file already points crawlers at the sitemap.
+User-agent: *
+Allow: /
+Sitemap: https://fosterguide.org/sitemap.xml

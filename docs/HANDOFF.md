@@ -324,3 +324,11 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Checks: backend 77/77 (new assertions: concurrent reset 204+400, concurrent approval 200+409, admin-only edit keeps verified_at, age band boundaries, Food-only intake not 400; new triage cases); frontend tsc, eslint 0, vitest 4 passed, build. Browser (local): Crisis Text Line detail shows "Text HOME to 741741" as sms: and no Call; emergency dialog puts focus on its Close button, lists tel:/sms: links for every line, Escape closes.
 - Still needs a person: call each crisis line and set `verifiedOn`; Resend DNS; data completeness; A17–A20.
 - Ownership released: yes (after push).
+
+## 2026-09-21 — Round 7: audit A13, A17–A20
+
+- Owner: Claude Code (Fable 5.1). Scope: A13, A17, A18, A19, A20 — see the round-7 paragraph in docs/AUDIT-2026-09-21.md for what changed per finding.
+- Files: backend server.ts (`/api/ready`, `duplicateCandidates` in analytics, `deliveryMode` editable), partner-access.test.ts; frontend `hooks/usePageMeta.ts` (used by every youth page), `components/resources/ListingDeepLink.tsx` (mounted in AppLayout), ResourceRow.tsx (URL-driven open state via `?listing=`, Copy link, delivery tag only for In person / Phone or text), ResourceEditor.tsx (delivery mode select), InsightsPage.tsx (Possible duplicates), lib/api.ts, vite.config.ts (`documentSecurity` CSP/referrer on build), index.html (og:image, canonical), public/{sitemap.xml,robots.txt,social-card.jpg}, package.json (tooling → devDependencies), `.github/workflows/{ci,monitor}.yml`, docs/DEPLOY.md.
+- Checks: backend 77/77 (new: /api/ready 200 with count, duplicate group detected, deliveryMode edit); frontend tsc, eslint 0, vitest 4 passed, build; `npm audit --omit=dev` 0 in both. Browser: production build (vite preview, CSP meta present) rendered with no CSP console errors (CORS errors only, local API allows 5173 only); dev server: `/resources?listing=412` opened Crisis Text Line with Copy link and sms links, Escape cleared the URL; page title "Find support · Foster Guide". Restore drill: `turso db create … --from-db foster-connect` → counts 427/2/3/3 matched live; scratch destroyed; dump file deleted.
+- Not done: hosting move for 200 deep links and frame-ancestors (decision for launch); Vitest 3 upgrade; human data completeness pass.
+- Ownership released: yes (after push).

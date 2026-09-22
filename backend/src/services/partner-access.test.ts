@@ -98,6 +98,16 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     // Audit A05: a one-chip "Food" plan passes validation (schema only; the LLM is off in tests).
     const food = await fetch("http://127.0.0.1:4497/api/roadmaps", { method: "POST", headers: { "Content-Type": "application/json", "x-session-id": "audit-food-only-session-0001" }, body: JSON.stringify({ county: "Alameda", currentNeeds: "Food", futurePlan: "I'm not sure yet", needs: ["Food"] }) });
     assert.notEqual(food.status, 400, `Food-only intake must not fail validation: ${await food.text()}`);
+    // Audit A20: readiness queries the database. Audit A13: duplicate candidates are reported.
+    const ready = await fetch("http://127.0.0.1:4497/api/ready");
+    assert.equal(ready.status, 200);
+    assert.ok(((await ready.json()) as { verifiedResources: number }).verifiedResources >= 1);
+    await db.execute("INSERT INTO resources(id,title,organization,category,county,verified_at) VALUES (901,'Duffel bags for placements (Contra Costa)','Test org','Community Support','Contra Costa','2026-09-01')");
+    await db.execute("INSERT INTO resources_fts(resources_fts) VALUES ('rebuild')");
+    const dupes = await (await request("/analytics", 3)).json() as { duplicateCandidates: { listings: { id: number }[] }[] };
+    assert.ok(dupes.duplicateCandidates.some(group => group.listings.some(l => l.id === 900) && group.listings.some(l => l.id === 901)));
+    assert.equal((await request("/resources/900/changes", 3, "POST", { changes: { deliveryMode: "In person" } })).status, 200);
+    assert.equal((await (await request("/resources/900", 3)).json() as { deliveryMode: string }).deliveryMode, "In person");
     const inAlameda = await (await request("/resources?county=Alameda", 1)).json() as { id: number }[];
     const inContraCosta = await (await request("/resources?county=Contra%20Costa", 1)).json() as { id: number }[];
     assert.ok(inAlameda.some(item => item.id === 900) && inContraCosta.some(item => item.id === 900));

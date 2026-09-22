@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Award, Check, GraduationCap, Home as HomeIcon, Landmark, Plus, Search, Send, Stethoscope, Briefcase } from "lucide-react";
@@ -67,6 +68,7 @@ function useDeadlineState() {
 }
 
 export function HomePage() {
+  usePageMeta("", "Support for current and former foster youth in Alameda and Contra Costa counties: housing, money, school, work, health care, and someone to talk to.", "/");
   const navigate = useNavigate();
   const { openNova } = useNova();
   const { about } = useAboutYou();

@@ -62,6 +62,7 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
   const [na, setNa] = useState<Set<MissingField>>(new Set((resource.fieldsNa ?? []) as MissingField[]));
   const [recheckAt, setRecheckAt] = useState(resource.recheckAt ?? "");
   const [kind, setKind] = useState<"service" | "information">(resource.kind ?? "service");
+  const [deliveryMode, setDeliveryMode] = useState(resource.deliveryMode || "Contact for details");
   const [category, setCategory] = useState(resource.category);
   const [counties, setCounties] = useState<string[]>(() => splitCounties(resource.county));
   const countyValue = COUNTY_OPTIONS.filter(option => counties.includes(option)).join(", ");
@@ -94,6 +95,7 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
     if ((recheckAt || null) !== (resource.recheckAt ?? null)) out.recheckAt = recheckAt || null;
     if (kind !== (resource.kind ?? "service")) out.kind = kind;
     if (category !== resource.category) out.category = category;
+    if (deliveryMode !== (resource.deliveryMode || "Contact for details")) out.deliveryMode = deliveryMode as ResourceChanges["deliveryMode"];
     if (countyValue && countyValue !== resource.county) out.county = countyValue;
     if (reviewer && checkedBy === "phone") out.checkedBy = "phone";
     return out;
@@ -147,6 +149,13 @@ export function ResourceEditor({ resource, focus, onSaved, onCancel }: {
             {!CATEGORY_OPTIONS.includes(category) && <option value={category}>{category}</option>}
             {CATEGORY_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
           </select>
+        </div>
+        <div>
+          <label htmlFor={`${id}-delivery`} className="text-[13px] font-semibold text-ink-soft">How people use it</label>
+          <select id={`${id}-delivery`} value={deliveryMode} onChange={event => setDeliveryMode(event.target.value)} className="mt-1.5 h-11 w-full rounded-md border border-rule bg-surface px-3 text-[15px] text-ink">
+            {["In person", "Phone or text", "Online", "Remote", "Contact for details"].map(option => <option key={option} value={option}>{option}</option>)}
+          </select>
+          <p className="mt-1 text-[12px] text-ink-faint">Imported listings say &ldquo;Online&rdquo; whenever they had a website; young people only see this once a person sets &ldquo;In person&rdquo; or &ldquo;Phone or text&rdquo;.</p>
         </div>
         <fieldset>
           <legend className="text-[13px] font-semibold text-ink-soft">Region served <span className="font-normal text-ink-faint">(pick every one that applies)</span></legend>

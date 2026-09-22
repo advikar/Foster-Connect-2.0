@@ -177,6 +177,31 @@ Free tier is 3,000 emails a month, far more than this flow needs. Nothing about 
 - The listing editor also changes the name, organization, category and region(s). `resources.county` is one region or a comma-separated list in canonical order ("Alameda, Contra Costa"); every county filter matches per county (`countyMatch` in server.ts), so a two-county listing appears in both county searches and in Coverage under its combined label. Apply via the editor, or SQL as in `data/updates/2026-09-21-fostering-wishes-regions.sql` (rebuild FTS afterwards).
 - Reviewers remove a partner's access from Accounts (three checks: button, warning, typed email). `POST /api/partner/accounts/:id/access {active:false}` sets `partners.active=0`, deletes sessions and open reset links; submissions and edits stay on record. "Restore access" reverses it. Nobody can remove their own access.
 
+## Operations added for the 2026-09-21 audit (A17, A19, A20)
+
+- **CI** (`.github/workflows/ci.yml`): every push to main and every pull request runs backend build + tests and frontend type-check, lint, unit tests and production build. Deploy site still publishes on push; if CI is red, revert or fix before the next push.
+- **Monitor** (`.github/workflows/monitor.yml`): every 30 minutes hits `GET /api/ready` (a real database query; 503 when the database is unreachable or empty), a housing/Alameda search, and the site HTML. A red run means the site is degraded; GitHub emails the repository owner on the first failure. `GET /api/health` remains liveness only.
+- **Deep links on GitHub Pages**: Pages has no rewrites, so `/resources` returns HTTP 404 with the app's own HTML (`404.html` is a copy of `index.html`). Browsers render the page; crawlers see a 404. To return 200 for real routes, host the static build on Cloudflare Pages or Netlify with a SPA rewrite. Until then the `<meta name="robots" content="noindex">` (set by `VITE_PREVIEW=1` in deploy-site.yml) is the honest choice; remove `VITE_PREVIEW` only when launch is approved and hosting returns 200.
+- **SEO/sharing**: per-route titles and descriptions (`frontend/src/hooks/usePageMeta.ts`), `public/sitemap.xml`, `public/robots.txt`, `public/social-card.jpg` (1200×630) referenced by `og:image`.
+- **Sharable listings**: `/resources?listing=ID` opens that listing directly; the listing sheet has a Copy link button.
+- **Document security**: the production build injects a Content-Security-Policy and referrer meta tag (`vite.config.ts`, `documentSecurity`). `frame-ancestors` cannot be set from a meta tag; that too waits for a host that sets headers.
+- **Dependencies**: `npm audit --omit=dev` reports 0 vulnerabilities in both packages after `npm audit fix`; frontend tooling now lives in `devDependencies`. Remaining advisories are dev-only (Vitest 3 major upgrade pending).
+
+## Backup restore drill
+
+Run this quarterly and after any schema change. It proves the live database can be copied into a fresh one and that the row counts match. Nothing touches the live database. (`.dump` piped into `turso db shell` fails on the FTS `PRAGMA writable_schema` lines, so use Turso's snapshot copy.)
+
+```bash
+~/.turso/turso db create foster-connect-restore-drill --from-db foster-connect
+~/.turso/turso db shell foster-connect-restore-drill "select (select count(*) from resources) as resources, (select count(*) from partners) as partners, (select count(*) from roadmaps) as roadmaps;"
+~/.turso/turso db shell foster-connect "select (select count(*) from resources) as resources, (select count(*) from partners) as partners, (select count(*) from roadmaps) as roadmaps;"
+~/.turso/turso db destroy foster-connect-restore-drill --yes
+```
+
+Last drill: 2026-09-21, counts matched (resources 427, partners 2, roadmaps 3, reports 3); scratch database destroyed.
+
+Record the date and the matching counts in HANDOFF.md.
+
 ## If a reviewer is locked out
 
 Run `scripts/issue-reset-link.sh <email>` from a terminal signed in to Turso. It inserts only a hash and prints a one-time link (48 hours); open it to set a new password. The password never passes through anyone else.

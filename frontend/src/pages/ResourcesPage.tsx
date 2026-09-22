@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { Link, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2, PlusCircle, Search, SlidersHorizontal, X, RotateCcw } from "lucide-react";
@@ -67,6 +68,7 @@ const PAGE_SIZE = 25;
 const QUICK = ["Housing", "Financial Support", "Scholarships", "Education", "Employment", "Food Assistance", "Mental Health"];
 
 export function ResourcesPage() {
+  usePageMeta("Find support", "Search checked listings for foster youth in the East Bay by need, county and age.", "/resources");
   const [params, setParams] = useSearchParams();
   const { about } = useAboutYou();
   const [search, setSearch] = useState(params.get("q") || "");

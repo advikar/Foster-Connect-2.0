@@ -1,0 +1,33 @@
+# Audit A20: a synthetic monitor with no third-party account. Every 30 minutes
+# it checks that the API is up, that its database answers with listings
+# (/api/ready), that a real directory search returns results, and that the
+# site's HTML is being served. A failure shows as a red run and emails the
+# repository owner through GitHub's normal workflow notifications.
+name: Monitor
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: API readiness (database query)
+        run: |
+          body=$(curl -sS --max-time 30 -w '\n%{http_code}' https://foster-connect-api.onrender.com/api/ready)
+          code=$(echo "$body" | tail -1); json=$(echo "$body" | sed '$d')
+          echo "$code $json"
+          [ "$code" = "200" ] || { echo "::error::/api/ready returned $code"; exit 1; }
+          echo "$json" | grep -q '"status":"ready"' || { echo "::error::database not ready"; exit 1; }
+      - name: Directory search returns listings
+        run: |
+          n=$(curl -sS --max-time 30 'https://foster-connect-api.onrender.com/api/resources?q=housing&county=Alameda&limit=5' | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["items"]))')
+          echo "housing/Alameda results: $n"
+          [ "$n" -ge 1 ] || { echo "::error::housing search returned no listings"; exit 1; }
+      - name: Site HTML served
+        run: |
+          code=$(curl -sS --max-time 30 -o /tmp/index.html -w '%{http_code}' https://fosterguide.org/)
+          [ "$code" = "200" ] || { echo "::error::fosterguide.org returned $code"; exit 1; }
+          grep -q 'Foster Guide' /tmp/index.html || { echo "::error::site HTML does not look like Foster Guide"; exit 1; }

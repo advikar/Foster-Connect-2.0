@@ -414,6 +414,8 @@ export interface PartnerAnalytics {
   freshness: { fresh: number; aging: number; stale: number; unknown: number };
   completeness: { phone: number; website: number; hours: number; address: number; cost_known: number; age_known: number; languages: number; source: number };
   staleList: { id: number; title: string; organization: string; category: string; county: string; verified_at: string; recheck_at?: string | null }[];
+  /** Audit A13: groups of listings that may describe one provider twice. */
+  duplicateCandidates: { key: string; listings: { id: number; title: string; organization: string; category: string; county: string }[] }[];
   pipeline: { pending: number; approved: number; rejected: number; pending_over_week: number; submitted_last_30: number };
   changes: { pending: number };
   reports: { id: number; resource_id: number; title: string; organization: string; reason: string; created_at: string }[];
@@ -445,6 +447,7 @@ export interface ResourceChanges {
   hours?: string; languages?: string; accessibility?: string; serviceArea?: string;
   /** Round 5: category and one or more regions ("Alameda, Contra Costa"). */
   category?: string; county?: string;
+  deliveryMode?: "In person" | "Phone or text" | "Online" | "Remote" | "Contact for details";
   ageMin?: number | null; ageMax?: number | null;
   fieldsNa?: MissingField[];
   recheckAt?: string | null;

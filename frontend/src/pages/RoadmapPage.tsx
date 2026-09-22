@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ChevronDown, FileText, Loader2, PencilLine, Phone, Plus } from "lucide-react";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export function RoadmapPage() {
+  usePageMeta("My plan", "Build a step-by-step plan from checked programs, and download it as a PDF.", "/roadmap");
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<number | null>(null);
   // "Start a new plan" used to clear activeId, and the effect below promptly

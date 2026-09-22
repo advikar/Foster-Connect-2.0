@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-rou
 import { Bookmark, Home, ListChecks, MessageCircle, Search } from "lucide-react";
 import { NovaProvider } from "@/contexts/NovaContext";
 import { CrisisButton } from "@/components/safety/CrisisBar";
+import { ListingDeepLink } from "@/components/resources/ListingDeepLink";
 import { cn } from "@/lib/utils";
 import { CONTACT_EMAIL } from "@/lib/contact";
 
@@ -56,6 +57,7 @@ export function AppLayout() {
         </main>
 
         <SiteFooter />
+        <ListingDeepLink />
 
         <nav
           aria-label="Primary"

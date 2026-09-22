@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Bookmark } from "lucide-react";
@@ -7,6 +8,7 @@ import { ResourceRow } from "@/components/resources/ResourceRow";
 import { fetchSavedResources } from "@/lib/api";
 
 export function SavedPage() {
+  usePageMeta("Saved", "Listings you saved, kept under this browser's session.", "/saved");
   const { data = [], isPending, isError } = useQuery({ queryKey: ["saved-resources"], queryFn: fetchSavedResources });
   const [filter, setFilter] = useState("All");
   const categories = Array.from(new Set(data.map(resource => resource.category)));

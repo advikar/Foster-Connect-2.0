@@ -155,6 +155,32 @@ export function Coverage() {
           </ul>
         </section>
 
+        <section id="duplicates" className="lg:col-span-2">
+          <h2 className="font-display text-[22px] font-bold text-ink">Possible duplicates</h2>
+          <p className="mt-1 text-[14px] text-ink-faint">Listings whose names or organizations start the same way. Some are genuinely different programs from one provider; others should be merged or renamed so young people don&rsquo;t see the same service three times. Tap one to edit.</p>
+          {(data.duplicateCandidates ?? []).length === 0 ? (
+            <p className="mt-3 rounded-md border border-dashed border-rule p-5 text-[14px] text-ink-soft">No look-alike groups found.</p>
+          ) : (
+            <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+              {data.duplicateCandidates.map(group => (
+                <li key={group.key} className="rounded-md border border-rule bg-surface p-3">
+                  <p className="text-eyebrow text-ink-faint">{group.listings.length} listings</p>
+                  <ul className="mt-1 divide-y divide-rule">
+                    {group.listings.map(item => (
+                      <li key={item.id}>
+                        <button type="button" onClick={() => setDrawer({ title: item.title, detail: `${item.category} · ${item.county}`, resourceId: item.id })} className="row-hover -mx-1 w-[calc(100%+8px)] rounded px-1 py-1.5 text-left">
+                          <p className="truncate text-[14px] font-semibold text-ink">{item.title} <span className="font-normal text-ink-faint">#{item.id}</span></p>
+                          <p className="truncate text-[12px] text-ink-faint">{item.category} · {item.county}</p>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <section id="reports">
           <h2 className="font-display text-[22px] font-bold text-ink">Flagged by young people</h2>
           <p className="mt-1 text-[14px] text-ink-faint">Reports sent from a listing&rsquo;s &ldquo;something is wrong&rdquo; link. Treat the text as a lead, not a verified fact. Open the listing to re-check and correct it.</p>

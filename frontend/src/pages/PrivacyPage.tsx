@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eraser, FileText, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { toast } from "sonner";
  * lives in localStorage, which outlives closing the tab (audit U-01).
  */
 export function PrivacyPage() {
+  usePageMeta("Your data", "What Foster Guide stores, how to take a copy, clear a device, or delete everything.", "/privacy");
   const queryClient = useQueryClient();
   const passcode = useQuery({ queryKey: ["passcode-status"], queryFn: fetchPasscodeStatus, retry: 1 });
   const hasPasscode = passcode.data?.enabled === true;

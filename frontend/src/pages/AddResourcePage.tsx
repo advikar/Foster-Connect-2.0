@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ const EMPTY = { title: "", organization: "", description: "", category: "", coun
  * partner side (partnerMode, tied to the signed-in account).
  */
 export function AddResourcePage({ partnerMode = false }: { partnerMode?: boolean }) {
+  usePageMeta("Tell us about a program", "Suggest a program for the Foster Guide directory. A reviewer checks it before it appears.", "/add-resource");
   const [form, setForm] = useState(EMPTY);
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
