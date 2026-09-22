@@ -80,6 +80,24 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     assert.equal(edit.status, 200);
     const edited = await (await request("/resources/900", 3)).json() as { title: string; category: string; county: string };
     assert.deepEqual([edited.title, edited.category, edited.county], ["Duffel bags for placements", "Community Support", "Alameda, Contra Costa"]);
+    assert.equal(edited && (await (await request("/resources/900", 3)).json() as { verifiedAt: string }).verifiedAt, "2026-09-01", "name/category/region edits are not a re-check (A03)");
+    assert.equal((await request("/resources/900/changes", 3, "POST", { changes: { phone: "510-555-0100" } })).status, 200);
+    assert.notEqual((await (await request("/resources/900", 3)).json() as { verifiedAt: string }).verifiedAt, "2026-09-01", "a contact edit records today's check");
+    // Audit A09: a contributor proposal approved by two reviewers at once applies exactly once.
+    const proposal = await (await request("/resources/900/changes", 1, "POST", { changes: { cost: "Free" } })).json() as { id: number };
+    const approvals = await Promise.all([0, 1].map(() => request(`/changes/${proposal.id}`, 3, "PATCH", { status: "approved" })));
+    assert.deepEqual(approvals.map(r => r.status).sort(), [200, 409]);
+    assert.equal((await (await request("/resources/900", 3)).json() as { cost: string }).cost, "Free");
+    // Audit A06: an age band keeps a program whose maximum sits inside the band.
+    await db.execute("UPDATE resources SET age_min=16, age_max=21 WHERE id=900");
+    await db.execute("INSERT INTO resources_fts(resources_fts) VALUES ('rebuild')");
+    const band = await (await fetch("http://127.0.0.1:4497/api/resources?age=21&ageTo=24&limit=100")).json() as { items: { id: number }[] };
+    assert.ok(band.items.some(item => item.id === 900), "21–24 band still shows a program ending at 21");
+    const above = await (await fetch("http://127.0.0.1:4497/api/resources?age=25&ageTo=99&limit=100")).json() as { items: { id: number }[] };
+    assert.ok(!above.items.some(item => item.id === 900), "25+ excludes a program ending at 21");
+    // Audit A05: a one-chip "Food" plan passes validation (schema only; the LLM is off in tests).
+    const food = await fetch("http://127.0.0.1:4497/api/roadmaps", { method: "POST", headers: { "Content-Type": "application/json", "x-session-id": "audit-food-only-session-0001" }, body: JSON.stringify({ county: "Alameda", currentNeeds: "Food", futurePlan: "I'm not sure yet", needs: ["Food"] }) });
+    assert.notEqual(food.status, 400, `Food-only intake must not fail validation: ${await food.text()}`);
     const inAlameda = await (await request("/resources?county=Alameda", 1)).json() as { id: number }[];
     const inContraCosta = await (await request("/resources?county=Contra%20Costa", 1)).json() as { id: number }[];
     assert.ok(inAlameda.some(item => item.id === 900) && inContraCosta.some(item => item.id === 900));
@@ -112,7 +130,9 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     assert.ok(token.length > 20);
     assert.equal((await request("/reset", undefined, "POST", { token, password: "short" })).status, 400);
     assert.equal((await request("/reset", undefined, "POST", { token: "not-a-real-token-at-all", password: "blue-bicycle-harbor-2026" })).status, 400);
-    assert.equal((await request("/reset", undefined, "POST", { token, password: "blue-bicycle-harbor-2026" })).status, 204);
+    // Audit A11: two simultaneous resets with one token — exactly one succeeds.
+    const race = await Promise.all([0, 1].map(() => request("/reset", undefined, "POST", { token, password: "blue-bicycle-harbor-2026" })));
+    assert.deepEqual(race.map(r => r.status).sort(), [204, 400], "one reset consumes the token, the other is refused");
     assert.equal((await request("/reset", undefined, "POST", { token, password: "blue-bicycle-harbor-2026" })).status, 400, "a link works once");
     assert.equal((await request("/my-submissions", 2)).status, 401, "reset signs every device out");
     const login = await request("/login", undefined, "POST", { email: "test2@example.org", password: "blue-bicycle-harbor-2026" });

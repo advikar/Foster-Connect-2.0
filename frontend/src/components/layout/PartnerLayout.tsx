@@ -41,7 +41,7 @@ function Shell() {
       <header className="flex h-14 items-center justify-between border-b border-rule bg-surface px-5 lg:col-span-2 lg:h-16 lg:px-8">
         <Brand subtitle="For partners" to={workspace ? "/partners/overview" : "/partners"} />
         <div className="flex items-center gap-4 text-[14px]">
-          <Link to="/" className="hidden items-center gap-1.5 text-ink-faint hover:text-ink sm:inline-flex"><ArrowLeft className="size-3.5" /> Youth site</Link>
+          <Link to="/" className="inline-flex items-center gap-1.5 text-ink-faint hover:text-ink"><ArrowLeft className="size-3.5" /> Youth site</Link>
           {partner ? (
             <>
               <span className="hidden items-center gap-2.5 lg:inline-flex">
@@ -86,7 +86,7 @@ function Shell() {
             <div className="mt-auto px-3 pt-6 text-[12px] leading-relaxed text-ink-faint">
               <p className="inline-flex items-center gap-1.5 font-semibold text-ink-soft"><Mail className="size-3.5" /> Contact</p>
               <a href={`mailto:${CONTACT_EMAIL}`} className="mt-0.5 block break-all text-brand hover:underline">{CONTACT_EMAIL}</a>
-              <p className="mt-3">Youth plans, chats and saved lists are never visible here.</p>
+              <p className="mt-3">Youth plans, chats and saved lists are not shown here.</p>
             </div>
           </aside>
         </>

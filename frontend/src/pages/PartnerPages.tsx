@@ -546,7 +546,7 @@ export function PartnerLanding() {
       <section className="max-w-[720px] rounded-md bg-sand-soft p-6">
         <h2 className="font-display text-[22px] font-bold text-ink">Reviewers</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-soft">
-          One or two people vetted by Foster Guide approve new listings and proposed changes, and can see who proposed them. Youth plans, chats and saved lists are never visible to anyone.
+          One or two people vetted by Foster Guide approve new listings and proposed changes, and can see who proposed them. Youth plans, chats and saved lists are not shown to partners or reviewers; only the people who run the server can reach that data.
         </p>
         <Link to="/partners/sign-in?as=reviewer" className="mt-3 inline-flex min-h-10 items-center text-[14px] font-semibold text-brand hover:underline">Reviewer sign-in →</Link>
       </section>

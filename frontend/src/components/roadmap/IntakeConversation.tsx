@@ -61,6 +61,8 @@ interface Answers {
   needs: string[];
   housingStatus: HousingStatus;
   documents: DocumentId[];
+  /** Whether the documents question was answered at all; skipping means "unknown", not "has none" (audit A10). */
+  documentsAnswered: boolean;
   deadlines: { kind: string; date?: string }[];
   futurePlan: string;
   county: RoadmapIntake["county"] | "";
@@ -71,7 +73,7 @@ interface Answers {
 }
 
 const EMPTY: Answers = {
-  needs: [], housingStatus: "unsaid", documents: [], deadlines: [],
+  needs: [], housingStatus: "unsaid", documents: [], documentsAnswered: false, deadlines: [],
   futurePlan: "", county: "", age: "", youthName: "",
   other: { needs: "", housing: "", documents: "", deadlines: "" },
 };
@@ -141,7 +143,7 @@ export function IntakeConversation({
     },
     {
       question: "Which of these do you have?",
-      hint: "Most programs ask for one or more of these. Whatever you're missing, I'll put getting it early in the plan.",
+      hint: "Most programs ask for one or more of these. Tell me what you have and I'll put getting the rest early in the plan. Skip it and I'll leave documents as a thing to check.",
       valid: true,
       body: (
         <div className="space-y-2">
@@ -152,7 +154,7 @@ export function IntakeConversation({
                 key={document.id}
                 type="button"
                 aria-pressed={has}
-                onClick={() => set("documents", toggle(answers.documents, document.id))}
+                onClick={() => setAnswers(previous => ({ ...previous, documents: toggle(previous.documents, document.id), documentsAnswered: true }))}
                 className={`flex min-h-[52px] w-full items-center gap-3 rounded-md border px-4 py-2.5 text-left text-[16px] font-medium transition-colors ${
                   has ? "border-ink bg-sand-soft text-ink" : "border-rule bg-surface text-ink-soft"
                 }`}
@@ -172,6 +174,19 @@ export function IntakeConversation({
               </button>
             );
           })}
+          <button
+            type="button"
+            aria-pressed={answers.documentsAnswered && answers.documents.length === 0}
+            onClick={() => setAnswers(previous => ({ ...previous, documents: [], documentsAnswered: true }))}
+            className={`flex min-h-[52px] w-full items-center gap-3 rounded-md border px-4 py-2.5 text-left text-[16px] font-medium transition-colors ${
+              answers.documentsAnswered && answers.documents.length === 0 ? "border-ink bg-sand-soft text-ink" : "border-rule bg-surface text-ink-soft"
+            }`}
+          >
+            <span aria-hidden className={`flex size-5 shrink-0 items-center justify-center rounded border ${answers.documentsAnswered && answers.documents.length === 0 ? "border-brand bg-brand text-white" : "border-rule"}`}>
+              {answers.documentsAnswered && answers.documents.length === 0 && <Check className="size-3.5" strokeWidth={3} />}
+            </span>
+            <span className="flex flex-col gap-0.5"><span>None of these yet</span><span className="text-[13px] font-normal leading-snug text-ink-faint">Getting them will go near the top of the plan.</span></span>
+          </button>
           <OtherText value={answers.other.documents} onChange={value => setOther("documents", value)} placeholder="e.g. my ID is expired, or my birth certificate is with my old foster mom" />
         </div>
       ),
@@ -282,7 +297,7 @@ export function IntakeConversation({
       additionalContext: inTheirWords || undefined,
       needs: answers.needs,
       housingStatus: answers.housingStatus,
-      documents: answers.documents,
+      documents: answers.documentsAnswered ? answers.documents : undefined,
       deadlines: answers.deadlines,
     });
   };

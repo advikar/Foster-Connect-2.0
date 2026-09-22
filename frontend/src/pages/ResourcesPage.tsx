@@ -41,13 +41,13 @@ const COUNTIES = [
   { value: "California", label: "California-wide" },
   { value: "National", label: "National" },
 ];
-/** Age bands map to one representative age the API can filter on. */
-const AGES = [
-  { value: "All", label: "Any age", age: undefined },
-  { value: "under18", label: "Under 18", age: 17 },
-  { value: "18-20", label: "18–20", age: 19 },
-  { value: "21-24", label: "21–24", age: 22 },
-  { value: "25plus", label: "25+", age: 26 },
+/** Age bands are sent as a range; the API keeps any listing whose stored ages overlap it (audit A06). */
+const AGES: { value: string; label: string; age?: number; ageTo?: number }[] = [
+  { value: "All", label: "Any age" },
+  { value: "under18", label: "Under 18", age: 0, ageTo: 17 },
+  { value: "18-20", label: "18–20", age: 18, ageTo: 20 },
+  { value: "21-24", label: "21–24", age: 21, ageTo: 24 },
+  { value: "25plus", label: "25+", age: 25, ageTo: 99 },
 ];
 // Two real levels in the directory: emergency lines (tonight) and everything
 // else. There is no middle tier, so "this week" would only ever be empty.
@@ -122,12 +122,14 @@ export function ResourcesPage() {
     setParams(next);
   };
 
-  const age = AGES.find(option => option.value === ageBand)?.age;
+  const band = AGES.find(option => option.value === ageBand);
+  const age = band?.age;
+  const ageTo = band?.ageTo;
   const { data, isPending, isError, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isFetching } =
     useInfiniteQuery<ResourcePage>({
-      queryKey: ["resources", search, category, county, urgency, age, sort],
+      queryKey: ["resources", search, category, county, urgency, age, ageTo, sort],
       queryFn: ({ pageParam = 0 }) =>
-        fetchResources({ q: search || undefined, category, county, urgency, age, sort: sort === "relevance" ? undefined : sort, limit: PAGE_SIZE, offset: pageParam as number }),
+        fetchResources({ q: search || undefined, category, county, urgency, age, ageTo, sort: sort === "relevance" ? undefined : sort, limit: PAGE_SIZE, offset: pageParam as number }),
       initialPageParam: 0,
       getNextPageParam: last => (last.hasMore ? last.offset + last.items.length : undefined),
       placeholderData: keepPreviousData,

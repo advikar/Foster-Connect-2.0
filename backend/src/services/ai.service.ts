@@ -444,12 +444,14 @@ function fallbackRoadmap(input: RoadmapInput, resources: GroundedResource[], rea
  */
 export async function generateGroundedRoadmap(input: RoadmapInput, resources: GroundedResource[]): Promise<GeneratedRoadmap> {
   if (!hasValidApiKey()) return fallbackRoadmap(input, resources, "no API key configured");
-  const missing = Object.keys(DOCUMENT_LABELS).filter(id => !(input.documents || []).includes(id));
+  // Skipping the documents question means "unknown", not "has none" (audit A10).
+  const answered = Array.isArray(input.documents);
+  const missing = answered ? Object.keys(DOCUMENT_LABELS).filter(id => !input.documents!.includes(id)) : [];
   const personInput = {
     ...input,
     housingSituation: HOUSING_URGENCY[input.housingStatus || "unsaid"],
-    documentsTheyHave: (input.documents || []).map(id => DOCUMENT_LABELS[id]),
-    documentsTheyAreMissing: missing.map(id => DOCUMENT_LABELS[id]),
+    documentsTheyHave: answered ? input.documents!.map(id => DOCUMENT_LABELS[id]) : "not answered — do not assume anything is missing; one step to check what they have is enough",
+    documentsTheyAreMissing: answered ? missing.map(id => DOCUMENT_LABELS[id]) : "unknown (question skipped)",
     deadlines: input.deadlines?.length ? input.deadlines : "none given",
     // A 7-year-old is not filling this in. Say who the plan is for so the
     // model writes to the adult instead of assigning a child phone calls.
@@ -519,8 +521,19 @@ function buildDeterministicRoadmap(input: RoadmapInput, resources: GroundedResou
     });
   }
 
-  // 2. Documents, in the order they unlock each other.
-  const documentOrder = ["birth_certificate", "ssn_card", "state_id", "bank_account"];
+  // 2. Documents, in the order they unlock each other. If the question was
+  // skipped we do not know what they hold (audit A10): one step to check, not four to replace.
+  const documentOrder = Array.isArray(input.documents) ? ["birth_certificate", "ssn_card", "state_id", "bank_account"] : [];
+  if (!Array.isArray(input.documents)) {
+    tasks.push({
+      taskText: "Check which of these you can find: birth certificate, Social Security card, state ID, a bank account",
+      taskCategory: "General",
+      timeframe: tasks.length < 2 ? "This Week" : "30 Days",
+      whyItMatters: "Most applications ask for the same few documents. Knowing what you already have tells you what, if anything, to replace.",
+      motivationNote: "A photo of each one on your phone is a good start.",
+      resourceId: null,
+    });
+  }
   for (const id of documentOrder) {
     if (held.has(id as never) || tasks.length >= 4) continue;
     const template = DOCUMENT_TASKS[id];

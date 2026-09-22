@@ -75,7 +75,7 @@ export function PrivacyPage() {
   };
   const clearDevice = () => {
     clearDeviceData();
-    toast.success("Cleared from this device. Your plan is still saved and a passcode opens it again.");
+    toast.success(hasPasscode ? "Cleared from this device. Your passcode opens your plan again on any device." : "Cleared from this device.");
     window.location.assign(import.meta.env.BASE_URL);
   };
 
@@ -126,7 +126,7 @@ export function PrivacyPage() {
           </li>
           <li className="flex gap-3">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
-            <span>Homepage preferences are saved in this browser. Age and county filters may be sent in resource requests. Clear these choices using “Clear” in the homepage preferences; deleting session data below does not clear them.</span>
+            <span>Homepage preferences are saved in this browser. Age and county filters may be sent in resource requests. “Clear from this device” and “Delete everything” below remove them, as does “Clear” in the homepage preferences.</span>
           </li>
         </ul>
       </section>
@@ -160,8 +160,8 @@ export function PrivacyPage() {
         <div className="rounded-md border border-rule bg-surface p-6">
           <h2 className="inline-flex items-center gap-2 font-display text-[20px] font-bold text-ink"><Eraser className="size-5 text-brand" /> Clear from this device</h2>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            Removes your session ID and Nova conversations from this browser, so nobody using it after you can open your plan.
-            Your plan and saved programs stay on our server, and your passcode opens them again on any device. Good for a library or shared computer.
+            Removes your session ID, Nova conversations and homepage preferences from this browser, so nobody using it after you can open your plan.
+            Your plan and saved programs stay on our server; a passcode opens them again on any device. Good for a library or shared computer.
           </p>
           {clearing === "idle" && (
             <Button onClick={startClear} variant="outline" className="mt-4 h-11 rounded-md border-ink px-5">
@@ -194,7 +194,7 @@ export function PrivacyPage() {
         <div className="rounded-md border border-crisis/25 bg-crisis-soft p-6">
           <h2 className="font-display text-[20px] font-bold text-ink">Delete everything</h2>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            Permanently deletes your plan, notes, saved programs and passcode from our server, and clears this browser. A passcode will not bring it back. Nobody can undo this, including us. Homepage preferences are separate.
+            Permanently deletes your plan, notes, saved programs and passcode from our server, and clears this browser. A passcode will not bring it back and we cannot undo it. Routine server backups age out on their own; the AI provider&rsquo;s own records are covered by its policy, not by this button.
           </p>
           {deleting === "idle" && (
             <Button onClick={() => setDeleting("first")} variant="outline" className="mt-4 h-11 rounded-md border-crisis/30 px-5 text-crisis hover:bg-crisis/5">

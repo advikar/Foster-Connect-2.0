@@ -21,7 +21,7 @@ import { buildAllowList, sanitiseReply, signHistory, verifyHistory, type SignedM
 import { mailConfigured, newAccountEmail, resetEmail, sendMail, siteUrl } from "./services/mail";
 import { canReview, hashPassword, hashToken, newSessionToken, normaliseEmail, passwordProblem, verifyPassword, type Partner } from "./services/partners";
 import { contactsFor, CRISIS_CONTACTS, CRISIS_REPLIES, CONCERN_NOTE, type CrisisCategory } from "./config/crisis";
-import { audit, executeSerialised, persistRoadmap, publishSubmission } from "./services/persistence";
+import { audit, executeSerialised, inWriteTransaction, persistRoadmap, publishSubmission } from "./services/persistence";
 import { openSession, passcodeLookup, passcodeProblem, sealSession } from "./services/passcode";
 
 dotenv.config();
@@ -191,8 +191,12 @@ function mapResource(row: Row): GroundedResource {
     recheckAt: row.recheck_at ? String(row.recheck_at) : null,
     sourceUrl: rowString(row, "source_url"),
     verifiedAt: rowString(row, "verified_at"),
-    /** How the listing was checked: "phone" when a reviewer confirmed it by calling, otherwise "online". */
-    checkedHow: /phone|line confirmed|called/i.test(rowString(row, "verified_by")) ? "phone" : "online",
+    /**
+     * How the listing was checked. Only a reviewer's explicit "(confirmed by phone)"
+     * stamp counts (audit A03); imported "line confirmed" notes describe research
+     * against a program's page, so they read as "online".
+     */
+    checkedHow: /confirmed by phone/i.test(rowString(row, "verified_by")) ? "phone" : "online",
     tags: rowString(row, "tags"),
   };
 }
@@ -289,7 +293,7 @@ function normaliseCounty(value: string): string | null {
 }
 
 function buildResourceFilters(options: {
-  county?: string; category?: string; urgency?: string; age?: number;
+  county?: string; category?: string; urgency?: string; age?: number; ageTo?: number;
 }) {
   const filters = ["r.status = 'verified'"];
   const args: (string | number)[] = [];
@@ -312,8 +316,11 @@ function buildResourceFilters(options: {
   if (options.urgency === "Emergency") filters.push("(r.urgency_level = 'Emergency' OR r.is_crisis = 1)");
   else if (options.urgency === "Standard") filters.push("(r.urgency_level <> 'Emergency' AND r.is_crisis = 0)");
   if (options.age !== undefined) {
+    // A band (age..ageTo) keeps every listing whose stored range overlaps it
+    // (audit A06): 21–24 still shows a program whose maximum is 21.
+    const upper = Math.max(options.age, options.ageTo ?? options.age);
     filters.push("(r.age_min IS NULL OR r.age_min <= ?) AND (r.age_max IS NULL OR r.age_max >= ?)");
-    args.push(options.age, options.age);
+    args.push(upper, options.age);
   }
   return { filters, args };
 }
@@ -477,7 +484,8 @@ const roadmapInputSchema = z.object({
   youthName: z.string().trim().max(80).optional(),
   age: z.coerce.number().int().min(0).max(99).optional(),
   county: z.enum(["Contra Costa", "Alameda", "Bay Area", "California", "National"]),
-  currentNeeds: z.string().trim().min(5).max(2000),
+  // "Food" and "Work" are valid one-chip answers (audit A05).
+  currentNeeds: z.string().trim().min(2).max(2000),
   futurePlan: z.string().trim().min(3).max(1200),
 
   /** Step-1 chips: which categories to search. */
@@ -488,7 +496,8 @@ const roadmapInputSchema = z.object({
     .optional()
     .default("unsaid"),
   /** Documents they already hold. Missing ones become early tasks. */
-  documents: z.array(z.enum(DOCUMENT_IDS)).max(5).optional().default([]),
+  /** Omitted = not answered (unknown); [] = "none of these" (audit A10). */
+  documents: z.array(z.enum(DOCUMENT_IDS)).max(5).optional(),
   /** Anything with a date on it — deadlines are what make a plan concrete. */
   deadlines: z
     .array(z.object({ kind: z.string().trim().max(60), date: z.string().trim().max(30).optional() }))
@@ -697,6 +706,7 @@ app.get("/api/resources", asyncRoute(async (req, res) => {
     q: z.string().max(300).optional(), county: z.string().max(200).optional(),
     category: z.string().max(400).optional(), urgency: z.string().max(40).optional(),
     age: z.coerce.number().int().min(0).max(99).optional(),
+    ageTo: z.coerce.number().int().min(0).max(99).optional(),
     limit: z.coerce.number().int().min(1).max(100).optional().default(25),
     offset: z.coerce.number().int().min(0).max(5000).optional().default(0),
     sort: z.enum(["relevance", "checked", "name", "organization"]).optional(),
@@ -704,7 +714,7 @@ app.get("/api/resources", asyncRoute(async (req, res) => {
 
   const filters = {
     query: query.q, county: query.county, category: query.category,
-    urgency: query.urgency, age: query.age,
+    urgency: query.urgency, age: query.age, ageTo: query.ageTo,
   };
   const [items, total] = await Promise.all([
     listVerifiedResources({ ...filters, sort: query.sort, limit: query.limit, offset: query.offset }),
@@ -1394,10 +1404,18 @@ const changeSchema = z.object({
   note: z.string().trim().max(1000).optional().default(""),
 });
 type ResourceChanges = z.infer<typeof changeSchema>["changes"];
+/** Anything with execute(): the client, or a transaction. */
+type Executor = { execute: (statement: import("@libsql/client").InStatement) => Promise<import("@libsql/client").ResultSet> };
 
 /** Apply a change set to a listing and refresh its search entry. The applier's email becomes verified_by. */
-async function applyResourceChanges(resourceId: number, changes: ResourceChanges, actor: Partner) {
-  const before = await db.execute({ sql: "SELECT * FROM resources WHERE id=?", args: [resourceId] });
+/**
+ * Runs inside the caller's write transaction (audit A09): the FTS delete, the
+ * row update and the FTS re-insert either all land or none do. Administrative
+ * edits (name, organization, category, region) do not count as a re-check,
+ * so they leave verified_at alone (audit A03).
+ */
+async function applyResourceChanges(tx: Executor, resourceId: number, changes: ResourceChanges, actor: Partner) {
+  const before = await tx.execute({ sql: "SELECT * FROM resources WHERE id=?", args: [resourceId] });
   const row = before.rows[0];
   if (!row) return false;
   const sets: string[] = [];
@@ -1411,16 +1429,21 @@ async function applyResourceChanges(resourceId: number, changes: ResourceChanges
   if (changes.fieldsNa !== undefined) { sets.push("fields_na=?"); args.push(JSON.stringify([...new Set(changes.fieldsNa)])); }
   if (changes.recheckAt !== undefined) { sets.push("recheck_at=?"); args.push(changes.recheckAt); }
   if (changes.kind !== undefined) { sets.push("kind=?"); args.push(changes.kind); }
-  const today = new Date().toISOString().slice(0, 10);
-  sets.push("verified_at=?", "verified_by=?", "updated_at=CURRENT_TIMESTAMP");
-  args.push(today, changes.checkedBy === "phone" ? `${actor.email} (confirmed by phone)` : actor.email);
-  await executeSerialised(db, {
+  const ADMIN_ONLY = new Set(["title", "organization", "category", "county", "checkedBy"]);
+  const reChecked = Object.keys(changes).some(key => !ADMIN_ONLY.has(key));
+  sets.push("updated_at=CURRENT_TIMESTAMP");
+  if (reChecked) {
+    const today = new Date().toISOString().slice(0, 10);
+    sets.push("verified_at=?", "verified_by=?");
+    args.push(today, changes.checkedBy === "phone" ? `${actor.email} (confirmed by phone)` : actor.email);
+  }
+  await tx.execute({
     sql: `INSERT INTO resources_fts(resources_fts, rowid, title, organization, description, category, county, service_area, eligibility, application_steps, tags)
           VALUES ('delete', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [resourceId, rowString(row, "title"), rowString(row, "organization"), rowString(row, "description"), rowString(row, "category"), rowString(row, "county"), rowString(row, "service_area"), rowString(row, "eligibility"), rowString(row, "application_steps"), rowString(row, "tags")],
   });
-  await executeSerialised(db, { sql: `UPDATE resources SET ${sets.join(", ")} WHERE id=?`, args: [...args, resourceId] });
-  await executeSerialised(db, {
+  await tx.execute({ sql: `UPDATE resources SET ${sets.join(", ")} WHERE id=?`, args: [...args, resourceId] });
+  await tx.execute({
     sql: `INSERT INTO resources_fts(rowid, title, organization, description, category, county, service_area, eligibility, application_steps, tags)
           SELECT id, title, organization, description, category, county, service_area, eligibility, application_steps, tags FROM resources WHERE id = ?`,
     args: [resourceId],
@@ -1435,17 +1458,24 @@ app.post("/api/partner/resources/:id/changes", requirePartner, asyncRoute(async 
   const exists = await db.execute({ sql: "SELECT id, title FROM resources WHERE id=?", args: [id] });
   if (!exists.rows[0]) { res.status(404).json({ error: "Resource not found" }); return; }
   const reviewer = canReview(partner);
-  const inserted = await executeSerialised(db, {
+  const insertChange = {
     sql: `INSERT INTO resource_changes (resource_id, partner_id, partner_name, partner_email, changes_json, note, status, reviewed_by, reviewed_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${reviewer ? "CURRENT_TIMESTAMP" : "NULL"})`,
     args: [id, partner.id, partner.name, partner.email, JSON.stringify(input.changes), input.note, reviewer ? "approved" : "pending", reviewer ? partner.email : null],
-  });
+  };
   if (reviewer) {
-    await applyResourceChanges(id, input.changes, partner);
-    await executeSerialised(db, audit(partner, "resource.edit", "resource", id, JSON.stringify({ changeId: Number(inserted.lastInsertRowid), fields: Object.keys(input.changes) })));
-    res.json({ id: Number(inserted.lastInsertRowid), status: "approved", resource: (await resourcesByIds([id]))[0] });
+    // Record, apply and audit in one transaction (audit A09).
+    const changeId = await inWriteTransaction(db, async tx => {
+      const inserted = await tx.execute(insertChange);
+      const applied = await applyResourceChanges(tx, id, input.changes, partner);
+      if (!applied) throw Object.assign(new Error("Resource not found"), { status: 404 });
+      await tx.execute(audit(partner, "resource.edit", "resource", id, JSON.stringify({ changeId: Number(inserted.lastInsertRowid), fields: Object.keys(input.changes) })));
+      return Number(inserted.lastInsertRowid);
+    });
+    res.json({ id: changeId, status: "approved", resource: (await resourcesByIds([id]))[0] });
     return;
   }
+  const inserted = await executeSerialised(db, insertChange);
   await executeSerialised(db, audit(partner, "resource.propose", "resource", id, JSON.stringify({ changeId: Number(inserted.lastInsertRowid), fields: Object.keys(input.changes) })));
   res.status(202).json({ id: Number(inserted.lastInsertRowid), status: "pending" });
 }));
@@ -1475,13 +1505,21 @@ app.patch("/api/partner/changes/:id", requirePartner, requireReviewer, asyncRout
   const change = existing.rows[0];
   if (!change) { res.status(404).json({ error: "Change not found" }); return; }
   if (String(change.status) !== "pending") { res.status(409).json({ error: "This change was already reviewed." }); return; }
-  if (input.status === "approved") {
-    const parsed = changeSchema.shape.changes.safeParse(JSON.parse(String(change.changes_json)));
-    if (!parsed.success) { res.status(422).json({ error: "This proposal is no longer valid." }); return; }
-    await applyResourceChanges(Number(change.resource_id), parsed.data, partner);
-  }
-  await executeSerialised(db, { sql: "UPDATE resource_changes SET status=?, moderator_note=?, reviewed_by=?, reviewed_at=CURRENT_TIMESTAMP WHERE id=?", args: [input.status, input.moderatorNote, partner.email, id] });
-  await executeSerialised(db, audit(partner, `resource.change.${input.status}`, "resource", Number(change.resource_id), JSON.stringify({ changeId: id })));
+  const parsed = input.status === "approved" ? changeSchema.shape.changes.safeParse(JSON.parse(String(change.changes_json))) : null;
+  if (parsed && !parsed.success) { res.status(422).json({ error: "This proposal is no longer valid." }); return; }
+  // Claim the proposal conditionally, apply it and audit, all in one
+  // transaction: two reviewers approving at once cannot both apply it (audit A09).
+  const claimed = await inWriteTransaction(db, async tx => {
+    const claim = await tx.execute({ sql: "UPDATE resource_changes SET status=?, moderator_note=?, reviewed_by=?, reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'", args: [input.status, input.moderatorNote, partner.email, id] });
+    if (!claim.rowsAffected) return false;
+    if (parsed?.success) {
+      const applied = await applyResourceChanges(tx, Number(change.resource_id), parsed.data, partner);
+      if (!applied) throw Object.assign(new Error("Resource not found"), { status: 404 });
+    }
+    await tx.execute(audit(partner, `resource.change.${input.status}`, "resource", Number(change.resource_id), JSON.stringify({ changeId: id })));
+    return true;
+  });
+  if (!claimed) { res.status(409).json({ error: "This change was already reviewed." }); return; }
   res.json({ id, status: input.status });
 }));
 
@@ -1571,14 +1609,22 @@ app.post("/api/partner/reset", asyncRoute(async (req, res) => {
   const input = z.object({ token: z.string().min(20).max(200), password: z.string().min(1).max(200) }).parse(req.body);
   const problem = passwordProblem(input.password);
   if (problem) { res.status(400).json({ error: problem }); return; }
-  const row = (await db.execute({
-    sql: "SELECT id, partner_id FROM partner_password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?",
-    args: [hashToken(input.token), new Date().toISOString()],
-  })).rows[0];
-  if (!row) { res.status(400).json({ error: "That reset link is not valid any more. Ask for a new one from the sign-in page." }); return; }
-  await db.execute({ sql: "UPDATE partners SET password_hash = ? WHERE id = ?", args: [await hashPassword(input.password), Number(row.partner_id)] });
-  await db.execute({ sql: "UPDATE partner_password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = ?", args: [Number(row.id)] });
-  await db.execute({ sql: "DELETE FROM partner_sessions WHERE partner_id = ?", args: [Number(row.partner_id)] });
+  const passwordHash = await hashPassword(input.password);
+  // One transaction: claim the token (conditionally, so two simultaneous
+  // requests cannot both consume it), change the password, revoke sessions
+  // (audit A11). Any failure rolls all three back.
+  const consumed = await inWriteTransaction(db, async tx => {
+    const claim = await tx.execute({
+      sql: "UPDATE partner_password_resets SET used_at = CURRENT_TIMESTAMP WHERE token_hash = ? AND used_at IS NULL AND expires_at > ? RETURNING partner_id",
+      args: [hashToken(input.token), new Date().toISOString()],
+    });
+    const partnerId = claim.rows[0]?.partner_id;
+    if (partnerId === undefined || partnerId === null) return false;
+    await tx.execute({ sql: "UPDATE partners SET password_hash = ? WHERE id = ?", args: [passwordHash, Number(partnerId)] });
+    await tx.execute({ sql: "DELETE FROM partner_sessions WHERE partner_id = ?", args: [Number(partnerId)] });
+    return true;
+  });
+  if (!consumed) { res.status(400).json({ error: "That reset link is not valid any more. Ask for a new one from the sign-in page." }); return; }
   res.status(204).end();
 }));
 

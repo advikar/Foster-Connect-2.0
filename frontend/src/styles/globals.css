@@ -34,7 +34,7 @@
   --ink-body: #2A2622;
   --ink-soft: #4A4740;
   --ink-faint: #6B675E;   /* 4.6:1 on paper — still readable */
-  --ink-stamp: #8A857A;   /* 12px+ mono stamps only */
+  --ink-stamp: #625E55;   /* 12px mono stamps: 5.6:1 on paper, 5.0:1 on sand (audit A14) */
   --rule: #D9D4C8;
   --rule-soft: #E8E4DA;
 

@@ -29,7 +29,7 @@ export function serialised<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-async function inWriteTransaction<T>(db: Client, fn: (tx: Transaction) => Promise<T>): Promise<T> {
+export async function inWriteTransaction<T>(db: Client, fn: (tx: Transaction) => Promise<T>): Promise<T> {
   return serialised(async () => {
     const tx = await db.transaction("write");
     try {

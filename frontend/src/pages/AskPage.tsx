@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { NovaConversation } from "@/components/chat/NovaConversation";
 import { useNova } from "@/contexts/NovaContext";
 
@@ -26,8 +26,8 @@ export function AskPage() {
           Nova is an AI guide. It only answers from listings a person has checked, and shows you which. Nova is not a caseworker or a lawyer and can&rsquo;t decide what you qualify for — confirm details with the program itself.
         </p>
         <div className="mt-6 border-t border-rule pt-5 text-[14px] leading-relaxed text-ink-faint">
-          <p>Nothing here is tied to your name.</p>
-          <p className="mt-1">Conversations stay in this browser. Nova remembers what you said here, and in your past chats, until you clear them.</p>
+          <p>No account, no name needed. What you type is sent through our server to an AI provider to write the reply, so leave out names and addresses.</p>
+          <p className="mt-1">Conversations are saved in this browser. Nova remembers what you said here, and in your past chats, until you clear them. <Link to="/privacy" className="text-brand underline">How your information is handled</Link></p>
         </div>
       </aside>
 
@@ -35,7 +35,7 @@ export function AskPage() {
         <div className="flex items-center justify-between border-b border-rule px-4 py-3 lg:hidden">
           <div>
             <h1 className="font-display text-[18px] font-bold text-ink">Nova</h1>
-            <p className="text-[12px] text-ink-faint">AI guide &middot; checked listings only &middot; not a caseworker</p>
+            <p className="text-[12px] text-ink-faint">AI guide &middot; answers from checked listings &middot; messages go to an AI provider &middot; <Link to="/privacy" className="underline">details</Link></p>
           </div>
         </div>
         <NovaConversation className="flex-1" />

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { applyAccent, currentAccent } from "@/lib/accent";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-router-dom";
 import { Bookmark, Home, ListChecks, MessageCircle, Search } from "lucide-react";
 import { NovaProvider } from "@/contexts/NovaContext";
 import { CrisisButton } from "@/components/safety/CrisisBar";
@@ -28,12 +28,15 @@ const tabs = [
  */
 export function AppLayout() {
   const location = useLocation();
+  const navigationType = useNavigationType();
   const mainRef = useRef<HTMLElement>(null);
   const isFirstRender = useRef(true);
 
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
-    mainRef.current?.focus();
+    // A new page starts at the top (audit A15); Back/Forward keeps the browser's own position.
+    if (navigationType !== "POP") window.scrollTo({ top: 0 });
+    mainRef.current?.focus({ preventScroll: navigationType === "POP" });
   }, [location.pathname]);
 
   return (
@@ -154,7 +157,7 @@ function SiteFooter() {
           <p className="text-eyebrow text-sand">If you&rsquo;re in danger or thinking about hurting yourself</p>
           <div className="flex flex-wrap gap-x-10 gap-y-4">
             <CrisisLine href="tel:988" number="988" label="Call or text, 24/7" />
-            <CrisisLine href="sms:741741&body=HOME" number="HOME to 741741" label="Crisis Text Line" />
+            <CrisisLine href="sms:741741?&body=HOME" number="HOME to 741741" label="Crisis Text Line" />
             <CrisisLine href="tel:18007862929" number="1-800-786-2929" label="National Runaway Safeline" />
             <CrisisLine href="tel:911" number="911" label="Immediate danger" />
           </div>

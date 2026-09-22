@@ -315,3 +315,12 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Limits: no live authenticated partner review, successful plan/PDF roundtrip, email delivery, credential/deletion changes, real screen reader, clinical review, performance score, or restore drill. Audit only; application untouched.
 - Next action: repair audit A01–A09 first in separately claimed implementation checkpoints, with independent review for safety/auth/data-integrity changes. Keep preview designation until launch checks are met.
 - Ownership released: yes. Documentation backup to a separate codex audit branch next; no deployment requested.
+
+## 2026-09-21 — Round 6: acting on Codex's AUDIT-2026-09-21
+
+- Owner: Claude Code (Fable 5.1). Scope: P1 A01, A03 (stop inferring "phone" checks), A04, A05, A06, A07, A08 (copy), A09; P2 A10, A11, A14, A15, A16; A02 numbers aligned to providers' current published instructions but left marked unverified until a human calls. Not in scope this round: A12 (founder's Resend setup), A13 (data work), A17–A20 (launch/ops).
+- Intended files: frontend ResourceRow.tsx, CrisisBar.tsx, ResourcesPage.tsx, AskPage.tsx, SavedPage.tsx, PartnerPages.tsx, PrivacyPage.tsx, PartnerLayout.tsx, index.css (stamp token), lib/crisis.ts, roadmap intake; backend safety.ts (+tests), server.ts (age filter, needs validation, checkedHow, atomic edits, atomic reset), crisis.ts, ai.service.ts (documents unknown).
+- Done: see the "Response" section appended to docs/AUDIT-2026-09-21.md for the per-finding list. New: `frontend/src/lib/contactActions.ts` (+ vitest), `inWriteTransaction` exported from persistence.ts and used for reviewer edits, approvals and password reset; `applyResourceChanges(tx, …)`; `ageTo` query param; `documents` optional (unknown) in intake; `BENIGN_MEANS` and narrower parent-idiom regex in safety.ts.
+- Checks: backend 77/77 (new assertions: concurrent reset 204+400, concurrent approval 200+409, admin-only edit keeps verified_at, age band boundaries, Food-only intake not 400; new triage cases); frontend tsc, eslint 0, vitest 4 passed, build. Browser (local): Crisis Text Line detail shows "Text HOME to 741741" as sms: and no Call; emergency dialog puts focus on its Close button, lists tel:/sms: links for every line, Escape closes.
+- Still needs a person: call each crisis line and set `verifiedOn`; Resend DNS; data completeness; A17–A20.
+- Ownership released: yes (after push).

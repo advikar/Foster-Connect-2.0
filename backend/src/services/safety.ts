@@ -88,7 +88,10 @@ const FIGURATIVE: RegExp[] = [
   /\bhomework is killing me\b/g,
   // "my mom will kill me if I fail" — only an idiom when a consequence clause
   // follows. A bare "my mom will kill me" is left in place and handled below.
-  /\b(my )?(foster )?(dad|mom|mother|father|parent)s? (would|will|might|is going to|is gonna|s gonna|gonna) kill me\b(?=.*\b(if|when|for|because|cause|cuz|bc|over|about|once)\b)/g,
+  // A consequence about telling someone ("if I tell anyone", "when they find
+  // out") is not an idiom — it reads as a threat over disclosure, so it is
+  // left in place and reaches BARE_PARENT_THREAT (audit A04).
+  /\b(my )?(foster )?(dad|mom|mother|father|parent)s? (would|will|might|is going to|is gonna|s gonna|gonna) kill me\b(?=.*\b(if|when|for|because|cause|cuz|bc|over|once)\b)(?!.{0,60}\b(tell|tells|told|telling|say|says|said|report|find(s)? out|found out|know|knows|knew|talk|snitch)\b)/g,
 ];
 
 /**
@@ -230,6 +233,13 @@ const NEEDS_BED = /\b(place|somewhere|anywhere|spot|bed|room|couch)\b.{0,20}\b(t
 /** Means + intent, which no single keyword catches. */
 const MEANS = /\b(pills|rope|gun|blade|razor|bridge|overdose|bleach)\b/;
 const INTENT = /\b(plan|ready|tonight|decided|going to|gonna|about to)\b/;
+/**
+ * Ordinary medication talk ("refill my pills tonight") must not become a
+ * suicide flag on its own (audit A04). The combination rule stands down when
+ * the means word sits in a clearly everyday context; explicit phrases in
+ * RULES still fire regardless.
+ */
+const BENIGN_MEANS = /\b(refill|refilled|prescription|pharmacy|pharmacist|dose|doses|forgot (to take|my)|take my (meds|medication|pills)|birth control|vitamins?|allergy|antibiotics?|inhaler|insulin)\b/;
 
 /** Lower-confidence distress. Never interrupts; only adds a gentle offer. */
 const CONCERN_PATTERNS: RegExp[] = [
@@ -273,7 +283,7 @@ export function assessSafety(input: string): SafetyAssessment {
     }
 
     // Combination: named a method plus intent, without saying a trigger word.
-    if (MEANS.test(text) && INTENT.test(text)) {
+    if (MEANS.test(text) && INTENT.test(text) && !BENIGN_MEANS.test(text)) {
       categories.add("suicide");
     }
 

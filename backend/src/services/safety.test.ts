@@ -147,12 +147,16 @@ const ORDINARY_CASES = [
   "my dad would kill me for spending that much",
   "my foster mom is going to kill me when she sees my grades",
   "I'm dead tired but I need to find a job",
+  // Audit A04: medication logistics are not self-harm intent.
+  "I need to refill my pills tonight",
+  "forgot to take my pills, can I get them tonight from the pharmacy",
 ];
 
 test("a bare parental threat is a concern, not dismissed as an idiom", () => {
   // "my mom will kill me if I fail" is an idiom. "my mom will kill me" with
   // no consequence clause is ambiguous and must not be categorically harmless.
-  for (const message of ["my mom will kill me", "my foster dad would kill me"]) {
+  // Audit A04: a consequence about *telling* is a threat, not an idiom.
+  for (const message of ["my mom will kill me", "my foster dad would kill me", "My dad will kill me if I tell anyone", "my mom will kill me, she said that about my brother", "my dad is gonna kill me when he finds out I talked to you"]) {
     const result = assessSafety(message);
     assert.equal(result.level, "concern", `${JSON.stringify(message)} -> ${result.level}`);
   }

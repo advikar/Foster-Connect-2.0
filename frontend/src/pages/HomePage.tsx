@@ -187,7 +187,7 @@ export function HomePage() {
           ) : (
             <section className="flex flex-col gap-3 rounded-md border border-rule p-6">
               <h2 className="font-display text-[22px] font-bold text-ink">Start a plan</h2>
-              <p className="text-[15px] leading-relaxed text-ink-soft">Choose what you want to work on and build a plan you can edit. Questions are optional.</p>
+              <p className="text-[15px] leading-relaxed text-ink-soft">Choose what you want to work on and build a plan you can edit. Most questions are optional.</p>
               <Link to="/roadmap" className="inline-flex min-h-11 items-center gap-2 self-start rounded-md border border-ink px-4 text-[15px] font-semibold text-ink hover:bg-surface">
                 Build my plan <ArrowRight className="size-4" />
               </Link>

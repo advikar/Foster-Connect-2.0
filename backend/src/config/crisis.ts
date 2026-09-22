@@ -69,7 +69,7 @@ export const CRISIS_CONTACTS: CrisisContact[] = [
     id: "runaway-safeline",
     name: "National Runaway Safeline",
     phone: "1-800-786-2929",
-    text: "Text 66008",
+    text: "Text 1-800-786-2929",
     website: "https://www.1800runaway.org",
     description:
       "For young people who have run away, been kicked out, or have nowhere to sleep tonight. They can help with shelter and transport home if you want it.",
@@ -104,7 +104,7 @@ export const CRISIS_CONTACTS: CrisisContact[] = [
     id: "ca-youth-crisis",
     name: "California Youth Crisis Line",
     phone: "1-800-843-5200",
-    text: "Text 20121",
+    text: "Call or text 1-800-843-5200",
     website: "https://calyouth.org/cycl/",
     description:
       "California-specific support and referrals for youth ages 12–24 and their families.",
@@ -144,7 +144,7 @@ export const CRISIS_REPLIES: Record<CrisisCategory, string> = {
   trafficking:
     "Thank you for telling me. What you are describing is serious, and there are people who help with exactly this — confidentially, and without needing your name. If you are in immediate danger, call 911.",
   homeless_tonight:
-    "Somewhere safe to sleep tonight comes first — everything else can wait until tomorrow. The lines below help young people find a bed the same night, and they answer around the clock. I have also pulled any verified housing options I have for your area.",
+    "Somewhere safe to sleep tonight comes first — everything else can wait until tomorrow. The lines below answer around the clock and can tell you who has space tonight; they refer, they don't hold beds themselves. I have also pulled any verified housing options I have for your area.",
   violence:
     "Your safety comes first. If you can get somewhere with other people around, do that. If you are in immediate danger, call 911. The people below can help you think through what to do next, confidentially.",
   general:

@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { ArrowLeft, Bookmark, ExternalLink, Phone, ShieldCheck, X } from "lucide-react";
+import { ArrowLeft, Bookmark, ExternalLink, MessageSquare, Phone, ShieldCheck, X } from "lucide-react";
 import { BottomSheet } from "@/components/primitives/BottomSheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { useSavedResources } from "@/hooks/useSavedResources";
 import { reportResource, type ResourceItem } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { describeChecked } from "@/lib/checked";
+import { contactActions, smsHref, type ContactActions } from "@/lib/contactActions";
 import { toast } from "sonner";
 
 /**
@@ -90,7 +91,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
   const checked = describeChecked(resource.verifiedAt, resource.checkedHow, resource.recheckAt);
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
-  const phone = resource.phone?.replace(/[^\d+]/g, "");
+  const contact = contactActions(resource.phone);
   const guide = resource.kind === "information";
   const na = new Set(resource.fieldsNa ?? []);
 
@@ -129,7 +130,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
         </div>
 
         <div className="hidden flex-wrap gap-2.5 lg:flex">
-          <Actions phone={guide ? undefined : phone} phoneLabel={resource.phone} website={resource.website} guide={guide} phoneNone={na.has("phone")} saved={saved} onSave={() => toggleSave(resource.id)} />
+          <Actions contact={guide ? {} : contact} website={resource.website} guide={guide} phoneNone={na.has("phone")} saved={saved} onSave={() => toggleSave(resource.id)} />
         </div>
 
         <p className="text-[16px] leading-relaxed text-ink-soft">{resource.description}</p>
@@ -176,7 +177,7 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
       </div>
 
       <div className="fixed inset-x-0 bottom-0 flex gap-2.5 border-t border-rule bg-surface px-5 pb-6 pt-3 lg:hidden">
-        <Actions phone={guide ? undefined : phone} phoneLabel={resource.phone} website={resource.website} guide={guide} phoneNone={na.has("phone")} saved={saved} onSave={() => toggleSave(resource.id)} compact />
+        <Actions contact={guide ? {} : contact} website={resource.website} guide={guide} phoneNone={na.has("phone")} saved={saved} onSave={() => toggleSave(resource.id)} compact />
       </div>
 
       {reporting && <ReportSheet reason={reportReason} setReason={setReportReason} onCancel={() => setReporting(false)} onSubmit={submitReport} />}
@@ -184,19 +185,33 @@ function ResourceDetailSheet({ resource, open, onOpenChange }: { resource: Resou
   );
 }
 
-function Actions({ phone, phoneLabel, website, guide = false, phoneNone = false, saved, onSave, compact = false }: {
-  phone?: string; phoneLabel?: string; website?: string; guide?: boolean; phoneNone?: boolean; saved: boolean; onSave: () => void; compact?: boolean;
+/**
+ * Call and Text are separate real links (audit A01): a text-only line gets an
+ * sms: link carrying its keyword, never a tel: to a short code.
+ */
+function Actions({ contact, website, guide = false, phoneNone = false, saved, onSave, compact = false }: {
+  contact: ContactActions; website?: string; guide?: boolean; phoneNone?: boolean; saved: boolean; onSave: () => void; compact?: boolean;
 }) {
+  const primary = cn("h-12 rounded-md bg-brand px-5 text-[16px] font-semibold text-white hover:bg-brand-deep", compact && "flex-1");
   return (
     <>
       {guide && website ? (
-        <Button asChild className={cn("h-12 rounded-md bg-brand px-5 text-[16px] font-semibold text-white hover:bg-brand-deep", compact && "flex-1")}>
+        <Button asChild className={primary}>
           <a href={website} target="_blank" rel="noreferrer"><ExternalLink className="size-4" />Open the guide</a>
         </Button>
-      ) : phone ? (
-        <Button asChild className={cn("h-12 rounded-md bg-brand px-5 text-[16px] font-semibold text-white hover:bg-brand-deep", compact && "flex-1")}>
-          <a href={`tel:${phone}`}><Phone className="size-4" />{compact ? "Call" : `Call ${phoneLabel}`}</a>
-        </Button>
+      ) : contact.call || contact.text ? (
+        <>
+          {contact.call && (
+            <Button asChild className={primary}>
+              <a href={`tel:${contact.call.number}`}><Phone className="size-4" />{compact ? "Call" : contact.call.label}</a>
+            </Button>
+          )}
+          {contact.text && (
+            <Button asChild className={contact.call ? cn("h-12 rounded-md border-ink px-4 text-[15px] font-semibold text-ink", compact && "flex-1") : primary} variant={contact.call ? "outline" : "default"}>
+              <a href={smsHref(contact.text.number, contact.text.keyword)}><MessageSquare className="size-4" />{compact ? (contact.text.keyword ? `Text ${contact.text.keyword}` : "Text") : contact.text.label}</a>
+            </Button>
+          )}
+        </>
       ) : compact && !guide ? (
         <span className="flex flex-1 items-center text-[13px] text-ink-faint">{phoneNone ? "No phone line — confirmed" : "No phone listed"}</span>
       ) : null}

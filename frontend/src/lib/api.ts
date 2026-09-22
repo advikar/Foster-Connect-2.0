@@ -276,6 +276,7 @@ export function adoptSession(sessionId: string) {
 /** Forget this browser only: session id and Nova chats go, the plan stays on the server (a passcode brings it back). */
 export function clearDeviceData() {
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem("fc-about-you");
   localStorage.removeItem(MAYA_CONVERSATION_KEY);
   localStorage.removeItem(MAYA_ARCHIVE_KEY);
   try { sessionStorage.removeItem("fc-maya-messages"); } catch { /* older key */ }
