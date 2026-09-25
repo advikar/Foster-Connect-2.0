@@ -109,7 +109,7 @@ export function HomePage() {
             <p className="text-eyebrow text-brand">Foster Guide · Alameda & Contra Costa</p>
             <h1 className="mt-4 text-hero text-ink lg:max-w-[760px]">Find support. Take your next step.</h1>
             <p className="mt-4 max-w-[620px] text-[17px] leading-relaxed text-ink-soft lg:text-[18px]">
-              Search housing, scholarships, job training, health care, and everyday support in the East Bay. Made for current and former foster youth, and many of these programs are open to any young person who needs them.
+              Search housing, scholarships, job training, health care, and everyday support for young people in the East Bay. Made for current and former foster youth, and many of these programs are open to anyone who needs them.
             </p>
             <form
               role="search"

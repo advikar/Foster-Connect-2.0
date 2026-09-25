@@ -1,3 +1,11 @@
+## 2026-09-25 — Add to plan from a listing, passcode first on Privacy, hero wording (done)
+
+- Owner: Claude Code (Fable 5.1). Scope from the user: "Add to my plan" on the listing detail sheet; PasscodeCard moved above the data sections on /privacy; hero "support in the East Bay" → "for young people in the East Bay". Not done (recommendation given instead): removing/replacing the home "Checked recently" section and the preferences card.
+- Intended files: frontend components/resources/AddToPlanButton.tsx (new), ResourceRow.tsx, pages/PrivacyPage.tsx, pages/HomePage.tsx.
+- Done: `AddToPlanButton` (new) in the detail sheet's desktop action row and the mobile bottom bar, non-guide listings only. No plan → "Make a plan" link to /roadmap; already linked to a task → "In your plan" link; otherwise POST /api/roadmaps/:id/tasks with `Contact <title>`, the listing's category and description, `resourceId`, then toast with "Open my plan". PasscodeCard now sits directly under the intro on /privacy. Hero: "everyday support for young people in the East Bay … open to anyone who needs them".
+- Checks: frontend tsc, eslint 0, vitest 4 passed. Local browser (dev servers): 375px detail bar fits Call / Website / Save / plan; with no plan the button reads "Make a plan"; after creating a plan via the API, listing 426 "Add to my plan" → 201, toast, button flips to "In your plan", /roadmap shows "Contact Fostering Wishes Trade School Scholarship" with the listing card; listing 428 (already recommended by the plan) shows "In your plan" without adding a copy. /privacy shows the passcode card above "What's actually stored".
+- Not done: the home "Checked recently" section and the preferences card (user says they feel useless / out of place); recommendation given in chat, awaiting a decision.
+
 # Current handoff
 
 ## 2026-09-25 — Report wrong info from Ask and the crisis dialog (checkpoint 0 — claimed)

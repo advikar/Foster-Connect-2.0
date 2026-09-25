@@ -105,6 +105,8 @@ export function PrivacyPage() {
       </p>
       <p className="mt-2 text-[14px] text-ink-faint">Last updated September 25, 2026.</p>
 
+      <div className="mt-8"><PasscodeCard /></div>
+
       <section className="mt-9">
         <h2 className="font-display text-[22px] font-bold text-ink">What&apos;s actually stored</h2>
         <ul className="mt-3 space-y-2.5 text-[15px] leading-relaxed text-ink-soft">
@@ -160,8 +162,6 @@ export function PrivacyPage() {
           </li>
         </ul>
       </section>
-
-      <div className="mt-9"><PasscodeCard /></div>
 
       <section className="mt-9 rounded-md bg-sand-soft p-6">
         <h2 className="font-display text-[22px] font-bold text-ink">

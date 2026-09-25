@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Bookmark, ExternalLink, Link2, MessageSquare, Phone, ShieldCheck, X } from "lucide-react";
 import { BottomSheet } from "@/components/primitives/BottomSheet";
+import { AddToPlanButton } from "@/components/resources/AddToPlanButton";
 import { ReportSheet } from "@/components/resources/ReportSheet";
 import { Button } from "@/components/ui/button";
 import { useSavedResources } from "@/hooks/useSavedResources";
@@ -160,6 +161,7 @@ export function ResourceDetailSheet({ resource, open, onOpenChange }: { resource
 
         <div className="hidden flex-wrap gap-2.5 lg:flex">
           <Actions contact={guide ? {} : contact} website={resource.website} guide={guide} phoneNone={na.has("phone")} saved={saved} onSave={() => toggleSave(resource.id)} />
+          {!guide && <AddToPlanButton resource={resource} />}
         </div>
 
         <p className="text-[16px] leading-relaxed text-ink-soft">{resource.description}</p>
@@ -207,6 +209,7 @@ export function ResourceDetailSheet({ resource, open, onOpenChange }: { resource
 
       <div className="fixed inset-x-0 bottom-0 flex gap-2.5 border-t border-rule bg-surface px-5 pb-6 pt-3 lg:hidden">
         <Actions contact={guide ? {} : contact} website={resource.website} guide={guide} phoneNone={na.has("phone")} saved={saved} onSave={() => toggleSave(resource.id)} compact />
+        {!guide && <AddToPlanButton resource={resource} compact />}
       </div>
 
       {reporting && <ReportSheet reason={reportReason} setReason={setReportReason} onCancel={() => setReporting(false)} onSubmit={submitReport} />}
