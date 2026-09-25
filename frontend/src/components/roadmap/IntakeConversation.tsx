@@ -25,9 +25,9 @@ const NEEDS = [
 ];
 const NEED_LABELS: Record<string, string> = {
   Housing: "Need a place to stay",
-  "Financial Support": "Money's tight",
-  Education: "School or training",
-  Employment: "Work",
+  "Financial Support": "Money or benefits",
+  Education: "School, college or training",
+  Employment: "Finding a job",
   Healthcare: "Health care",
   "Mental Health": "Mental health / someone to talk to",
   "Food Assistance": "Food",

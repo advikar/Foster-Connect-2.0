@@ -19,7 +19,7 @@ export function SavedPage() {
       <div>
         <h1 className="text-display text-ink">Saved</h1>
         <p className="mt-2 text-[16px] text-ink-soft">
-          {data.length === 0 ? "Listings you bookmark land here." : `${data.length} ${data.length === 1 ? "listing" : "listings"}, saved for this browser's session on our server. No account or name is attached.`}
+          {data.length === 0 ? "Resources you save appear here." : `${data.length} ${data.length === 1 ? "listing" : "listings"}, saved for this browser's session on our server. No account or name is attached.`}
         </p>
 
         {isPending ? (
@@ -31,7 +31,7 @@ export function SavedPage() {
             <Bookmark className="size-8 text-brand" strokeWidth={1.5} />
             <h2 className="font-display text-[22px] font-bold text-ink">Nothing saved yet.</h2>
             <p className="max-w-[40ch] text-[15px] leading-relaxed text-ink-soft">Tap Save on any listing and it lands here. It&rsquo;s saved under this browser&rsquo;s session, not an account.</p>
-            <Link to="/resources" className="mt-1 inline-flex h-12 items-center rounded-md bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-deep">Find support</Link>
+            <Link to="/resources" className="mt-1 inline-flex h-12 items-center rounded-md bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-deep">Search support</Link>
           </div>
         ) : (
           <>

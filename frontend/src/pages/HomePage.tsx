@@ -12,10 +12,10 @@ import { addTask, fetchResources, fetchRoadmap, fetchRoadmaps, type RoadmapTask 
 
 const KINDS = [
   { label: "Housing", category: "Housing", icon: HomeIcon },
-  { label: "Money", category: "Financial Support", icon: Landmark },
+  { label: "Money & benefits", category: "Financial Support", icon: Landmark },
   { label: "School & training", category: "Education", icon: GraduationCap },
   { label: "Scholarships", category: "Scholarships", icon: Award },
-  { label: "Work", category: "Employment", icon: Briefcase },
+  { label: "Jobs & work", category: "Employment", icon: Briefcase },
   { label: "Health & mental health", category: "Healthcare,Mental Health", icon: Stethoscope },
 ];
 
@@ -125,8 +125,8 @@ export function HomePage() {
                 placeholder="Search housing, scholarships, bus passes…"
                 className="h-[52px] min-w-0 flex-1 bg-transparent text-[16px] text-ink-body outline-none placeholder:text-ink-stamp lg:h-14"
               />
-              <button className="flex h-11 shrink-0 items-center justify-center rounded-md bg-brand px-4 text-[15px] font-semibold text-white hover:bg-brand-deep" aria-label="Find support">
-                <span className="hidden sm:inline">Find support</span><ArrowRight className="size-4 sm:hidden" />
+              <button className="flex h-11 shrink-0 items-center justify-center rounded-md bg-brand px-4 text-[15px] font-semibold text-white hover:bg-brand-deep" aria-label="Search">
+                <span className="hidden sm:inline">Search</span><ArrowRight className="size-4 sm:hidden" />
               </button>
             </form>
             <nav aria-label="Browse support categories" className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">

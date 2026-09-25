@@ -22,17 +22,17 @@ const CATEGORIES: { value: string; label: string }[] = [
   { value: "Financial Support", label: "Money & benefits" },
   { value: "Education", label: "School & training" },
   { value: "Scholarships", label: "Scholarships" },
-  { value: "Employment", label: "Work" },
+  { value: "Employment", label: "Jobs & work" },
   { value: "Healthcare", label: "Health care" },
   { value: "Mental Health", label: "Mental health" },
   { value: "Food Assistance", label: "Food" },
-  { value: "Legal Support", label: "Legal" },
+  { value: "Legal Support", label: "Legal help" },
   { value: "Transportation", label: "Transportation" },
   { value: "Life Skills and Mentoring", label: "Mentoring & life skills" },
   { value: "Community Support", label: "Community support" },
   { value: "Clothing Assistance", label: "Clothing" },
   { value: "Technology", label: "Technology" },
-  { value: "Other", label: "Other" },
+  { value: "Other", label: "Other help" },
 ];
 const COUNTIES = [
   { value: "All", label: "Anywhere" },
@@ -245,7 +245,7 @@ export function ResourcesPage() {
                 onClear={activeFilterCount > 0 ? clearFilters : undefined}
               />
               <div className="mt-6">
-                <p className="text-eyebrow text-ink-faint">Or browse by kind</p>
+                <p className="text-eyebrow text-ink-faint">Or browse by type of help</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {QUICK.map(value => (
                     <Chip key={value} onClick={() => { setSearch(""); setFilter("category", value); }}>{labelOf(CATEGORIES, value)}</Chip>
