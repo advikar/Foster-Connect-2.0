@@ -408,7 +408,7 @@ export function NovaConversation({ className }: { className?: string }) {
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            aria-label="Send"
+            aria-label="Ask Nova"
             className="flex size-10 items-center justify-center rounded-md bg-brand text-white hover:bg-brand-deep disabled:opacity-40"
           >
             <Send className="size-4" />

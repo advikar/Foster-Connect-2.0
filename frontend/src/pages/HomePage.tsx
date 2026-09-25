@@ -109,7 +109,7 @@ export function HomePage() {
             <p className="text-eyebrow text-brand">Foster Guide · Alameda & Contra Costa</p>
             <h1 className="mt-4 text-hero text-ink lg:max-w-[760px]">Find support. Take your next step.</h1>
             <p className="mt-4 max-w-[620px] text-[17px] leading-relaxed text-ink-soft lg:text-[18px]">
-              Search housing, scholarships for college and trade school, education, and everyday support in the East Bay. Made for current and former foster youth, and many of these programs are open to any young person who needs them.
+              Search housing, scholarships, job training, health care, and everyday support in the East Bay. Made for current and former foster youth, and many of these programs are open to any young person who needs them.
             </p>
             <form
               role="search"
@@ -142,14 +142,14 @@ export function HomePage() {
           {roadmap ? (
             <UpNext tasks={openTasks} total={roadmap.tasks.length} deadlines={showDeadlines ? deadlines : []} roadmapId={roadmap.id} />
           ) : showDeadlines ? (
-            <DeadlineList heading={deadlineHeading} intro={deadlineIntro} whyTo="/resources" whyLabel="Explore listings →" deadlines={deadlines} roadmapId={null} />
+            <DeadlineList heading={deadlineHeading} intro={deadlineIntro} whyTo="/resources" whyLabel="See related listings →" deadlines={deadlines} roadmapId={null} />
           ) : null}
 
           <section aria-labelledby="nearby-heading">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 id="nearby-heading" className="font-display text-[24px] font-bold text-ink lg:text-[26px]">Checked recently{county ? `, ${county} County` : ""}</h2>
               <Link to={`/resources?sort=checked${county ? `&county=${encodeURIComponent(county)}` : ""}`} className="text-[14px] text-brand hover:underline">
-                All {nearby?.total ?? ""} listings →
+                All listings →
               </Link>
             </div>
             <p className="mt-2 text-[14px] text-ink-faint">{county ? "Listings ordered by their recorded check date. Confirm current details with the provider." : "Listings ordered by their recorded check date. Choose a county in your preferences to narrow the list."}</p>

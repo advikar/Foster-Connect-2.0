@@ -52,15 +52,15 @@ const AGES: { value: string; label: string; age?: number; ageTo?: number }[] = [
 // Two real levels in the directory: emergency lines (tonight) and everything
 // else. There is no middle tier, so "this week" would only ever be empty.
 const URGENCIES = [
-  { value: "All", label: "Everything" },
-  { value: "Emergency", label: "Emergency — tonight" },
-  { value: "Standard", label: "Not an emergency" },
+  { value: "All", label: "Show everything" },
+  { value: "Emergency", label: "Help available tonight" },
+  { value: "Standard", label: "Other support" },
 ];
 
 const SORTS = [
-  { value: "relevance", label: "Best match" },
+  { value: "relevance", label: "Most relevant" },
   { value: "checked", label: "Recently checked" },
-  { value: "name", label: "A to Z" },
+  { value: "name", label: "Name A to Z" },
   { value: "organization", label: "By organization" },
 ];
 const PAGE_SIZE = 25;
@@ -147,10 +147,10 @@ export function ResourcesPage() {
 
   const filterRail = (
     <div className="flex flex-col gap-7">
-      <FilterGroup label="Kind of support" values={categories} options={CATEGORIES} onChange={value => toggleIn("category", value)} multi />
-      <FilterGroup label="Where" values={counties} options={COUNTIES} onChange={value => toggleIn("county", value)} multi />
-      <FilterGroup label="Who it's for" values={[ageBand]} options={AGES} onChange={value => setFilter("age", value)} />
-      <FilterGroup label="Emergency?" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
+      <FilterGroup label="Type of help" values={categories} options={CATEGORIES} onChange={value => toggleIn("category", value)} multi />
+      <FilterGroup label="Area served" values={counties} options={COUNTIES} onChange={value => toggleIn("county", value)} multi />
+      <FilterGroup label="Age" values={[ageBand]} options={AGES} onChange={value => setFilter("age", value)} />
+      <FilterGroup label="Need help tonight?" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
     </div>
   );
 
@@ -189,7 +189,7 @@ export function ResourcesPage() {
       <div className="container-wide grid gap-10 pt-6 lg:grid-cols-[260px_1fr] lg:gap-14 lg:pt-10">
         <aside className="hidden lg:block">
           <div className="flex items-baseline justify-between pb-5">
-            <h2 className="font-display text-[20px] font-bold text-ink">Narrow it down</h2>
+            <h2 className="font-display text-[20px] font-bold text-ink">Filters</h2>
             {activeFilterCount > 0 && <button type="button" onClick={clearFilters} className="text-[13px] text-brand hover:underline">Clear</button>}
           </div>
           {filterRail}
@@ -268,7 +268,7 @@ export function ResourcesPage() {
                 <div className="flex justify-center border-t border-rule py-6">
                   <Button type="button" variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="h-11 rounded-md border-ink px-5 text-[15px] font-semibold text-ink">
                     {isFetchingNextPage && <Loader2 className="size-4 animate-spin" />}
-                    {isFetchingNextPage ? "Loading" : `Show ${Math.min(PAGE_SIZE, total - resources.length)} more (${total - resources.length} left)`}
+                    {isFetchingNextPage ? "Loading" : `Show more (${total - resources.length} left)`}
                   </Button>
                 </div>
               )}
@@ -288,10 +288,10 @@ export function ResourcesPage() {
             <h2 className="font-display text-[24px] font-bold text-ink">Filters</h2>
             <button type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters" className="-mr-2 flex size-11 items-center justify-center rounded-md text-ink-faint hover:bg-sunk"><X className="size-5" /></button>
           </div>
-          <ChipGroup label="Kind of support" values={categories} options={CATEGORIES} onChange={value => toggleIn("category", value)} hint="Pick more than one" />
-          <ChipGroup label="Where" values={counties} options={COUNTIES} onChange={value => toggleIn("county", value)} hint="Pick more than one" />
-          <ChipGroup label="Who it's for" values={[ageBand]} options={AGES} onChange={value => setFilter("age", value)} />
-          <ChipGroup label="Emergency?" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
+          <ChipGroup label="Type of help" values={categories} options={CATEGORIES} onChange={value => toggleIn("category", value)} hint="Pick more than one" />
+          <ChipGroup label="Area served" values={counties} options={COUNTIES} onChange={value => toggleIn("county", value)} hint="Pick more than one" />
+          <ChipGroup label="Age" values={[ageBand]} options={AGES} onChange={value => setFilter("age", value)} />
+          <ChipGroup label="Need help tonight?" values={[urgency]} options={URGENCIES} onChange={value => setFilter("urgency", value)} />
           <div className="flex gap-2.5 pt-2">
             {activeFilterCount > 0 && <Button type="button" variant="outline" onClick={clearFilters} className="h-13 rounded-md border-ink px-5 text-[15px] font-semibold text-ink">Clear</Button>}
             <Button type="button" onClick={() => setFiltersOpen(false)} className="h-13 flex-1 rounded-md bg-brand text-[16px] font-semibold text-white hover:bg-brand-deep">

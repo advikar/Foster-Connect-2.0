@@ -36,7 +36,7 @@ export function AskPage() {
       <section aria-label="Conversation with Nova" className="flex flex-col lg:min-h-[calc(100vh-64px-48px)] lg:border-x lg:border-rule">
         <div className="flex items-center justify-between border-b border-rule px-4 py-3 lg:hidden">
           <div>
-            <h1 className="font-display text-[18px] font-bold text-ink">Nova</h1>
+            <p className="font-display text-[18px] font-bold text-ink">Nova</p>
             <p className="text-[12px] text-ink-faint">AI guide &middot; answers from checked listings &middot; messages go to an AI provider &middot; <Link to="/privacy" className="underline">details</Link></p>
           </div>
         </div>
