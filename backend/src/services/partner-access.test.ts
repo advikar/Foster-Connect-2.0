@@ -114,6 +114,16 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     const publicAlameda = await (await fetch("http://127.0.0.1:4497/api/resources?county=Alameda&limit=100")).json() as { items?: { id: number }[] } | { id: number }[];
     const publicItems = Array.isArray(publicAlameda) ? publicAlameda : publicAlameda.items ?? [];
     assert.ok(publicItems.some(item => item.id === 900), "youth county search finds a two-county listing");
+    // Local first (review item 42): a county pick ranks that county's listings above national ones,
+    // in both the browse order and a text search, even when the national row was checked more recently.
+    await db.execute("INSERT INTO resources(id,title,organization,category,county,verified_at) VALUES (902,'Duffel bag national program','Test org','Community Support','National','2026-09-20')");
+    await db.execute("INSERT INTO resources_fts(resources_fts) VALUES ('rebuild')");
+    const browse = (await (await fetch("http://127.0.0.1:4497/api/resources?county=Alameda&category=Community%20Support&limit=100")).json() as { items: { id: number }[] }).items.map(item => item.id);
+    assert.ok(browse.indexOf(900) < browse.indexOf(902) && browse.includes(902), `county browse lists local before national: ${browse}`);
+    const searched = (await (await fetch("http://127.0.0.1:4497/api/resources?q=duffel&county=Alameda&limit=100")).json() as { items: { id: number }[] }).items.map(item => item.id);
+    assert.ok(searched.indexOf(900) < searched.indexOf(902) && searched.includes(902), `county search lists local before national: ${searched}`);
+    const byName = (await (await fetch("http://127.0.0.1:4497/api/resources?county=Alameda&category=Community%20Support&sort=name&limit=100")).json() as { items: { id: number }[] }).items.map(item => item.id);
+    assert.ok(byName.indexOf(902) < byName.indexOf(900), `an explicit sort ignores locality: ${byName}`);
     // Reviewers remove access (not their own); the removed partner's session stops working; access can be restored.
     assert.equal((await request("/accounts/2/access", 1, "POST", { active: false })).status, 403);
     assert.equal((await request("/accounts/3/access", 3, "POST", { active: false })).status, 400);

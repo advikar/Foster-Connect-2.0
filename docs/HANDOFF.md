@@ -1,5 +1,12 @@
 # Current handoff
 
+## 2026-09-25 — Local-first sort (checkpoint 0 — claimed)
+
+- Task (user): when a county filter is given, rank listings for that county above Bay Area, then California, then National, in the default browse and search orderings. Explicit sorts (checked/name/organization) unchanged. Owner: Claude Code (Fable 5.1).
+- Done (checkpoint 1): `localityRank()` in server.ts — with a county filter, a CASE ranks matching-county rows 0, Bay Area 1, California 2, National 3. Default browse order is `locality, is_crisis DESC, verified_at DESC`; default search order is `bm25 relevance + locality × 2` (a clearly better national match still wins, ties go local). Explicit sorts (checked/name/organization) and the count query are unchanged. Gotcha fixed on the way: the CASE sits in the SELECT list, so its positional args go before the FTS MATCH term. Test added in partner-access.test.ts (ids 900 vs 902): county browse and county search list local before national; `sort=name` ignores locality.
+- Checks: backend 77/77. Not yet verified: the live API after Render's deploy (check `/api/resources?county=Alameda&category=Community%20Support&limit=5` returns Alameda rows before National ones).
+- Ownership released: yes.
+
 ## 2026-09-24 — Fostering Wishes founder review: copy, preferences, Bay Area filter, food bank (checkpoint 0 — claimed)
 
 - Task (user, from founder review notes): "Getting around" → "Transportation"; nav "Find" → "Search"; hero "Search housing…", drop "Browse without an account" from hero; replace "money for" phrasing; audience line (foster youth first, many programs open to any young person); drop the "Foster care" chip from Your preferences; hide "Bay Area" from youth county filters; rewrite both Fostering Wishes listings in the founder's words; add Food Bank of Contra Costa and Solano. Owner: Claude Code (Fable 5.1).

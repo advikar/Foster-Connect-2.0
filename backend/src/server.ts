@@ -282,6 +282,18 @@ function countyMatch(counties: string[]) {
   return `(${counties.map(() => "(', ' || r.county || ', ') LIKE ?").join(" OR ")})`;
 }
 function countyArg(county: string) { return `%, ${county}, %`; }
+/**
+ * Local first (review 2026-09-18, item 42): with a county picked, rank that county's
+ * listings before regional (Bay Area), statewide (California) and national ones, so
+ * national content does not crowd out local support. 0 is best.
+ */
+function localityRank(counties: string[]): { sql: string; args: string[] } {
+  if (!counties.length) return { sql: "0", args: [] };
+  return {
+    sql: `CASE WHEN ${countyMatch(counties)} THEN 0 WHEN r.county = 'Bay Area' THEN 1 WHEN r.county = 'California' THEN 2 ELSE 3 END`,
+    args: counties.map(countyArg),
+  };
+}
 const COUNTY_OPTIONS = ["Alameda", "Contra Costa", "Bay Area", "California", "National"] as const;
 /** Normalise "contra costa,Alameda" → "Alameda, Contra Costa"; null when any part is unknown. */
 function normaliseCounty(value: string): string | null {
@@ -336,11 +348,13 @@ async function listVerifiedResources(options: {
   /** "relevance" (default with a query), "checked" (most recently checked first) or "name". */
   sort?: "relevance" | "checked" | "name" | "organization";
 }) {
-  const { filters, args } = buildResourceFilters(options);
+  const { filters, args: filterArgs } = buildResourceFilters(options);
+  const locality = localityRank(listParam(options.county));
 
   const terms = options.query ? searchTerms(options.query) : [];
   const explicitOrder = options.sort === "checked" ? "r.verified_at DESC, r.title ASC" : options.sort === "name" ? "r.title ASC" : options.sort === "organization" ? "r.organization COLLATE NOCASE ASC, r.title ASC" : null;
   let sql: string;
+  const args: (string | number)[] = [];
   if (terms.length) {
     // Column weights: a word in the title or category says far more about a
     // listing than the same word buried in its description. Without these a
@@ -350,14 +364,19 @@ async function listVerifiedResources(options: {
     // eligibility, application_steps, tags.
     // bm25 is negative (more negative = better). Crisis lines are always one
     // tap away in the crisis bar, so a plain search ranks them after programmes.
-    sql = `SELECT r.*, bm25(resources_fts, 12.0, 4.0, 1.0, 10.0, 1.0, 1.0, 2.0, 1.0, 6.0) + (r.is_crisis * 4.0) AS relevance
+    // Each step away from the picked county costs 2 points, so a clearly
+    // better national match still wins but ties go local.
+    sql = `SELECT r.*, ${locality.sql} AS locality,
+                  bm25(resources_fts, 12.0, 4.0, 1.0, 10.0, 1.0, 1.0, 2.0, 1.0, 6.0) + (r.is_crisis * 4.0) AS relevance
            FROM resources_fts JOIN resources r ON r.id = resources_fts.rowid
            WHERE resources_fts MATCH ? AND ${filters.join(" AND ")}
-           ORDER BY ${explicitOrder ?? "relevance ASC, r.verified_at DESC"} LIMIT ?`;
-    args.unshift(terms.map(term => `"${term}"`).join(" OR "));
+           ORDER BY ${explicitOrder ?? "relevance + locality * 2.0 ASC, r.verified_at DESC"} LIMIT ?`;
+    // Positional parameters follow the SQL text: the locality CASE in the SELECT list comes before MATCH.
+    args.push(...locality.args, terms.map(term => `"${term}"`).join(" OR "), ...filterArgs);
   } else {
-    sql = `SELECT r.* FROM resources r WHERE ${filters.join(" AND ")}
-           ORDER BY ${explicitOrder ?? "r.is_crisis DESC, r.verified_at DESC, r.title ASC"} LIMIT ?`;
+    sql = `SELECT r.*, ${locality.sql} AS locality FROM resources r WHERE ${filters.join(" AND ")}
+           ORDER BY ${explicitOrder ?? "locality ASC, r.is_crisis DESC, r.verified_at DESC, r.title ASC"} LIMIT ?`;
+    args.push(...locality.args, ...filterArgs);
   }
   const limit = Math.min(Math.max(options.limit || 60, 1), 200);
   const offset = Math.max(options.offset || 0, 0);
