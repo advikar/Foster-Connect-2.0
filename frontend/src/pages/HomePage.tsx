@@ -80,6 +80,14 @@ export function HomePage() {
   const doneCount = roadmap?.tasks.filter(task => task.status === "completed").length ?? 0;
 
   const county = about?.county && about.county !== "elsewhere" ? about.county : undefined;
+  // Every way into Search from this page carries the preferences, so the
+  // "Searching for …" line under the box is true of the tiles as well.
+  const searchHref = (extra: Record<string, string>) => {
+    const next = new URLSearchParams(extra);
+    if (about?.age && about.age !== "unsaid") next.set("age", about.age);
+    if (county) next.set("county", county);
+    return next.toString() ? `/resources?${next}` : "/resources";
+  };
 
   const under18 = about?.age === "under18";
   const showDeadlines = Boolean(about && ["under18", "18-20", "21-24"].includes(about.age));
@@ -102,14 +110,7 @@ export function HomePage() {
             </p>
             <form
               role="search"
-              onSubmit={event => {
-                event.preventDefault();
-                const next = new URLSearchParams();
-                if (search.trim()) next.set("q", search.trim());
-                if (about?.age && about.age !== "unsaid") next.set("age", about.age);
-                if (county) next.set("county", county);
-                navigate(next.toString() ? `/resources?${next}` : "/resources");
-              }}
+              onSubmit={event => { event.preventDefault(); navigate(searchHref(search.trim() ? { q: search.trim() } : {})); }}
               className="mt-6 flex max-w-[640px] items-center gap-2 rounded-xl border border-brand bg-surface pl-4 pr-1.5 focus-within:border-ink"
             >
               <Search className="size-5 shrink-0 text-ink-faint" aria-hidden />
@@ -128,12 +129,12 @@ export function HomePage() {
             <div className="mt-3 max-w-[640px]"><AboutYouCard /></div>
             <nav aria-label="Browse support categories" className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {KINDS.map(({ label, category, icon: Icon }) => (
-                <Link key={category} to={`/resources?category=${encodeURIComponent(category)}`} className="group flex min-h-16 items-center gap-3 rounded-xl border border-rule bg-surface px-4 py-3 text-[15px] font-semibold text-ink transition-colors hover:border-brand hover:bg-brand-soft">
+                <Link key={category} to={searchHref({ category })} className="group flex min-h-16 items-center gap-3 rounded-xl border border-rule bg-surface px-4 py-3 text-[15px] font-semibold text-ink transition-colors hover:border-brand hover:bg-brand-soft">
                   <Icon className="size-5 shrink-0 text-brand" strokeWidth={1.7} aria-hidden />{label}
                 </Link>
               ))}
             </nav>
-            <Link to="/resources" className="mt-3 inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold text-brand hover:underline">Browse all support <ArrowRight className="size-4" /></Link>
+            <Link to={searchHref({})} className="mt-3 inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold text-brand hover:underline">Browse all support <ArrowRight className="size-4" /></Link>
           </section>
 
           {roadmap ? (

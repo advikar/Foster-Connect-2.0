@@ -21,13 +21,13 @@ export function AboutYouCard() {
 
   if (!editing) {
     return (
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[14px]">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px]">
         <p className="text-ink-soft">
           {about
             ? <>Searching for <span className="font-semibold text-ink">{about.age === "unsaid" ? "any age" : `ages ${AGE_LABELS[about.age]}`}</span>{about.county ? <>, <span className="font-semibold text-ink">{about.county === "elsewhere" ? "outside Alameda and Contra Costa" : `${about.county} County`}</span></> : ""}.</>
             : "Searching all ages and both counties."}
         </p>
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <button type="button" onClick={() => setEditing(true)} aria-expanded={false} className="min-h-8 font-semibold text-brand hover:underline">{about ? "Change" : "Set my age or county"}</button>
           {about && <button type="button" onClick={() => { clear(); setAge(""); setCounty(""); }} className="min-h-8 text-ink-faint hover:underline">Clear</button>}
         </div>
