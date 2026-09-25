@@ -10,7 +10,7 @@ import { CONTACT_EMAIL } from "@/lib/contact";
 
 const tabs = [
   { path: "/", label: "Home", icon: Home },
-  { path: "/resources", label: "Find", icon: Search },
+  { path: "/resources", label: "Search", icon: Search },
   { path: "/ask", label: "Ask", icon: MessageCircle },
   { path: "/roadmap", label: "My plan", icon: ListChecks },
   { path: "/saved", label: "Saved", icon: Bookmark },

@@ -76,8 +76,8 @@ const GREETING: DisplayMessage = {
 const STARTERS = [
   "Where can I sleep tonight?",
   "How do I get my birth certificate?",
-  "Money for community college",
-  "Scholarships or money for trade school",
+  "Scholarships for community college",
+  "Scholarships for trade school",
 ];
 
 const EMPTY: StoredConversation = { messages: [GREETING], history: [] };
@@ -165,7 +165,7 @@ export function NovaConversation({ className }: { className?: string }) {
         ...previous,
         messages: [
           ...previous.messages,
-          { role: "assistant", error: true, content: error instanceof Error ? error.message : "I'm unavailable right now. The checked directory still works from Find." },
+          { role: "assistant", error: true, content: error instanceof Error ? error.message : "I'm unavailable right now. The checked directory still works from Search." },
         ],
       }));
     } finally {

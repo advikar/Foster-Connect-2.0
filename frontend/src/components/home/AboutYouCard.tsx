@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Chip } from "@/components/primitives/Chip";
-import { AGE_LABELS, CARE_LABELS, useAboutYou, type AboutCounty, type AgeBand, type CareStatus } from "@/hooks/useAboutYou";
+import { AGE_LABELS, useAboutYou, type AboutCounty, type AgeBand } from "@/hooks/useAboutYou";
 
 const AGES: AgeBand[] = ["under18", "18-20", "21-24", "25plus", "unsaid"];
 const COUNTIES: { id: AboutCounty; label: string }[] = [
   { id: "Alameda", label: "Alameda" }, { id: "Contra Costa", label: "Contra Costa" }, { id: "elsewhere", label: "Somewhere else" },
 ];
-const CARE: CareStatus[] = ["in_care", "former", "unsure"];
 
 /**
- * "Your preferences" — three optional taps, stored on this device.
+ * "Your preferences" — two optional taps (age, county), stored on this device.
  * Filters may be used in resource requests. The form is collapsed by default.
  */
 export function AboutYouCard() {
@@ -18,7 +17,6 @@ export function AboutYouCard() {
   const [editing, setEditing] = useState(false);
   const [age, setAge] = useState<AgeBand | "">(about?.age ?? "");
   const [county, setCounty] = useState<AboutCounty | "">(about?.county ?? "");
-  const [care, setCare] = useState<CareStatus | "">(about?.care ?? "");
 
   if (!about && !editing) {
     return (
@@ -34,11 +32,11 @@ export function AboutYouCard() {
     return (
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-y border-rule py-3">
         <p className="text-eyebrow text-ink-faint">
-          Your preferences: {about.age === "unsaid" ? "Age not specified" : AGE_LABELS[about.age]}{about.county ? ` · ${about.county === "elsewhere" ? "Outside the two counties" : about.county}` : ""}{about.care ? ` · ${CARE_LABELS[about.care]}` : ""}
+          Your preferences: {about.age === "unsaid" ? "Age not specified" : AGE_LABELS[about.age]}{about.county ? ` · ${about.county === "elsewhere" ? "Outside the two counties" : about.county}` : ""}
         </p>
         <div className="flex gap-4 text-[13px]">
           <button type="button" onClick={() => setEditing(true)} className="text-brand hover:underline">Change</button>
-          <button type="button" onClick={() => { clear(); setAge(""); setCounty(""); setCare(""); }} className="text-ink-faint hover:underline">Clear</button>
+          <button type="button" onClick={() => { clear(); setAge(""); setCounty(""); }} className="text-ink-faint hover:underline">Clear</button>
         </div>
       </div>
     );
@@ -64,16 +62,10 @@ export function AboutYouCard() {
           {COUNTIES.map(option => <Chip key={option.id} selected={county === option.id} onClick={() => setCounty(county === option.id ? "" : option.id)}>{option.label}</Chip>)}
         </div>
       </fieldset>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-[13px] font-semibold text-ink-soft">Foster care</legend>
-        <div className="flex flex-wrap gap-2">
-          {CARE.map(status => <Chip key={status} selected={care === status} onClick={() => setCare(care === status ? "" : status)}>{CARE_LABELS[status]}</Chip>)}
-        </div>
-      </fieldset>
 
       <button
         type="button"
-        onClick={() => { save({ age: age || "unsaid", county, care }); setEditing(false); }}
+        onClick={() => { save({ age: age || "unsaid", county }); setEditing(false); }}
         className="inline-flex min-h-11 items-center self-start rounded-md border border-ink px-4 text-[15px] font-semibold text-ink hover:bg-surface disabled:opacity-40"
       >
         Save on this device

@@ -31,7 +31,7 @@ const NEED_LABELS: Record<string, string> = {
   Healthcare: "Health care",
   "Mental Health": "Mental health / someone to talk to",
   "Food Assistance": "Food",
-  Transportation: "Getting around",
+  Transportation: "Transportation",
 };
 
 const HOUSING: { id: HousingStatus; label: string }[] = [
@@ -55,7 +55,8 @@ const DEADLINES = [
   "Extended Foster Care ending", "A court date", "A school deadline", "My lease ending",
 ];
 
-const COUNTIES: RoadmapIntake["county"][] = ["Alameda", "Contra Costa", "Bay Area", "California", "National"];
+/** "Bay Area" stays a stored region but is not offered here: a county pick already includes regional listings. */
+const COUNTIES: RoadmapIntake["county"][] = ["Alameda", "Contra Costa", "California", "National"];
 
 interface Answers {
   needs: string[];

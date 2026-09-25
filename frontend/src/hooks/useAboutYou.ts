@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 /**
- * Optional "About you" context: an age band, a county and a care status.
+ * Optional "About you" context: an age band and a county.
  *
  * Preferences are stored in localStorage. Age/county filters derived from
  * them are sent in resource requests.
@@ -9,13 +9,11 @@ import { useCallback, useEffect, useState } from "react";
  * directory's age filter. Skipping is the default; skipping means unknown.
  */
 export type AgeBand = "under18" | "18-20" | "21-24" | "25plus" | "unsaid";
-export type CareStatus = "in_care" | "former" | "unsure";
 export type AboutCounty = "Alameda" | "Contra Costa" | "elsewhere";
 
 export interface AboutYou {
   age: AgeBand;
   county: AboutCounty | "";
-  care: CareStatus | "";
   savedAt: string;
 }
 
@@ -25,9 +23,6 @@ const EVENT = "fc-about-you-changed";
 export const AGE_LABELS: Record<AgeBand, string> = {
   under18: "Under 18", "18-20": "18–20", "21-24": "21–24", "25plus": "25+", unsaid: "Rather not say",
 };
-export const CARE_LABELS: Record<CareStatus, string> = {
-  in_care: "In care now", former: "Was in care", unsure: "Not sure / other",
-};
 
 function read(): AboutYou | null {
   try {
@@ -35,7 +30,7 @@ function read(): AboutYou | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<AboutYou>;
     if (!parsed || typeof parsed !== "object" || !parsed.age) return null;
-    return { age: parsed.age, county: parsed.county ?? "", care: parsed.care ?? "", savedAt: parsed.savedAt ?? "" };
+    return { age: parsed.age, county: parsed.county ?? "", savedAt: parsed.savedAt ?? "" };
   } catch {
     return null;
   }

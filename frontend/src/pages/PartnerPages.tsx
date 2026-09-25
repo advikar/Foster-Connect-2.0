@@ -509,7 +509,7 @@ export function PartnerLanding() {
         <p className="text-eyebrow text-brand">About Foster Guide · for partners</p>
         <h1 className="mt-3 font-display text-[34px] font-bold leading-tight text-ink lg:text-[44px]">Programs for foster youth in the East Bay, checked by a person before they&rsquo;re shown.</h1>
         <p className="mt-4 text-[17px] leading-relaxed text-ink-soft">
-          Foster Guide is a free directory and AI guide for current and former foster youth in Alameda and Contra Costa counties. Young people search it, save listings, and turn them into a plan without giving their name. Everything they see was checked by a person first.
+          Foster Guide is a free directory and AI guide made for current and former foster youth in Alameda and Contra Costa counties. Many listings are open to any young person who needs them. Young people search it, save listings, and turn them into a plan without giving their name. Everything they see was checked by a person first.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link to={partner ? "/partners/overview" : "/partners/sign-in"} className="inline-flex h-12 items-center gap-2 rounded-md bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-deep">

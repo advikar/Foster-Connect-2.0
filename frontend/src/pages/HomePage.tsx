@@ -41,8 +41,6 @@ const EFC_SOURCE = "https://www.cdss.ca.gov/inforesources/foster-care/extended-f
 const THP_PLUS: Deadline = { id: "thp-plus", title: "THP-Plus housing", detail: "Housing and support for eligible former foster youth. Ask the county about age requirements, openings and how to apply.", when: "Check local requirements", to: "/resources?q=THP", step: "Ask the county about THP-Plus eligibility, openings and application steps", timeframe: "30 Days", category: "Housing", source: "https://www.cdss.ca.gov/inforesources/foster-care/transitional-housing-programs" };
 const CHAFEE: Deadline = { id: "chafee", title: "Chafee Grant for college or training", detail: "Financial aid for eligible students with foster care experience. Apply through the Chafee application and FAFSA or California Dream Act Application.", when: "Check this year's requirements", to: "/resources?q=Chafee", step: "Check Chafee Grant requirements and ask the financial aid office which applications I need", timeframe: "3-6 Months", category: "Education", source: "https://csac.ca.gov/foster-youth" };
 const EFC: Deadline = { id: "efc", title: "Extended Foster Care", detail: "Eligible young adults can receive support until age 21. A county worker can explain participation requirements and options for staying in or returning to care.", when: "Before age 21", to: "/resources?q=extended%20foster%20care", step: "Ask the county about my Extended Foster Care options and any next steps", timeframe: "This Week", category: "Housing", source: EFC_SOURCE };
-const DEADLINES_IN_CARE: Deadline[] = [{ ...EFC, id: "recert", title: "Continuing Extended Foster Care", detail: "Ask your worker about participation requirements, upcoming reviews and support available as you approach 21." }, THP_PLUS, CHAFEE];
-const DEADLINES_FORMER: Deadline[] = [{ ...EFC, id: "reenter", title: "Returning to Extended Foster Care", detail: "If you left care at or after 18, you may be eligible to return before 21. Contact your former worker or county to discuss the requirements." }, THP_PLUS, CHAFEE];
 const DEADLINES_18_20: Deadline[] = [EFC, THP_PLUS, CHAFEE];
 const DEADLINES_UNDER_18: Deadline[] = [{ ...EFC, id: "ab12", title: "Planning for support after 18", detail: "If you are in care, you can talk with your worker about Extended Foster Care and what you would like support with after 18.", when: "Plan ahead", step: "Talk with my worker about support options after I turn 18" },
   { id: "ilp", title: "Independent Living Program (ILP)", detail: "Ask your worker or county ILP team which services are available and whether you can take part.", when: "Check local requirements", to: "/resources?q=ILP", step: "Ask the county ILP team about eligibility and available support", timeframe: "This Week", category: "Life Skills and Mentoring" },
@@ -96,7 +94,7 @@ export function HomePage() {
 
   const under18 = about?.age === "under18";
   const showDeadlines = Boolean(about && ["under18", "18-20", "21-24"].includes(about.age));
-  const deadlines = under18 ? DEADLINES_UNDER_18 : about?.age === "18-20" && about.care === "in_care" ? DEADLINES_IN_CARE : about?.age === "18-20" && about.care === "former" ? DEADLINES_FORMER : about?.age === "18-20" ? DEADLINES_18_20 : about?.age === "25plus" ? [CHAFEE] : [THP_PLUS, CHAFEE];
+  const deadlines = under18 ? DEADLINES_UNDER_18 : about?.age === "18-20" ? DEADLINES_18_20 : about?.age === "25plus" ? [CHAFEE] : [THP_PLUS, CHAFEE];
   const deadlineHeading = under18 ? "Looking ahead to 18" : "Support options to explore";
   const deadlineIntro = "Your age is a starting point, not a guarantee of eligibility. Each program has its own requirements.";
 
@@ -111,7 +109,7 @@ export function HomePage() {
             <p className="text-eyebrow text-brand">Foster Guide · Alameda & Contra Costa</p>
             <h1 className="mt-4 text-hero text-ink lg:max-w-[760px]">Find support. Take your next step.</h1>
             <p className="mt-4 max-w-[620px] text-[17px] leading-relaxed text-ink-soft lg:text-[18px]">
-              Explore housing, scholarships and trade school money, education, and everyday support for current and former foster youth in the East Bay. Browse without an account.
+              Search housing, scholarships for college and trade school, education, and everyday support in the East Bay. Made for current and former foster youth, and many of these programs are open to any young person who needs them.
             </p>
             <form
               role="search"

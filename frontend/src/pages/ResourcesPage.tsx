@@ -27,7 +27,7 @@ const CATEGORIES: { value: string; label: string }[] = [
   { value: "Mental Health", label: "Mental health" },
   { value: "Food Assistance", label: "Food" },
   { value: "Legal Support", label: "Legal" },
-  { value: "Transportation", label: "Getting around" },
+  { value: "Transportation", label: "Transportation" },
   { value: "Life Skills and Mentoring", label: "Mentoring & life skills" },
   { value: "Community Support", label: "Community support" },
   { value: "Clothing Assistance", label: "Clothing" },
@@ -38,7 +38,6 @@ const COUNTIES = [
   { value: "All", label: "Anywhere" },
   { value: "Alameda", label: "Alameda" },
   { value: "Contra Costa", label: "Contra Costa" },
-  { value: "Bay Area", label: "Bay Area" },
   { value: "California", label: "California-wide" },
   { value: "National", label: "National" },
 ];
@@ -68,7 +67,7 @@ const PAGE_SIZE = 25;
 const QUICK = ["Housing", "Financial Support", "Scholarships", "Education", "Employment", "Food Assistance", "Mental Health"];
 
 export function ResourcesPage() {
-  usePageMeta("Find support", "Search checked listings for foster youth in the East Bay by need, county and age.", "/resources");
+  usePageMeta("Search support", "Search checked listings for foster youth in the East Bay by need, county and age.", "/resources");
   const [params, setParams] = useSearchParams();
   const { about } = useAboutYou();
   const [search, setSearch] = useState(params.get("q") || "");
@@ -198,7 +197,7 @@ export function ResourcesPage() {
 
         <section aria-live="polite">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h1 className="font-display text-[24px] font-bold text-ink lg:text-[28px]">{isPending ? "Looking…" : isError ? "Find support" : heading}</h1>
+            <h1 className="font-display text-[24px] font-bold text-ink lg:text-[28px]">{isPending ? "Looking…" : isError ? "Search support" : heading}</h1>
             {!isError && (
               <label className="flex items-center gap-2 text-[13px] text-ink-faint">
                 Sort

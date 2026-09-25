@@ -1,5 +1,13 @@
 # Current handoff
 
+## 2026-09-24 — Fostering Wishes founder review: copy, preferences, Bay Area filter, food bank (checkpoint 0 — claimed)
+
+- Task (user, from founder review notes): "Getting around" → "Transportation"; nav "Find" → "Search"; hero "Search housing…", drop "Browse without an account" from hero; replace "money for" phrasing; audience line (foster youth first, many programs open to any young person); drop the "Foster care" chip from Your preferences; hide "Bay Area" from youth county filters; rewrite both Fostering Wishes listings in the founder's words; add Food Bank of Contra Costa and Solano. Owner: Claude Code (Fable 5.1).
+- Intended files: AppLayout.tsx, HomePage.tsx, ResourcesPage.tsx, IntakeConversation.tsx, AboutYouCard.tsx, useAboutYou.ts, NovaConversation.tsx, PartnerPages.tsx; data/updates/2026-09-24-founder-review.sql.
+- Done (checkpoint 1): nav "Find" → "Search" (page title "Search support", Nova error text); "Getting around" → "Transportation" (Search filter, plan intake); hero "Search housing, scholarships for college and trade school…" with audience line ("Made for current and former foster youth, and many of these programs are open to any young person who needs them"), "Browse without an account" removed from the hero (kept in footer and Privacy); partner landing gets the same audience sentence; Nova starters "Scholarships for community college" / "Scholarships for trade school"; Your preferences drops the "Foster care" chip (`care` removed from the hook and card; Home deadlines for 18–20 now always the neutral list); "Bay Area" removed from the youth county pickers on Search and plan intake (still a stored region; server county match already includes Bay Area/California/National rows, partner editor unchanged). Data: `data/updates/2026-09-24-founder-review.sql` rewrites 426/427 in the founder's words ("further opportunity", no "money for") and inserts Food Bank of Contra Costa and Solano (id 428; 1-855-309-3663, 4010 Nelson Ave Concord, find-food page; phone and address confirmed on foodbankccs.org 2026-09-24). Applied to local DB (backup taken); Turso pending: `turso db shell foster-connect < data/updates/2026-09-24-founder-review.sql`.
+- Checks: frontend type-check, ESLint on changed files (3 pre-existing warnings), build. Local DB: 0 rows contain "money for".
+- Not done (founder items needing her input): "Review privacy" (no specific complaint recorded); exact Fostering Wishes wording should be confirmed with her by email.
+
 ## 2026-09-21 — Tagline, email provider, reviewer sign-in, Quick exit removed (checkpoint 1)
 
 - Task (user): header tagline "Your guide for the next step"; add an email provider; reviewer cannot sign in; remove Quick exit. Owner: Claude Code (Fable 5.1).
