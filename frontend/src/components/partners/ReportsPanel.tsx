@@ -24,7 +24,7 @@ export function ReportsPanel({ reports, reviewer, onOpen, compact = false }: {
   const resolve = async (report: YouthReport) => {
     setBusy(report.id);
     try {
-      await resolveReport(report.id);
+      await resolveReport(report.id, report.source);
       toast.success("Marked handled.");
       await queryClient.invalidateQueries({ queryKey: ["partner-analytics"] });
     } catch (caught) {
@@ -39,6 +39,16 @@ export function ReportsPanel({ reports, reviewer, onOpen, compact = false }: {
     <ul className="mt-3 divide-y divide-rule border-t border-rule">
       {reports.map(report => (
         <li key={report.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          {report.source === "site" ? (
+          <div className="min-w-0 flex-1 px-2 py-1">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              <p className="font-semibold text-ink">{report.title}</p>
+              <span className="text-stamp">Reported {agoShort(report.created_at)}</span>
+            </div>
+            <p className="mt-1 text-[14px] text-ink-soft">&ldquo;{report.reason}&rdquo;</p>
+            <p className="mt-1 text-[13px] text-ink-faint">{report.title === "Crisis help" ? "About the crisis numbers. Check lib/crisis.ts and the listing it came from." : "About something Nova said. Check the listing it cited."}</p>
+          </div>
+          ) : (
           <button type="button" onClick={() => onOpen(report)} className="row-hover -mx-2 min-w-0 flex-1 rounded-md px-2 py-1 text-left">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
               <p className="font-semibold text-ink">{report.title}</p>
@@ -48,6 +58,7 @@ export function ReportsPanel({ reports, reviewer, onOpen, compact = false }: {
             <p className="mt-1 text-[14px] text-ink-soft">&ldquo;{report.reason}&rdquo;</p>
             <p className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-brand">Open and edit the listing <ChevronRight className="size-3.5" /></p>
           </button>
+          )}
           {reviewer && (
             <button type="button" disabled={busy === report.id} onClick={() => void resolve(report)} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 self-start rounded-md border border-rule px-3 text-[13px] font-semibold text-ink hover:border-ink disabled:opacity-50">
               {busy === report.id && <Loader2 className="size-3.5 animate-spin" />} Mark handled

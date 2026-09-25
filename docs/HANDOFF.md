@@ -1,5 +1,13 @@
 # Current handoff
 
+## 2026-09-25 — Report wrong info from Ask and the crisis dialog (checkpoint 0 — claimed)
+
+- Task (user): youth can report a wrong number or outdated detail from the Ask page and the crisis dialog, not only from a listing. Owner: Claude Code (Fable 5.1).
+- Intended files: backend server.ts (site_reports table, POST /api/reports, analytics union, resolve, delete-everything), partner-access.test.ts; frontend ReportSheet extracted to components/resources/ReportSheet.tsx, NovaConversation.tsx, CrisisBar.tsx, lib/api.ts, ReportsPanel.tsx.
+- Done: table `site_reports(context ask|crisis, session_id, reason, resolved_at, resolved_by)`; `POST /api/reports`; partner analytics `reports` is now a UNION of listing and site reports with a `source` field (site rows: title "Ask Nova" / "Crisis help", resource_id null); `POST /api/partner/reports/:id/resolve?source=site`; Delete everything also removes site reports. Frontend: `ReportSheet` shared component (optional `intro`); Nova composer footer "Something Nova said is wrong? Tell us."; crisis dialog "A number here is wrong? Tell us." (sheet renders inside the Radix content so it is not dismissed as an outside click); Reports panel shows site reports without the "Open and edit" action and resolves them with the right source.
+- Checks: backend 77/77 (new assertions: 202 on crisis report, 400 on unknown context, appears in analytics as source=site, resolves and leaves the queue); frontend type-check, ESLint, build; local browser: crisis dialog → report sheet → "Sent to a partner for review", row seen in local site_reports (then deleted). Not verified: the partner Reports panel rendering a site report in the browser.
+- Ownership released: yes.
+
 ## 2026-09-25 — Privacy page specifics (done)
 
 - Task (user: "only include what is needed"; no owner names yet): Privacy page gets "Last updated September 25, 2026", names Groq as the AI provider (session ID not sent), and a "Who handles it" section: Render (hosting, US, short-lived logs with IPs), Turso (database), Groq (replies), no youth accounts/analytics/trackers, contact email for questions and deletion requests. Owner: Claude Code (Fable 5.1). Checks: type-check, ESLint, build; live check after Pages deploy.

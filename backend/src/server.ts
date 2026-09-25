@@ -653,6 +653,15 @@ async function initDb() {
       session_id TEXT NOT NULL, reason TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    -- Reports that are not about one listing: a wrong number in the crisis
+    -- dialog, or something Nova said (review 2026-09-18, item 39).
+    CREATE TABLE IF NOT EXISTS site_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      context TEXT NOT NULL CHECK (context IN ('ask', 'crisis')),
+      session_id TEXT NOT NULL, reason TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      resolved_at TEXT, resolved_by TEXT
+    );
   `);
   for (const [table, column, definition] of [
     ["partners", "role", "TEXT NOT NULL DEFAULT 'contributor'"],
@@ -783,6 +792,13 @@ app.post("/api/resources/:id/reports", requireSession, asyncRoute(async (req, re
   const { reason } = z.object({ reason: z.string().trim().min(5).max(800) }).parse(req.body);
   await db.execute({ sql: "INSERT INTO resource_reports(resource_id, session_id, reason) VALUES (?, ?, ?)", args: [id, req.sessionId!, reason] });
   res.status(202).json({ message: "Thank you. A partner will review this resource." });
+}));
+
+/** A report from the Ask page or the crisis dialog, where there is no single listing to point at. */
+app.post("/api/reports", requireSession, asyncRoute(async (req, res) => {
+  const { context, reason } = z.object({ context: z.enum(["ask", "crisis"]), reason: z.string().trim().min(5).max(800) }).parse(req.body);
+  await db.execute({ sql: "INSERT INTO site_reports(context, session_id, reason) VALUES (?, ?, ?)", args: [context, req.sessionId!, reason] });
+  res.status(202).json({ message: "Thank you. A partner will look into it." });
 }));
 
 app.get("/api/analytics", asyncRoute(async (_req, res) => {
@@ -1146,6 +1162,7 @@ app.delete("/api/session", requireSession, asyncRoute(async (req, res) => {
     { sql: "DELETE FROM roadmaps WHERE session_id=?", args: [req.sessionId!] },
     { sql: "DELETE FROM saved_resources WHERE session_id=?", args: [req.sessionId!] },
     { sql: "DELETE FROM resource_reports WHERE session_id=?", args: [req.sessionId!] },
+    { sql: "DELETE FROM site_reports WHERE session_id=?", args: [req.sessionId!] },
     { sql: "DELETE FROM session_passcodes WHERE session_id=?", args: [req.sessionId!] },
   ], "write");
   res.status(204).send();
@@ -1321,10 +1338,13 @@ app.get("/api/partner/analytics", requirePartner, asyncRoute(async (_req, res) =
         SUM(CASE WHEN status='pending' AND date(created_at) < date('now','-7 days') THEN 1 ELSE 0 END) AS pending_over_week,
         SUM(CASE WHEN date(created_at) >= date('now','-30 days') THEN 1 ELSE 0 END) AS submitted_last_30
       FROM resource_submissions`),
-    db.execute(`SELECT rr.id, rr.resource_id, r.title, r.organization, rr.reason, rr.created_at
-      FROM resource_reports rr JOIN resources r ON r.id = rr.resource_id
-      WHERE rr.resolved_at IS NULL
-      ORDER BY rr.created_at DESC LIMIT 50`),
+    db.execute(`SELECT id, resource_id, title, organization, reason, created_at, source FROM (
+        SELECT rr.id, rr.resource_id, r.title, r.organization, rr.reason, rr.created_at, 'listing' AS source
+          FROM resource_reports rr JOIN resources r ON r.id = rr.resource_id WHERE rr.resolved_at IS NULL
+        UNION ALL
+        SELECT sr.id, NULL, CASE sr.context WHEN 'ask' THEN 'Ask Nova' ELSE 'Crisis help' END, '', sr.reason, sr.created_at, 'site'
+          FROM site_reports sr WHERE sr.resolved_at IS NULL)
+      ORDER BY created_at DESC LIMIT 50`),
     db.execute(`SELECT COUNT(*) AS count FROM resource_submissions WHERE status='approved' AND date(reviewed_at) >= date('now','-30 days')`),
   ]);
   const pendingChanges = await db.execute("SELECT COUNT(*) AS count FROM resource_changes WHERE status='pending'");
@@ -1400,7 +1420,8 @@ app.get("/api/partner/resources", requirePartner, asyncRoute(async (req, res) =>
 /** Reviewer marks a youth report handled (listing re-checked or corrected). The row is kept for the audit trail. */
 app.post("/api/partner/reports/:id/resolve", requirePartner, requireReviewer, asyncRoute(async (req: PartnerRequest, res) => {
   const id = z.coerce.number().int().positive().parse(req.params.id);
-  const result = await db.execute({ sql: "UPDATE resource_reports SET resolved_at = CURRENT_TIMESTAMP, resolved_by = ? WHERE id = ? AND resolved_at IS NULL", args: [req.partner!.email, id] });
+  const table = req.query.source === "site" ? "site_reports" : "resource_reports";
+  const result = await db.execute({ sql: `UPDATE ${table} SET resolved_at = CURRENT_TIMESTAMP, resolved_by = ? WHERE id = ? AND resolved_at IS NULL`, args: [req.partner!.email, id] });
   if (!result.rowsAffected) { res.status(404).json({ error: "That report was not found or is already resolved." }); return; }
   res.status(204).send();
 }));

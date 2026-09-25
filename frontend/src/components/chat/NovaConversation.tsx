@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, ListPlus, Loader2, MessageSquarePlus, Send, ShieldCheck } from "lucide-react";
 import { ResourceRow } from "@/components/resources/ResourceRow";
+import { ReportSheet } from "@/components/resources/ReportSheet";
 import { useNova } from "@/contexts/NovaContext";
-import { addTask, deleteTask, MAYA_ARCHIVE_KEY, MAYA_CONVERSATION_KEY, sendChat, type ChatMessageInput, type CrisisContact, type PlanSuggestion, type ResourceItem } from "@/lib/api";
+import { addTask, deleteTask, MAYA_ARCHIVE_KEY, MAYA_CONVERSATION_KEY, reportSite, sendChat, type ChatMessageInput, type CrisisContact, type PlanSuggestion, type ResourceItem } from "@/lib/api";
 import { toast } from "sonner";
 import { dialString } from "@/lib/crisis";
 import { cn } from "@/lib/utils";
@@ -125,6 +126,17 @@ export function NovaConversation({ className }: { className?: string }) {
   // Clearing is irreversible, so it asks first (R4).
   const [confirming, setConfirming] = useState<"clear" | "past" | null>(null);
   const { messages, history, historyToken } = conversation;
+  const [reporting, setReporting] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const submitReport = async () => {
+    try {
+      await reportSite("ask", reportReason);
+      setReporting(false); setReportReason("");
+      toast.success("Sent to a partner for review");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send that report. Try again.");
+    }
+  };
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -415,7 +427,7 @@ export function NovaConversation({ className }: { className?: string }) {
           </button>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[12px] text-ink-faint">
-          <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" />Numbers and links are checked before you see them.</span>
+          <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1"><span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" />Numbers and links are checked before you see them.</span><button type="button" onClick={() => setReporting(true)} className="text-brand hover:underline">Something Nova said is wrong? Tell us.</button></span>
           {!fresh && confirming === "clear" && (
             <span className="flex flex-wrap items-center gap-3"><span className="text-ink-soft">Clear it? Nova will forget everything you said here.</span><button type="button" onClick={clearConversation} className="font-semibold text-crisis hover:underline">Yes, clear it</button><button type="button" onClick={() => setConfirming(null)} className="text-ink-soft hover:underline">Keep it</button></span>
           )}
@@ -424,6 +436,7 @@ export function NovaConversation({ className }: { className?: string }) {
           )}
         </div>
       </form>
+      {reporting && <ReportSheet reason={reportReason} setReason={setReportReason} onCancel={() => setReporting(false)} onSubmit={submitReport} intro="Tell a partner what Nova got wrong: a number, a detail, or something that felt unsafe. This does not contact the organization." />}
     </div>
   );
 }

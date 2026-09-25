@@ -248,6 +248,10 @@ export function unsaveResource(id: number) { return request<void>(`/api/saved-re
 export function reportResource(id: number, reason: string) {
   return request<{ message: string }>(`/api/resources/${id}/reports`, { method: "POST", body: JSON.stringify({ reason }) }, true);
 }
+/** A report that is not about one listing: from the Ask page ("ask") or the crisis dialog ("crisis"). */
+export function reportSite(context: "ask" | "crisis", reason: string) {
+  return request<{ message: string }>("/api/reports", { method: "POST", body: JSON.stringify({ context, reason }) }, true);
+}
 export function submitResource(input: Record<string, string>) {
   return request<{ id: number; status: string; message: string }>("/api/resource-submissions", { method: "POST", body: JSON.stringify(input) });
 }
@@ -418,12 +422,12 @@ export interface PartnerAnalytics {
   duplicateCandidates: { key: string; listings: { id: number; title: string; organization: string; category: string; county: string }[] }[];
   pipeline: { pending: number; approved: number; rejected: number; pending_over_week: number; submitted_last_30: number };
   changes: { pending: number };
-  reports: { id: number; resource_id: number; title: string; organization: string; reason: string; created_at: string }[];
+  reports: { id: number; resource_id: number | null; title: string; organization: string; reason: string; created_at: string; source: "listing" | "site" }[];
   generatedAt: string;
 }
 export function fetchPartnerAnalytics() { return partnerRequest<PartnerAnalytics>("/api/partner/analytics"); }
 /** Reviewer marks a youth report handled; it leaves Needs attention and the queue. */
-export function resolveReport(id: number) { return partnerRequest<void>(`/api/partner/reports/${id}/resolve`, { method: "POST" }); }
+export function resolveReport(id: number, source: "listing" | "site" = "listing") { return partnerRequest<void>(`/api/partner/reports/${id}/resolve${source === "site" ? "?source=site" : ""}`, { method: "POST" }); }
 
 /* ── Listings behind a Coverage bar, and edits to them (P4–P7) ─────────── */
 

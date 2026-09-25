@@ -81,7 +81,7 @@ function OverviewBody({ reviewer }: { reviewer?: boolean }) {
   const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
   const attention = [
     ...(mine.data ?? []).filter(item => item.status === "pending").slice(0, 3).map(item => ({ key: `s${item.id}`, title: item.title, detail: `Submitted by you · ${ago(item.created_at)}`, status: "pending" as const, to: "/partners/submissions", open: undefined as (() => void) | undefined })),
-    ...reports.slice(0, 5).map(report => ({ key: `r${report.id}`, title: report.title, detail: `Youth report: “${report.reason.slice(0, 80)}${report.reason.length > 80 ? "…" : ""}” · ${ago(report.created_at)} · tap to open and edit`, status: "report" as const, to: "/partners/review", open: () => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id }) })),
+    ...reports.slice(0, 5).map(report => ({ key: `r${report.id}`, title: report.title, detail: `Youth report: “${report.reason.slice(0, 80)}${report.reason.length > 80 ? "…" : ""}” · ${ago(report.created_at)} · tap to open and edit`, status: "report" as const, to: "/partners/review", open: () => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id ?? undefined }) })),
   ];
 
   return (

@@ -3,6 +3,9 @@ import { MessageSquare, Phone, ShieldAlert, X } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { CRISIS_CONTACTS, dialString } from "@/lib/crisis";
 import { contactActions, smsHref } from "@/lib/contactActions";
+import { ReportSheet } from "@/components/resources/ReportSheet";
+import { reportSite } from "@/lib/api";
+import { toast } from "sonner";
 
 /**
  * Always-available crisis access.
@@ -15,6 +18,17 @@ import { contactActions, smsHref } from "@/lib/contactActions";
  * Text lines are real sms: links, not styled spans (audit A01).
  */
 export function CrisisButton() {
+  const [reporting, setReporting] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const submitReport = async () => {
+    try {
+      await reportSite("crisis", reportReason);
+      setReporting(false); setReportReason("");
+      toast.success("Sent to a partner for review");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send that report. Try again.");
+    }
+  };
   const [open, setOpen] = useState(false);
 
   return (
@@ -85,7 +99,8 @@ export function CrisisButton() {
                 );
               })}
             </ul>
-            <p className="mt-2 text-[12px] text-ink-faint">These numbers work even if the rest of the site is down.</p>
+            <p className="mt-2 text-[12px] text-ink-faint">These numbers work even if the rest of the site is down. <button type="button" onClick={() => setReporting(true)} className="text-brand hover:underline">A number here is wrong? Tell us.</button></p>
+            {reporting && <ReportSheet reason={reportReason} setReason={setReportReason} onCancel={() => setReporting(false)} onSubmit={submitReport} intro="Tell a partner which number or detail did not work. This does not contact the organization. If you need help now, use the numbers above." />}
           </DialogPrimitive.Content>
         </DialogPrimitive.Overlay>
       </DialogPrimitive.Portal>

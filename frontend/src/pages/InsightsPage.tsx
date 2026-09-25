@@ -184,7 +184,7 @@ export function Coverage() {
         <section id="reports">
           <h2 className="font-display text-[22px] font-bold text-ink">Flagged by young people</h2>
           <p className="mt-1 text-[14px] text-ink-faint">Reports sent from a listing&rsquo;s &ldquo;something is wrong&rdquo; link. Treat the text as a lead, not a verified fact. Open the listing to re-check and correct it.</p>
-          <ReportsPanel reports={data.reports} reviewer={reviewer} onOpen={report => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id })} />
+          <ReportsPanel reports={data.reports} reviewer={reviewer} onOpen={report => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id ?? undefined })} />
         </section>
       </div>
 
@@ -503,7 +503,7 @@ export function Queue({ reviewer }: { reviewer: PartnerIdentity }) {
 
       <section className="mt-8">
         <h3 className="font-display text-[20px] font-bold text-ink">Flagged by young people</h3>
-        <ReportsPanel reports={reports} reviewer onOpen={report => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id })} />
+        <ReportsPanel reports={reports} reviewer onOpen={report => setDrawer({ title: report.title, detail: `Youth report: “${report.reason}”`, resourceId: report.resource_id ?? undefined })} />
       </section>
 
       <h3 className="mt-10 font-display text-[20px] font-bold text-ink">New listings</h3>

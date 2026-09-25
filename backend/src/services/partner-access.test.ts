@@ -62,6 +62,15 @@ test("partner endpoints enforce authentication, ownership, review roles, and log
     // External-content FTS must be told about the row, as the import script does; a 'delete' for an unindexed row corrupts the index.
     await db.execute("INSERT INTO resources_fts(rowid,title,organization,description,category,county,service_area,eligibility,application_steps,tags) SELECT id,title,organization,description,category,county,service_area,eligibility,application_steps,tags FROM resources WHERE id=900");
     await db.execute("INSERT INTO resource_reports(resource_id,session_id,reason) VALUES (900,'test-session','Phone number is wrong')");
+    // Reports from Ask / the crisis dialog have no listing; they join the same queue and resolve with ?source=site.
+    const siteReport = await fetch("http://127.0.0.1:4497/api/reports", { method: "POST", headers: { "Content-Type": "application/json", "x-session-id": "site-report-session-000000001" }, body: JSON.stringify({ context: "crisis", reason: "The runaway line number did not connect" }) });
+    assert.equal(siteReport.status, 202);
+    assert.equal((await fetch("http://127.0.0.1:4497/api/reports", { method: "POST", headers: { "Content-Type": "application/json", "x-session-id": "site-report-session-000000001" }, body: JSON.stringify({ context: "home", reason: "nope nope" }) })).status, 400);
+    const withSite = await (await request("/analytics", 3)).json() as { reports: { id: number; source: string; title: string; resource_id: number | null }[] };
+    const site = withSite.reports.find(r => r.source === "site");
+    assert.ok(site && site.title === "Crisis help" && site.resource_id === null, "site report appears in the queue");
+    assert.equal((await request(`/reports/${site!.id}/resolve?source=site`, 3, "POST")).status, 204);
+    assert.ok(!((await (await request("/analytics", 3)).json() as { reports: { source: string }[] }).reports.some(r => r.source === "site")), "resolved site report leaves the queue");
     const withReport = await (await request("/analytics", 3)).json() as { reports: { id: number }[] };
     assert.equal(withReport.reports.length, 1);
     assert.equal((await request(`/reports/${withReport.reports[0].id}/resolve`, 1, "POST")).status, 403);
