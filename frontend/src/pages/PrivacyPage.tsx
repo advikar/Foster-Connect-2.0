@@ -5,6 +5,7 @@ import { Eraser, FileText, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasscodeCard } from "@/components/safety/PasscodeCard";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { clearDeviceData, deleteSessionData, exportSessionData, fetchPasscodeStatus, setPasscode } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -102,6 +103,7 @@ export function PrivacyPage() {
         You can browse without an account. This page explains how plans, preferences and
         conversations are handled, and how to download them, clear them from a device, or delete them for good.
       </p>
+      <p className="mt-2 text-[14px] text-ink-faint">Last updated September 25, 2026.</p>
 
       <section className="mt-9">
         <h2 className="font-display text-[22px] font-bold text-ink">What&apos;s actually stored</h2>
@@ -121,14 +123,40 @@ export function PrivacyPage() {
           <li className="flex gap-3">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
             <span>
-              Messages to Nova are sent through our server to an AI provider to generate replies.
-              Saved conversations are kept in this browser. Deleting them here does not establish that
-              the AI provider has deleted its records. Avoid including names, addresses or other identifying details.
+              Messages to Nova are sent through our server to Groq, the AI provider, to generate replies.
+              Your session ID is not sent with them. Saved conversations are kept in this browser. Deleting them here does not establish that
+              Groq has deleted its records. Avoid including names, addresses or other identifying details.
             </span>
           </li>
           <li className="flex gap-3">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
             <span>Homepage preferences are saved in this browser. Age and county filters may be sent in resource requests. “Clear from this device” and “Delete everything” below remove them, as does “Clear” in the homepage preferences.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section className="mt-9">
+        <h2 className="font-display text-[22px] font-bold text-ink">Who handles it</h2>
+        <ul className="mt-3 space-y-2.5 text-[15px] leading-relaxed text-ink-soft">
+          <li className="flex gap-3">
+            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
+            <span><span className="font-semibold text-ink">Render</span> hosts the site and the server, in the United States. Like any web host it keeps short-lived server logs that include IP addresses.</span>
+          </li>
+          <li className="flex gap-3">
+            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
+            <span><span className="font-semibold text-ink">Turso</span> stores the database: plans, saved programs, passcodes (hashed) and the directory itself.</span>
+          </li>
+          <li className="flex gap-3">
+            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
+            <span><span className="font-semibold text-ink">Groq</span> generates Nova&apos;s replies from the message you send and the listings we attach.</span>
+          </li>
+          <li className="flex gap-3">
+            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
+            <span>There are no youth accounts, no analytics, and no advertising trackers on this site. Nothing is sold or shared beyond the three services above.</span>
+          </li>
+          <li className="flex gap-3">
+            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
+            <span>Questions, or a deletion request you cannot complete from this page: <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand underline">{CONTACT_EMAIL}</a>. Not for emergencies.</span>
           </li>
         </ul>
       </section>

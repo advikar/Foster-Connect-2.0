@@ -1,5 +1,10 @@
 # Current handoff
 
+## 2026-09-25 — Privacy page specifics (done)
+
+- Task (user: "only include what is needed"; no owner names yet): Privacy page gets "Last updated September 25, 2026", names Groq as the AI provider (session ID not sent), and a "Who handles it" section: Render (hosting, US, short-lived logs with IPs), Turso (database), Groq (replies), no youth accounts/analytics/trackers, contact email for questions and deletion requests. Owner: Claude Code (Fable 5.1). Checks: type-check, ESLint, build; live check after Pages deploy.
+- Nova fallback cause reproduced on the live API 2026-09-25: three /api/chat calls in one minute → third returns degraded after ~20 s (Groq free tier tokens-per-minute limit; one retry then directory fallback). Fix options: paid Groq tier, smaller prompt, or another provider via LLM_BASE_URL.
+
 ## 2026-09-25 — Local-first sort (checkpoint 0 — claimed)
 
 - Task (user): when a county filter is given, rank listings for that county above Bay Area, then California, then National, in the default browse and search orderings. Explicit sorts (checked/name/organization) unchanged. Owner: Claude Code (Fable 5.1).
