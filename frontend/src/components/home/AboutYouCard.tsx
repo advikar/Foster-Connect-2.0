@@ -10,7 +10,8 @@ const COUNTIES: { id: AboutCounty; label: string }[] = [
 
 /**
  * "Your preferences" — two optional taps (age, county), stored on this device.
- * Filters may be used in resource requests. The form is collapsed by default.
+ * Shown as one line under the home search box so the choice visibly feeds the
+ * search (age/county go along with the query). The form is collapsed by default.
  */
 export function AboutYouCard() {
   const { about, save, clear } = useAboutYou();
@@ -18,25 +19,17 @@ export function AboutYouCard() {
   const [age, setAge] = useState<AgeBand | "">(about?.age ?? "");
   const [county, setCounty] = useState<AboutCounty | "">(about?.county ?? "");
 
-  if (!about && !editing) {
+  if (!editing) {
     return (
-      <section className="rounded-xl border border-rule bg-sand-soft p-5">
-        <p className="font-semibold text-ink">Make this page relevant to you</p>
-        <p className="mt-1 text-[15px] text-ink-soft">Choose an age range or county to focus what you see. This is optional.</p>
-        <button type="button" onClick={() => setEditing(true)} aria-expanded={false} className="mt-3 min-h-11 font-semibold text-brand hover:underline">Choose preferences →</button>
-      </section>
-    );
-  }
-
-  if (about && !editing) {
-    return (
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-y border-rule py-3">
-        <p className="text-eyebrow text-ink-faint">
-          Your preferences: {about.age === "unsaid" ? "Age not specified" : AGE_LABELS[about.age]}{about.county ? ` · ${about.county === "elsewhere" ? "Outside the two counties" : about.county}` : ""}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[14px]">
+        <p className="text-ink-soft">
+          {about
+            ? <>Searching for <span className="font-semibold text-ink">{about.age === "unsaid" ? "any age" : `ages ${AGE_LABELS[about.age]}`}</span>{about.county ? <>, <span className="font-semibold text-ink">{about.county === "elsewhere" ? "outside Alameda and Contra Costa" : `${about.county} County`}</span></> : ""}.</>
+            : "Searching all ages and both counties."}
         </p>
-        <div className="flex gap-4 text-[13px]">
-          <button type="button" onClick={() => setEditing(true)} className="text-brand hover:underline">Change</button>
-          <button type="button" onClick={() => { clear(); setAge(""); setCounty(""); }} className="text-ink-faint hover:underline">Clear</button>
+        <div className="flex gap-4">
+          <button type="button" onClick={() => setEditing(true)} aria-expanded={false} className="min-h-8 font-semibold text-brand hover:underline">{about ? "Change" : "Set my age or county"}</button>
+          {about && <button type="button" onClick={() => { clear(); setAge(""); setCounty(""); }} className="min-h-8 text-ink-faint hover:underline">Clear</button>}
         </div>
       </div>
     );

@@ -5,10 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Award, Check, GraduationCap, Home as HomeIcon, Landmark, Plus, Search, Send, Stethoscope, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { AboutYouCard } from "@/components/home/AboutYouCard";
-import { ResourceRow } from "@/components/resources/ResourceRow";
 import { useAboutYou } from "@/hooks/useAboutYou";
 import { useNova } from "@/contexts/NovaContext";
-import { addTask, fetchResources, fetchRoadmap, fetchRoadmaps, type RoadmapTask } from "@/lib/api";
+import { addTask, fetchRoadmap, fetchRoadmaps, type RoadmapTask } from "@/lib/api";
 
 const KINDS = [
   { label: "Housing", category: "Housing", icon: HomeIcon },
@@ -81,16 +80,6 @@ export function HomePage() {
   const doneCount = roadmap?.tasks.filter(task => task.status === "completed").length ?? 0;
 
   const county = about?.county && about.county !== "elsewhere" ? about.county : undefined;
-  // Not a fixed "Housing" list: the three most recently checked listings of
-  // any kind for where they are. Crisis lines live in the crisis bar instead.
-  const { data: nearby, isError: nearbyError, refetch: retryNearby } = useQuery({
-    queryKey: ["home-recent", county],
-    queryFn: async () => {
-      const page = await fetchResources({ county, sort: "checked", limit: 8 });
-      return { ...page, items: page.items.filter(resource => !resource.isCrisis).slice(0, 3) };
-    },
-    retry: 1,
-  });
 
   const under18 = about?.age === "under18";
   const showDeadlines = Boolean(about && ["under18", "18-20", "21-24"].includes(about.age));
@@ -113,7 +102,14 @@ export function HomePage() {
             </p>
             <form
               role="search"
-              onSubmit={event => { event.preventDefault(); navigate(search.trim() ? `/resources?q=${encodeURIComponent(search.trim())}` : "/resources"); }}
+              onSubmit={event => {
+                event.preventDefault();
+                const next = new URLSearchParams();
+                if (search.trim()) next.set("q", search.trim());
+                if (about?.age && about.age !== "unsaid") next.set("age", about.age);
+                if (county) next.set("county", county);
+                navigate(next.toString() ? `/resources?${next}` : "/resources");
+              }}
               className="mt-6 flex max-w-[640px] items-center gap-2 rounded-xl border border-brand bg-surface pl-4 pr-1.5 focus-within:border-ink"
             >
               <Search className="size-5 shrink-0 text-ink-faint" aria-hidden />
@@ -129,6 +125,7 @@ export function HomePage() {
                 <span className="hidden sm:inline">Search</span><ArrowRight className="size-4 sm:hidden" />
               </button>
             </form>
+            <div className="mt-3 max-w-[640px]"><AboutYouCard /></div>
             <nav aria-label="Browse support categories" className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {KINDS.map(({ label, category, icon: Icon }) => (
                 <Link key={category} to={`/resources?category=${encodeURIComponent(category)}`} className="group flex min-h-16 items-center gap-3 rounded-xl border border-rule bg-surface px-4 py-3 text-[15px] font-semibold text-ink transition-colors hover:border-brand hover:bg-brand-soft">
@@ -145,26 +142,10 @@ export function HomePage() {
             <DeadlineList heading={deadlineHeading} intro={deadlineIntro} whyTo="/resources" whyLabel="See related listings →" deadlines={deadlines} roadmapId={null} />
           ) : null}
 
-          <section aria-labelledby="nearby-heading">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 id="nearby-heading" className="font-display text-[24px] font-bold text-ink lg:text-[26px]">Checked recently{county ? `, ${county} County` : ""}</h2>
-              <Link to={`/resources?sort=checked${county ? `&county=${encodeURIComponent(county)}` : ""}`} className="text-[14px] text-brand hover:underline">
-                All listings →
-              </Link>
-            </div>
-            <p className="mt-2 text-[14px] text-ink-faint">{county ? "Listings ordered by their recorded check date. Confirm current details with the provider." : "Listings ordered by their recorded check date. Choose a county in your preferences to narrow the list."}</p>
-            <div className="mt-2 divide-y divide-rule border-t border-rule">
-              {nearby?.items.map(resource => <ResourceRow key={resource.id} resource={resource} dense />)}
-              {nearbyError ? <p role="status" className="py-6 text-[15px] text-ink-soft">Listings could not load. <button onClick={() => void retryNearby()} className="text-brand underline">Try again</button></p> : !nearby ? <p role="status" className="py-6 text-[15px] text-ink-soft">Loading listings…</p> : nearby.items.length === 0 ? <p className="py-6 text-[15px] text-ink-soft">No recently checked listings to show for this selection. <Link to="/resources" className="text-brand underline">Browse all support</Link></p> : null}
-            </div>
-          </section>
         </div>
 
         {/* Right column */}
         <div className="flex flex-col gap-8">
-          {/* Preferences are optional and collapsed until requested. */}
-          <AboutYouCard />
-
           {roadmap ? (
             <section className="flex flex-col gap-4 rounded-md border border-rule bg-surface p-6 shadow-[0_18px_44px_rgba(20,20,19,0.08),0_3px_10px_rgba(20,20,19,0.04)]">
               <div className="flex items-baseline justify-between">
