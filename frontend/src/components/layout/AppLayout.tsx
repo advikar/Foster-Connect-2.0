@@ -174,7 +174,7 @@ function SiteFooter() {
       <div className="container-wide flex flex-col gap-3 py-5 text-[14px] text-ink-faint sm:flex-row sm:items-center sm:justify-between">
         <p>
           Browse without an account.{" "}
-          <Link to="/privacy" className="text-brand hover:underline">How your information is handled</Link>
+          <Link to="/privacy" className="text-brand hover:underline">Your data: passcode, download, clear or delete your plan</Link>
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link to="/add-resource" className="text-brand hover:underline">Tell us about a program we&rsquo;re missing</Link>

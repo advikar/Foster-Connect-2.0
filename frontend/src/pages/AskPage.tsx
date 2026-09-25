@@ -29,7 +29,7 @@ export function AskPage() {
         </p>
         <div className="mt-6 border-t border-rule pt-5 text-[14px] leading-relaxed text-ink-faint">
           <p>No account, no name needed. What you type is sent through our server to an AI provider to write the reply, so leave out names and addresses.</p>
-          <p className="mt-1">Conversations are saved in this browser. Nova remembers what you said here, and in your past chats, until you clear them. <Link to="/privacy" className="text-brand underline">How your information is handled</Link></p>
+          <p className="mt-1">Conversations are saved in this browser. Nova remembers what you said here, and in your past chats, until you clear them. <Link to="/privacy" className="text-brand underline">Your data and how to clear it</Link></p>
         </div>
       </aside>
 
