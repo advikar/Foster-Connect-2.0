@@ -42,9 +42,26 @@ const documentSecurity = {
   },
 };
 
+// sitemap.xml is written at build time so every URL carries the date this
+// build was published as lastmod (each deploy replaces the one HTML shell
+// that serves all of these routes). Listings open at /resources?listing=ID
+// and are not listed one by one. Keep this list in step with router.tsx.
+const SITE_ORIGIN = "https://fosterguide.org";
+const SITE_PATHS = ["/", "/resources", "/ask", "/roadmap", "/privacy", "/add-resource", "/partners"];
+const sitemap = {
+  name: "sitemap",
+  apply: "build" as const,
+  generateBundle() {
+    const lastmod = new Date().toISOString().slice(0, 10);
+    const urls = SITE_PATHS.map(p => `  <url><loc>${SITE_ORIGIN}${p}</loc><lastmod>${lastmod}</lastmod></url>`).join("\n");
+    const source = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+    (this as { emitFile: (file: { type: "asset"; fileName: string; source: string }) => void }).emitFile({ type: "asset", fileName: "sitemap.xml", source });
+  },
+};
+
 export default defineConfig(() => ({
   base: process.env.VITE_BASE || "/",
-  plugins: [react(), tailwindcss(), previewNoIndex, documentSecurity],
+  plugins: [react(), tailwindcss(), previewNoIndex, documentSecurity, sitemap],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

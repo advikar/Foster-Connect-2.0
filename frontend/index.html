@@ -14,16 +14,35 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Foster Guide — support for your next step" />
+    <meta property="og:site_name" content="Foster Guide" />
+    <meta property="og:url" content="https://fosterguide.org/" />
+    <meta property="og:title" content="Foster Guide — your guide to foster youth resources in the East Bay" />
     <meta
       property="og:description"
-      content="Explore local support for current and former foster youth. Find what you need, and make a plan that fits your life."
+      content="Explore local support for current and former foster youth in Alameda and Contra Costa County — housing, money, school, work, health, and someone to talk to."
     />
     <meta property="og:image" content="https://fosterguide.org/social-card.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="canonical" href="https://fosterguide.org/" />
+
+    <!-- Structured data for search engines: what the site is and how to search it (/resources?q= is the search page). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Foster Guide",
+        "url": "https://fosterguide.org/",
+        "description": "Explore local support for current and former foster youth in Alameda and Contra Costa County — housing, money, school, work, health, and someone to talk to.",
+        "inLanguage": "en-US",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": { "@type": "EntryPoint", "urlTemplate": "https://fosterguide.org/resources?q={search_term_string}" },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

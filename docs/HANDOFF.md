@@ -8,6 +8,16 @@
 - Follow-up 3: /privacy reordered so actions come first (passcode, shared-computer note, copy, clear, delete), then "What's actually stored" and "Who handles it"; above/below references fixed; intro names the actions. Footer link renamed "Your data: passcode, download, clear or delete your plan"; Ask page link "Your data and how to clear it". tsc, vitest 4 passed; headings order checked in the local browser.
 - Follow-up 2: the six category tiles and "Browse all support" also carry age/county (`searchHref` in HomePage); Change/Clear sit inline after the sentence instead of at the right edge. Checked locally: Housing tile href `/resources?category=Housing&age=18-20&county=Contra+Costa`. tsc, eslint 0, vitest 4 passed.
 
+## 2026-09-26 — Search discoverability: JSON-LD, consistent share tags, listing page title, sitemap lastmod (done)
+
+- Owner: Claude Code (Fable 5.1). Task (user: "do items 1 through 3, make sure everything is 100% accurate"): (1) JSON-LD WebSite block and one consistent title/description across the title tag, og tags and the client default; (2) an open listing sets the tab title, description, og:url and canonical to the listing (listings already had a shareable URL, /resources?listing=ID, audit A18); (3) sitemap gains lastmod, generated at build time.
+- Intended files: frontend/index.html, vite.config.ts (sitemap plugin), public/sitemap.xml (removed, generated instead), hooks/usePageMeta.ts, components/resources/ListingDeepLink.tsx.
+- Finding while checking: on GitHub Pages every non-root URL (/resources, /privacy, /resources?listing=428) returns HTTP 404 (404.html fallback), so Google will not index those sitemap URLs until DNS moves to Render (DEPLOY.md steps 3–5, deferred by the user). Also: no search engine has indexed fosterguide.org yet (Gemini reported it as non-existent 2026-09-26); Search Console submission is the user's step.
+
+- Done: index.html gets a JSON-LD WebSite block (name, url, description, SearchAction to /resources?q=), og:site_name, og:url, and og:title/og:description now equal the title tag and description meta (they disagreed before); `usePageMeta` default title matches index.html; `setOverlayMeta` in usePageMeta.ts lets an open listing own the head (title "<listing> · Foster Guide", description "<organization> — <first 160 chars>", og:url and canonical /resources?listing=ID) whichever effect ran last, restored on close. public/sitemap.xml removed; the `sitemap` plugin in vite.config.ts emits it at build with lastmod = build date (UTC), same seven URLs.
+- Checks: frontend type-check, ESLint on changed files (0 errors), vitest 4 passed, production build; dist checked with a script: JSON-LD parses, title == og:title, description == og:description == JSON-LD description; dist/sitemap.xml has lastmod on all 7 URLs. Local browser: /resources?listing=428 → title "Food Bank of Contra Costa and Solano · Foster Guide", canonical /resources?listing=428; Escape → "Search support · Foster Guide", canonical /resources. Not verified: live site until deploy-site.yml finishes; Search Console results.
+- Ownership released: yes.
+
 # Current handoff
 
 ## 2026-09-25 — Report wrong info from Ask and the crisis dialog (checkpoint 0 — claimed)
