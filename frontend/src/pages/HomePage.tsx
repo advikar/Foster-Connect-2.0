@@ -106,7 +106,7 @@ export function HomePage() {
             <p className="text-eyebrow text-brand">Foster Guide · Alameda & Contra Costa</p>
             <h1 className="mt-4 text-hero text-ink lg:max-w-[760px]">Find support. Take your next step.</h1>
             <p className="mt-4 max-w-[620px] text-[17px] leading-relaxed text-ink-soft lg:text-[18px]">
-              Search housing, scholarships, job training, health care, and everyday support for young people in the East Bay. Made for current and former foster youth, and many of these programs are open to anyone who needs them.
+              This site is for current and former foster youth in Alameda and Contra Costa County. Many of the programs listed are open to any young person. Search checked programs for housing, scholarships, jobs, health care and everyday help. Save the ones you like, turn them into a plan with next steps, or ask Nova a question in your own words.
             </p>
             <form
               role="search"
@@ -122,7 +122,7 @@ export function HomePage() {
                 placeholder="Search housing, scholarships, bus passes…"
                 className="h-[52px] min-w-0 flex-1 bg-transparent text-[16px] text-ink-body outline-none placeholder:text-ink-stamp lg:h-14"
               />
-              <button className="flex h-11 shrink-0 items-center justify-center rounded-md bg-brand px-4 text-[15px] font-semibold text-white hover:bg-brand-deep" aria-label="Search">
+              <button className="flex h-11 shrink-0 items-center justify-center rounded-md bg-brand px-4 text-[14px] font-semibold uppercase tracking-wide text-white hover:bg-brand-deep" aria-label="Search">
                 <span className="hidden sm:inline">Search</span><ArrowRight className="size-4 sm:hidden" />
               </button>
             </form>
@@ -135,6 +135,15 @@ export function HomePage() {
               ))}
             </nav>
             <Link to={searchHref({})} className="mt-3 inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold text-brand hover:underline">Browse all support <ArrowRight className="size-4" /></Link>
+            <details className="mt-6 max-w-[640px] rounded-md border border-rule bg-surface px-4 py-3">
+              <summary className="cursor-pointer text-[15px] font-semibold text-ink">How this site works</summary>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-[15px] leading-relaxed text-ink-soft">
+                <li><span className="font-semibold text-ink">Search.</span> Type what you need or pick a category. Every listing is checked by a reviewer and shows when it was last checked. Tap a listing to call, visit the website, or save it.</li>
+                <li><span className="font-semibold text-ink">Make a plan.</span> A plan is a short checklist of steps toward something you want, like housing or a scholarship. Answer a few questions and the site builds one from checked programs. Edit it any time or download it as a PDF.</li>
+                <li><span className="font-semibold text-ink">Ask Nova.</span> Nova is an AI assistant that answers only from the listings on this site. Ask in your own words, like &ldquo;Where can I get help paying for community college?&rdquo;</li>
+              </ol>
+              <p className="mt-3 text-[14px] text-ink-soft">No account is needed. Your plan and saved listings stay on this device unless you set a passcode to keep them on another one. Details are under &ldquo;Your data&rdquo; at the bottom of every page.</p>
+            </details>
           </section>
 
           {roadmap ? (
@@ -164,13 +173,13 @@ export function HomePage() {
               ) : (
                 <p className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-green"><Check className="size-4" /> {openTasks.length === 0 ? "All steps are marked complete." : "Your remaining steps are marked as blocked. Open your plan to review them."}</p>
               )}
-              <Link to="/roadmap" className="inline-flex h-12 items-center justify-center rounded-md bg-brand text-[15px] font-semibold text-white hover:bg-brand-deep">Open my plan</Link>
+              <Link to="/roadmap" className="inline-flex h-12 items-center justify-center rounded-md bg-brand text-[14px] font-semibold uppercase tracking-wide text-white hover:bg-brand-deep">Open my plan</Link>
             </section>
           ) : (
             <section className="flex flex-col gap-3 rounded-md border border-rule p-6">
               <h2 className="font-display text-[22px] font-bold text-ink">Start a plan</h2>
-              <p className="text-[15px] leading-relaxed text-ink-soft">Choose what you want to work on and build a plan you can edit. Most questions are optional.</p>
-              <Link to="/roadmap" className="inline-flex min-h-11 items-center gap-2 self-start rounded-md border border-ink px-4 text-[15px] font-semibold text-ink hover:bg-surface">
+              <p className="text-[15px] leading-relaxed text-ink-soft">A plan is a short checklist of next steps toward something you want, like a place to live, a scholarship, or a job. Answer a few questions and the site builds one from checked programs. You can change it any time, and no account is needed.</p>
+              <Link to="/roadmap" className="inline-flex min-h-11 items-center gap-2 self-start rounded-md border border-ink px-4 text-[14px] font-semibold uppercase tracking-wide text-ink hover:bg-surface">
                 Build my plan <ArrowRight className="size-4" />
               </Link>
             </section>
@@ -187,7 +196,7 @@ export function HomePage() {
                 id="home-ask"
                 value={ask}
                 onChange={event => setAsk(event.target.value)}
-                placeholder="What support is available for college?"
+                placeholder="Ex. What support is available for college?"
                 className="h-[52px] min-w-0 flex-1 bg-transparent text-[15px] text-ink-body outline-none placeholder:text-ink-stamp"
               />
               <button className="flex size-10 shrink-0 items-center justify-center rounded-md bg-brand text-white hover:bg-brand-deep" aria-label="Ask Nova"><Send className="size-4" /></button>
@@ -195,8 +204,8 @@ export function HomePage() {
             <p className="text-[13px] leading-relaxed text-ink-faint">Nova is an AI assistant that uses the resource directory. Answers can contain mistakes; confirm eligibility and current details with the provider.</p>
           </section>
           <section className="border-t border-rule pt-6">
-            <h2 className="text-[18px] font-semibold text-ink">Working alongside young people?</h2>
-            <p className="mt-2 text-[15px] text-ink-soft">Community partners can contribute resources and suggest updates to the directory.</p>
+            <h2 className="text-[18px] font-semibold text-ink">Do you work with foster youth?</h2>
+            <p className="mt-2 text-[15px] text-ink-soft">Caseworkers, teachers, and community organizations can add programs to this site and suggest updates.</p>
             <Link to="/partners" className="mt-2 inline-flex min-h-11 items-center gap-2 font-semibold text-brand hover:underline">Community partners <ArrowRight className="size-4" /></Link>
           </section>
         </div>

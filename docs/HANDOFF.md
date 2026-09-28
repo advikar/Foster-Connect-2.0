@@ -18,6 +18,16 @@
 - Checks: frontend type-check, ESLint on changed files (0 errors), vitest 4 passed, production build; dist checked with a script: JSON-LD parses, title == og:title, description == og:description == JSON-LD description; dist/sitemap.xml has lastmod on all 7 URLs. Local browser: /resources?listing=428 → title "Food Bank of Contra Costa and Solano · Foster Guide", canonical /resources?listing=428; Escape → "Search support · Foster Guide", canonical /resources. Not verified: live site until deploy-site.yml finishes; Search Console results.
 - Ownership released: yes.
 
+## 2026-09-28 — Home page: self-explanatory copy, how it works, footer rework (done)
+
+- Owner: Claude Code (Fable 5.1). Task (user's review list): hero paragraph starts "This site is for…", explains features; collapsible "How this site works"; "Start a plan" explains what a plan is; "Ex." before the example in the home ask box; uppercase home buttons; partner section reworded (no "Working alongside"); footer: 911 first, 988 with its name, other lines dropped from the footer (still in the Need help now dialog), disclaimer labelled and shortened (no "people behind it"), "Browse without an account" removed, data link reworded, vertical dividers, "Contact Foster Guide"; Privacy page gets a Disclaimer line.
+- Intended files: frontend pages/HomePage.tsx, components/layout/AppLayout.tsx, pages/PrivacyPage.tsx.
+- Not done on purpose: no age range in the hero (listings serve different ages; stating 18–25 would be wrong for some); Nova is not advertised as answering questions about the site (the prompt answers from listings only and the user ruled out prompt changes).
+
+- Done: hero paragraph ("This site is for current and former foster youth in Alameda and Contra Costa County… Search… Save… plan… ask Nova"); collapsible "How this site works" (Search / Make a plan / Ask Nova, no account needed) under the tiles; "Start a plan" explains what a plan is; "Ex. What support is available for college?"; Search / BUILD MY PLAN / OPEN MY PLAN uppercase; "Do you work with foster youth?"; footer: 911 then 988 ("Suicide & Crisis Lifeline. Call or text, free, 24/7"), other lines only in the dialog, "Disclaimer:" label, shorter text, links row with vertical dividers ("Your data: save, download or delete your plan", "Suggest a program that is missing", "Community partners", "Contact Foster Guide"); Privacy page: "No account is needed…", Disclaimer line, last updated 2026-09-28.
+- Checks: frontend type-check, ESLint 0 errors (1 pre-existing warning), vitest 4 passed; local browser at 800px: hero, details open, footer.
+- Ownership released: yes.
+
 # Current handoff
 
 ## 2026-09-25 — Report wrong info from Ask and the crisis dialog (checkpoint 0 — claimed)

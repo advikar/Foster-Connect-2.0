@@ -100,10 +100,13 @@ export function PrivacyPage() {
     <div className="container-wide"><div className="max-w-[760px] pb-16 pt-8 lg:pt-12">
       <h1 className="text-display text-ink">Your data</h1>
       <p className="mt-3 text-[16px] leading-relaxed text-ink-soft">
-        You can browse without an account. Here you can keep your plan with a passcode, download a copy,
+        No account is needed. Here you can save your plan to use on another device (with a passcode), download a copy,
         clear this device, or delete everything. Further down: what is stored and who handles it.
       </p>
-      <p className="mt-2 text-[14px] text-ink-faint">Last updated September 25, 2026.</p>
+      <p className="mt-2 text-[14px] text-ink-faint">Last updated September 28, 2026.</p>
+      <p className="mt-3 text-[14px] leading-relaxed text-ink-faint">
+        <span className="font-semibold text-ink-soft">Disclaimer:</span> Foster Guide is a directory, not legal, medical or financial advice. Listings are checked against public information and can change. Confirm details with the program before you rely on them.
+      </p>
 
       <div className="mt-8"><PasscodeCard /></div>
 

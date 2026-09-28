@@ -158,30 +158,23 @@ function SiteFooter() {
         <div className="container-wide flex flex-col gap-4 py-8">
           <p className="text-eyebrow text-sand">If you&rsquo;re in danger or thinking about hurting yourself</p>
           <div className="flex flex-wrap gap-x-10 gap-y-4">
-            <CrisisLine href="tel:988" number="988" label="Call or text, 24/7" />
-            <CrisisLine href="sms:741741?&body=HOME" number="HOME to 741741" label="Crisis Text Line" />
-            <CrisisLine href="tel:18007862929" number="1-800-786-2929" label="National Runaway Safeline" />
             <CrisisLine href="tel:911" number="911" label="Immediate danger" />
+            <CrisisLine href="tel:988" number="988" label="Suicide & Crisis Lifeline. Call or text, free, 24/7" />
           </div>
-          <p className="text-[13px] text-on-deep-soft">For immediate support, contact a crisis service. Each service has its own privacy practices.</p>
+          <p className="text-[13px] text-on-deep-soft">More lines, including text options, are under &ldquo;Need help now&rdquo; at the top of every page. Each service has its own privacy practices.</p>
         </div>
       </div>
       <div className="container-wide border-b border-rule py-5 text-[13px] leading-relaxed text-ink-faint">
         <p>
-          Foster Guide is a directory, not legal, medical or financial advice. The people behind it are not attorneys or caseworkers. Listings are checked against public information and can change, so confirm details with the program before you rely on them. For a legal question, talk to a lawyer or a legal-aid program listed here.
+          <span className="font-semibold text-ink-soft">Disclaimer:</span> Foster Guide is a directory, not legal, medical or financial advice. Listings are checked against public information and can change. Confirm details with the program before you rely on them.
         </p>
       </div>
-      <div className="container-wide flex flex-col gap-3 py-5 text-[14px] text-ink-faint sm:flex-row sm:items-center sm:justify-between">
-        <p>
-          Browse without an account.{" "}
-          <Link to="/privacy" className="text-brand hover:underline">Your data: passcode, download, clear or delete your plan</Link>
-        </p>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-          <Link to="/add-resource" className="text-brand hover:underline">Tell us about a program we&rsquo;re missing</Link>
-          <Link to="/partners" className="text-brand hover:underline">Community partners</Link>
-          <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand hover:underline">Contact us <span className="text-ink-faint">(questions about the site, not emergencies)</span></a>
-          {(import.meta.env.DEV || import.meta.env.VITE_PREVIEW) && <AccentToggle />}
-        </div>
+      <div className="container-wide flex flex-col gap-2 py-5 text-[14px] text-ink-faint sm:flex-row sm:flex-wrap sm:items-center sm:gap-0 sm:divide-x sm:divide-rule">
+        <Link to="/privacy" className="text-brand hover:underline sm:pr-4">Your data: save, download or delete your plan</Link>
+        <Link to="/add-resource" className="text-brand hover:underline sm:px-4">Suggest a program that is missing</Link>
+        <Link to="/partners" className="text-brand hover:underline sm:px-4">Community partners</Link>
+        <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand hover:underline sm:px-4">Contact Foster Guide <span className="text-ink-faint">(questions about the site, not emergencies)</span></a>
+        {(import.meta.env.DEV || import.meta.env.VITE_PREVIEW) && <span className="sm:pl-4"><AccentToggle /></span>}
       </div>
     </footer>
   );
