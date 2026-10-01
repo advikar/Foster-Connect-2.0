@@ -11,11 +11,11 @@ import { addTask, fetchRoadmap, fetchRoadmaps, type RoadmapTask } from "@/lib/ap
 
 const KINDS = [
   { label: "Housing", category: "Housing", icon: HomeIcon },
-  { label: "Money & benefits", category: "Financial Support", icon: Landmark },
-  { label: "School & training", category: "Education", icon: GraduationCap },
+  { label: "Money & Benefits", category: "Financial Support", icon: Landmark },
+  { label: "School & Training", category: "Education", icon: GraduationCap },
   { label: "Scholarships", category: "Scholarships", icon: Award },
-  { label: "Jobs & work", category: "Employment", icon: Briefcase },
-  { label: "Health & mental health", category: "Healthcare,Mental Health", icon: Stethoscope },
+  { label: "Jobs & Work", category: "Employment", icon: Briefcase },
+  { label: "Health & Mental Health", category: "Healthcare,Mental Health", icon: Stethoscope },
 ];
 
 /**
@@ -122,7 +122,7 @@ export function HomePage() {
                 placeholder="Search housing, scholarships, bus passes…"
                 className="h-[52px] min-w-0 flex-1 bg-transparent text-[16px] text-ink-body outline-none placeholder:text-ink-stamp lg:h-14"
               />
-              <button className="flex h-11 shrink-0 items-center justify-center rounded-md bg-brand px-4 text-[14px] font-semibold uppercase tracking-wide text-white hover:bg-brand-deep" aria-label="Search">
+              <button className="flex h-11 shrink-0 items-center justify-center rounded-md bg-brand px-4 text-[15px] font-semibold text-white hover:bg-brand-deep" aria-label="Search">
                 <span className="hidden sm:inline">Search</span><ArrowRight className="size-4 sm:hidden" />
               </button>
             </form>
@@ -173,14 +173,14 @@ export function HomePage() {
               ) : (
                 <p className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-green"><Check className="size-4" /> {openTasks.length === 0 ? "All steps are marked complete." : "Your remaining steps are marked as blocked. Open your plan to review them."}</p>
               )}
-              <Link to="/roadmap" className="inline-flex h-12 items-center justify-center rounded-md bg-brand text-[14px] font-semibold uppercase tracking-wide text-white hover:bg-brand-deep">Open my plan</Link>
+              <Link to="/roadmap" className="inline-flex h-12 items-center justify-center rounded-md bg-brand text-[15px] font-semibold text-white hover:bg-brand-deep">Open My Plan</Link>
             </section>
           ) : (
             <section className="flex flex-col gap-3 rounded-md border border-rule p-6">
               <h2 className="font-display text-[22px] font-bold text-ink">Start a plan</h2>
               <p className="text-[15px] leading-relaxed text-ink-soft">A plan is a short checklist of next steps toward something you want, like a place to live, a scholarship, or a job. Answer a few questions and the site builds one from checked programs. You can change it any time, and no account is needed.</p>
-              <Link to="/roadmap" className="inline-flex min-h-11 items-center gap-2 self-start rounded-md border border-ink px-4 text-[14px] font-semibold uppercase tracking-wide text-ink hover:bg-surface">
-                Build my plan <ArrowRight className="size-4" />
+              <Link to="/roadmap" className="inline-flex min-h-11 items-center gap-2 self-start rounded-md border border-ink px-4 text-[15px] font-semibold text-ink hover:bg-surface">
+                Build My Plan <ArrowRight className="size-4" />
               </Link>
             </section>
           )}
