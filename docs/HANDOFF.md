@@ -28,6 +28,14 @@
 - Checks: frontend type-check, ESLint 0 errors (1 pre-existing warning), vitest 4 passed; local browser at 800px: hero, details open, footer.
 - Ownership released: yes.
 
+## 2026-10-17 — Monitor: retry before failing (done)
+
+- Owner: Claude Code (Opus 5.5). Task (user): the Monitor workflow emails on false alarms. 7 of ~200 runs failed since 2026-10-05, each a single blip that passed on the next run: 5× curl timeout at 30 s (free Render API cold start), 1× 429, 1× 503. Make each probe wait longer and retry so only a sustained outage fails the run.
+- Files: .github/workflows/monitor.yml.
+- Done: a `retry` helper (written to $RUNNER_TEMP by the first step) runs each check up to ATTEMPTS=4 times, WAIT=60 s apart; earlier misses are `::warning::` annotations, only the last is `::error::`. API timeouts raised from 30 s to 90 s (site 60 s); job timeout 40 min. A check now fails the run only after ~10 minutes of continuous failure.
+- Checks: steps extracted from the YAML (js-yaml) and run locally with `bash -e`: live endpoints pass (ready, 5 housing/Alameda results, site 200); a 404 path and an unroutable host each warn, retry, then exit 1. Not verified: a run on GitHub Actions until the push.
+- Ownership released: yes.
+
 # Current handoff
 
 ## 2026-09-25 — Report wrong info from Ask and the crisis dialog (checkpoint 0 — claimed)

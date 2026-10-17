@@ -3,6 +3,12 @@
 # (/api/ready), that a real directory search returns results, and that the
 # site's HTML is being served. A failure shows as a red run and emails the
 # repository owner through GitHub's normal workflow notifications.
+#
+# Each check is tried up to ATTEMPTS times, WAIT seconds apart, so a single
+# blip does not send an email: the free Render API takes up to about a minute
+# to wake from sleep, and an occasional 429/503 clears within a minute. Earlier
+# misses show as warnings on the run; only a check that fails every attempt
+# (about 10 minutes of trying) turns the run red.
 name: Monitor
 
 on:
@@ -10,24 +16,63 @@ on:
     - cron: "*/30 * * * *"
   workflow_dispatch:
 
+env:
+  API: https://foster-connect-api.onrender.com
+  ATTEMPTS: "4"
+  WAIT: "60"
+
 jobs:
   probe:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
+      - name: Retry helper
+        run: |
+          cat > "$RUNNER_TEMP/retry.sh" <<'EOF'
+          # retry <label> <check>: run the check up to $ATTEMPTS times, $WAIT
+          # seconds apart. A check prints why it failed and returns non-zero.
+          retry() {
+            label=$1; shift
+            for i in $(seq 1 "$ATTEMPTS"); do
+              if out=$("$@" 2>&1); then echo "$out"; return 0; fi
+              echo "attempt $i/$ATTEMPTS: $out"
+              if [ "$i" -lt "$ATTEMPTS" ]; then
+                echo "::warning::$label: $out (retrying in ${WAIT}s)"
+                sleep "$WAIT"
+              fi
+            done
+            echo "::error::$label failed $ATTEMPTS times: $out"
+            return 1
+          }
+          EOF
       - name: API readiness (database query)
         run: |
-          body=$(curl -sS --max-time 30 -w '\n%{http_code}' https://foster-connect-api.onrender.com/api/ready)
-          code=$(echo "$body" | tail -1); json=$(echo "$body" | sed '$d')
-          echo "$code $json"
-          [ "$code" = "200" ] || { echo "::error::/api/ready returned $code"; exit 1; }
-          echo "$json" | grep -q '"status":"ready"' || { echo "::error::database not ready"; exit 1; }
+          . "$RUNNER_TEMP/retry.sh"
+          ready() {
+            resp=$(curl -sS --max-time 90 -w '\n%{http_code}' "$API/api/ready") || return 1
+            code=$(echo "$resp" | tail -1); json=$(echo "$resp" | sed '$d')
+            [ "$code" = "200" ] || { echo "/api/ready returned $code"; return 1; }
+            echo "$json" | grep -q '"status":"ready"' || { echo "database not ready: $json"; return 1; }
+            echo "$json"
+          }
+          retry "API readiness" ready
       - name: Directory search returns listings
         run: |
-          n=$(curl -sS --max-time 30 'https://foster-connect-api.onrender.com/api/resources?q=housing&county=Alameda&limit=5' | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["items"]))')
-          echo "housing/Alameda results: $n"
-          [ "$n" -ge 1 ] || { echo "::error::housing search returned no listings"; exit 1; }
+          . "$RUNNER_TEMP/retry.sh"
+          search() {
+            body=$(curl -sSf --max-time 90 "$API/api/resources?q=housing&county=Alameda&limit=5") || return 1
+            n=$(echo "$body" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)["items"]))') || return 1
+            [ "$n" -ge 1 ] || { echo "housing search returned no listings"; return 1; }
+            echo "housing/Alameda results: $n"
+          }
+          retry "Directory search" search
       - name: Site HTML served
         run: |
-          code=$(curl -sS --max-time 30 -o /tmp/index.html -w '%{http_code}' https://fosterguide.org/)
-          [ "$code" = "200" ] || { echo "::error::fosterguide.org returned $code"; exit 1; }
-          grep -q 'Foster Guide' /tmp/index.html || { echo "::error::site HTML does not look like Foster Guide"; exit 1; }
+          . "$RUNNER_TEMP/retry.sh"
+          site() {
+            code=$(curl -sS --max-time 60 -o "$RUNNER_TEMP/index.html" -w '%{http_code}' https://fosterguide.org/) || return 1
+            [ "$code" = "200" ] || { echo "fosterguide.org returned $code"; return 1; }
+            grep -q 'Foster Guide' "$RUNNER_TEMP/index.html" || { echo "site HTML does not look like Foster Guide"; return 1; }
+            echo "fosterguide.org returned 200"
+          }
+          retry "Site HTML" site
