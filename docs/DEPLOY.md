@@ -219,3 +219,10 @@ Record the date and the matching counts in HANDOFF.md.
 ## If a reviewer is locked out
 
 Run `scripts/issue-reset-link.sh <email>` from a terminal signed in to Turso. It inserts only a hash and prints a one-time link (48 hours); open it to set a new password. The password never passes through anyone else.
+
+## Page-view counting (GoatCounter, added 2026-10-21)
+
+- The youth site counts page views with GoatCounter at `https://fosterguide.goatcounter.com` (founder's account). `frontend/src/lib/analytics.ts` loads `gc.zgo.at/count.js` on production builds only and calls `count()` on every route change with the pathname alone: no query string, no title, nothing from `/partners/*`, nothing when Do Not Track is on. GoatCounter sets no cookies and keeps no identifiers.
+- The CSP (vite.config.ts meta and render.yaml header) allows `script-src https://gc.zgo.at` and `connect-src`/`img-src https://fosterguide.goatcounter.com`. If the site code ever changes, update both plus `SITE_ENDPOINT` in analytics.ts.
+- The privacy page names GoatCounter as the fourth service. Keep that line truthful if counting changes.
+- Localhost views are never counted (GoatCounter's `allow_local: false`), so local checks only confirm that the script loads without CSP errors.

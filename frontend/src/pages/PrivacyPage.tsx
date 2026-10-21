@@ -248,7 +248,7 @@ export function PrivacyPage() {
           </li>
           <li className="flex gap-3">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />
-            <span>There are no youth accounts, no analytics, and no advertising trackers on this site. Nothing is sold or shared beyond the three services above.</span>
+            <span><span className="font-semibold text-ink">GoatCounter</span> counts page views so we know which pages help: the page path, the site you came from, your screen size and browser type. It sets no cookies, stores no identifiers, never sees what you search or type, and does not run on partner pages. There are no youth accounts and no advertising trackers. Nothing is sold or shared beyond the four services above.</span>
           </li>
           <li className="flex gap-3">
             <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" />

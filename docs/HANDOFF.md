@@ -413,3 +413,11 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Owner: Claude Code (Fable 5.1). render.yaml gains `foster-guide-site` (runtime static, rootDir frontend, SPA rewrite, CSP with frame-ancestors, X-Frame-Options, Referrer-Policy, nosniff, Permissions-Policy, HSTS, immutable cache for /assets); CORS_ORIGINS adds the onrender.com site origin. deploy-site.yml is manual-only and no longer sets VITE_PREVIEW (no noindex, no preview banner). robots.txt is plain allow + sitemap. DEPLOY.md has the founder's 7 steps (blueprint sync, custom domains, DNS swap, remove Pages domain).
 - Checks: render.yaml parses as YAML; frontend build without VITE_PREVIEW has no robots meta and no preview banner (checked in dist). Not verifiable by the agent: Render blueprint sync and DNS (founder's accounts).
 - Ownership released: yes (after push).
+
+## 2026-10-21 — GoatCounter page-view counting (youth site only)
+
+- Owner: Claude Code (Fable 5.1). Founder set up `fosterguide.goatcounter.com` and asked for the snippet to be added.
+- Intended files: frontend `src/lib/analytics.ts` (new; loads `gc.zgo.at/count.js` on production builds only, counts pathname only, skips `/partners/*` and Do Not Track, re-counts on route change), AppLayout.tsx (hook into the existing pathname effect), vite.config.ts + render.yaml (CSP: script-src gc.zgo.at, connect-src/img-src fosterguide.goatcounter.com), PrivacyPage.tsx (replace the "no analytics" line with what is counted), DEPLOY.md.
+- Checks: frontend tsc clean, eslint 0 errors (3 pre-existing react-refresh warnings), production build; `vite preview` at /resources under the built CSP: `window.goatcounter.count` present, `no_onload` and `allow_local: false` set, no CSP console errors. Localhost views are not sent by design, so the live hit path is verified only after deploy (CSP header + bundle).
+- Not tested by the agent: a view appearing in the founder's GoatCounter dashboard.
+- Ownership released: yes (after push).

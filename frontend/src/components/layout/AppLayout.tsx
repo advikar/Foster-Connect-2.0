@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { applyAccent, currentAccent } from "@/lib/accent";
 import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-router-dom";
+import { trackPageView } from "@/lib/analytics";
 import { Bookmark, Home, ListChecks, MessageCircle, Search } from "lucide-react";
 import { NovaProvider } from "@/contexts/NovaContext";
 import { CrisisButton } from "@/components/safety/CrisisBar";
@@ -34,6 +35,7 @@ export function AppLayout() {
   const isFirstRender = useRef(true);
 
   useEffect(() => {
+    trackPageView(location.pathname);
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     // A new page starts at the top (audit A15); Back/Forward keeps the browser's own position.
     if (navigationType !== "POP") window.scrollTo({ top: 0 });
