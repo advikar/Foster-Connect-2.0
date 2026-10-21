@@ -222,7 +222,7 @@ Run `scripts/issue-reset-link.sh <email>` from a terminal signed in to Turso. It
 
 ## Page-view counting (GoatCounter, added 2026-10-21)
 
-- The youth site counts page views with GoatCounter at `https://fosterguide.goatcounter.com` (founder's account). `frontend/src/lib/analytics.ts` loads `gc.zgo.at/count.js` on production builds only and calls `count()` on every route change with the pathname alone: no query string, no title, nothing from `/partners/*`, nothing when Do Not Track is on. GoatCounter sets no cookies and keeps no identifiers.
-- The CSP (vite.config.ts meta and render.yaml header) allows `script-src https://gc.zgo.at` and `connect-src`/`img-src https://fosterguide.goatcounter.com`. If the site code ever changes, update both plus `SITE_ENDPOINT` in analytics.ts.
+- The youth site counts page views with GoatCounter at `https://fosterguide.goatcounter.com` (founder's account). `frontend/src/lib/analytics.ts` requests GoatCounter's documented pixel endpoint directly (no third-party script: count.js would also send the raw query string, which on this site holds search text) on production builds only, on every route change, with the pathname, referrer hostname and screen size alone: no query string, no title, nothing from `/partners/*`, nothing when Do Not Track is on, nothing from localhost. GoatCounter sets no cookies and keeps no identifiers.
+- The CSP (vite.config.ts meta and render.yaml header) allows `img-src https://fosterguide.goatcounter.com`; no script-src change is needed. If the site code ever changes, update both plus `SITE_ENDPOINT` in analytics.ts.
 - The privacy page names GoatCounter as the fourth service. Keep that line truthful if counting changes.
-- Localhost views are never counted (GoatCounter's `allow_local: false`), so local checks only confirm that the script loads without CSP errors.
+- Localhost views are never sent, so local checks only confirm the build; the live beacon was verified in the browser after deploy (request to `/count?p=/resources&r=&s=…`).

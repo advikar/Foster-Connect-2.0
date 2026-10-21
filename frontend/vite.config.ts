@@ -29,11 +29,11 @@ const documentSecurity = {
     const api = process.env.VITE_API_URL || "http://localhost:4000";
     const csp = [
       "default-src 'self'",
-      "script-src 'self' https://gc.zgo.at",
+      "script-src 'self'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https://fosterguide.goatcounter.com",
-      `connect-src 'self' ${api} https://fosterguide.goatcounter.com`,
+      `connect-src 'self' ${api}`,
       "base-uri 'self'",
       "form-action 'self'",
       "object-src 'none'",
