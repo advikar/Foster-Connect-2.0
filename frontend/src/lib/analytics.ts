@@ -6,7 +6,9 @@
  * what a person searched for; building the request ourselves means exactly
  * these fields leave the device and nothing else:
  *
- *   p  the path (no query string, no title)
+ *   p  the path (no query string)
+ *   t  a fixed label for the route ("Find support"), never the document title,
+ *      which on Ask and the plan page can contain what the person typed
  *   r  the referring site as the browser exposes it (strict-origin policy)
  *   s  screen size, so layouts can be checked against real devices
  *
@@ -17,6 +19,34 @@
  */
 
 const SITE_ENDPOINT = "https://fosterguide.goatcounter.com/count";
+
+const LABELS: Record<string, string> = {
+  "/": "Home",
+  "/resources": "Find support",
+  "/ask": "Ask Nova",
+  "/roadmap": "Make a plan",
+  "/saved": "Saved",
+  "/add-resource": "Add a resource",
+  "/privacy": "Privacy",
+  "/partners": "Partners: landing",
+  "/partners/sign-in": "Partners: sign in",
+  "/partners/reset": "Partners: password reset",
+  "/partners/overview": "Partners: overview",
+  "/partners/submissions": "Partners: submissions",
+  "/partners/add-resource": "Partners: add listing",
+  "/partners/coverage": "Partners: coverage",
+  "/partners/gaps": "Partners: gaps",
+  "/partners/resources": "Partners: search listings",
+  "/partners/review": "Partners: review queue",
+  "/partners/guide": "Partners: guide",
+  "/partners/accounts": "Partners: accounts",
+};
+
+/** Fixed, non-personal label for a route; unknown paths are the not-found page. */
+export function routeLabel(pathname: string): string {
+  const clean = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return LABELS[clean] ?? "Not found";
+}
 
 function enabled(): boolean {
   if (!import.meta.env.PROD) return false;
@@ -31,6 +61,7 @@ export function trackPageView(pathname: string): void {
   if (!enabled()) return;
   const params = new URLSearchParams({
     p: pathname,
+    t: routeLabel(pathname),
     r: document.referrer,
     s: `${window.screen.width},${window.screen.height},${window.devicePixelRatio || 1}`,
     rnd: Date.now().toString(36), // cache buster only; GoatCounter ignores it

@@ -427,3 +427,9 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Owner: Claude Code (Fable 5.1). Founder asked to see partner-side traffic. PartnerLayout calls `trackPageView(pathname)` in its existing pathname effect; the `/partners` skip in analytics.ts is removed; privacy copy and DEPLOY.md updated.
 - Checks: tsc, eslint (0 errors), build; live `/partners/sign-in` sends one pixel with path only.
 - Ownership released: yes (after push).
+
+## 2026-10-21 — GoatCounter: fixed route labels; fosterguide.org still on Pages
+
+- Owner: Claude Code (Fable 5.1). `routeLabel()` in analytics.ts sends a fixed label per route as `t` (never the document title). Founder reported clicks not counting: fosterguide.org still resolves to GitHub Pages (185.199.x), frozen on the pre-counter build because deploy-site.yml is manual-only. Ran the manual Pages deploy so the domain catches up until the DNS swap in DEPLOY.md is done.
+- Checks: tsc, eslint, build; live pixel on Render includes `t=Find+support`; fosterguide.org bundle contains the counter after the workflow run.
+- Ownership released: yes (after push).
