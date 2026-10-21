@@ -5,6 +5,7 @@ import { PartnerProvider, usePartner } from "@/contexts/PartnerContext";
 import { Brand } from "./AppLayout";
 import { cn } from "@/lib/utils";
 import { CONTACT_EMAIL } from "@/lib/contact";
+import { trackPageView } from "@/lib/analytics";
 
 const links = [
   { to: "/partners/overview", label: "Overview", icon: LayoutGrid },
@@ -28,7 +29,7 @@ function Shell() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const main = useRef<HTMLElement>(null);
-  useEffect(() => { main.current?.focus(); }, [pathname]);
+  useEffect(() => { trackPageView(pathname); main.current?.focus(); }, [pathname]);
   const reviewer = partner?.role === "reviewer";
   // The workspace (sidebar, chip row) exists only once signed in (P1). The
   // landing and sign-in pages get a plain header.

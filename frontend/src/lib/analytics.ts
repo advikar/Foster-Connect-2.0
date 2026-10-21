@@ -10,9 +10,10 @@
  *   r  the referring site as the browser exposes it (strict-origin policy)
  *   s  screen size, so layouts can be checked against real devices
  *
- * No cookies, no identifiers. Partner pages are never counted, Do Not Track is
- * honored, and nothing is sent outside production builds or from localhost.
- * Called from the youth layout whenever the path changes (single-page app).
+ * No cookies, no identifiers. Do Not Track is honored, and nothing is sent
+ * outside production builds or from localhost. Both layouts (youth and
+ * partner) call this whenever the path changes (single-page app); partner
+ * paths carry no account information, only the section name.
  */
 
 const SITE_ENDPOINT = "https://fosterguide.goatcounter.com/count";
@@ -28,7 +29,6 @@ function enabled(): boolean {
 /** Count one view of `pathname`. Safe to call on every route change. */
 export function trackPageView(pathname: string): void {
   if (!enabled()) return;
-  if (pathname.startsWith("/partners")) return;
   const params = new URLSearchParams({
     p: pathname,
     r: document.referrer,

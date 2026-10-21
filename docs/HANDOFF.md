@@ -421,3 +421,9 @@ This temporary backup may expire; it is not durable disaster recovery.
 - Checks: frontend tsc clean, eslint 0 errors (3 pre-existing react-refresh warnings), production build. First version used count.js; the live check showed it also sends `q=<query string>`, so it was replaced with a direct pixel request before the founder's dashboard saw real traffic. Live (foster-guide-site.onrender.com/resources): one request to `fosterguide.goatcounter.com/count?p=%2Fresources&r=&s=…`, no `q`, no `t`, no CSP console errors; `/partners` sends nothing.
 - Not tested by the agent: a view appearing in the founder's GoatCounter dashboard.
 - Ownership released: yes (after push).
+
+## 2026-10-21 — GoatCounter: partner pages counted too
+
+- Owner: Claude Code (Fable 5.1). Founder asked to see partner-side traffic. PartnerLayout calls `trackPageView(pathname)` in its existing pathname effect; the `/partners` skip in analytics.ts is removed; privacy copy and DEPLOY.md updated.
+- Checks: tsc, eslint (0 errors), build; live `/partners/sign-in` sends one pixel with path only.
+- Ownership released: yes (after push).
